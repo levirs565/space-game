@@ -3,12 +3,12 @@
 #include <SDL_image.h>
 #include <cmath>
 
-class Vector2 {
+class Vec2 {
 public:
     double x;
     double y;
 
-    Vector2(double x, double y) : x(x), y(y) {
+    Vec2(double x, double y) : x(x), y(y) {
 
     }
 
@@ -22,7 +22,7 @@ public:
         y = nextY;
     }
 
-    void add(const Vector2& other, double scale) {
+    void add(const Vec2& other, double scale) {
         x += scale * other.x;
         y += scale * other.y;
     }
@@ -31,8 +31,8 @@ public:
 class Laser {
 public:
     SDL_Texture* texture = nullptr;
-    Vector2 position{0, 0};
-    Vector2 directionVector{0, 0};
+    Vec2 position{0, 0};
+    Vec2 directionVector{0, 0};
     double angle = 0;
 
     Laser() {}
@@ -204,8 +204,8 @@ private:
     SDL_Renderer *mRenderer;
     SDL_Window *mWindow;
     SDL_Texture *mSpaceShipTexture;
-    Vector2 mPlayerPosition{100, 100};
-    Vector2 mDirectionVector{0, 0};
+    Vec2 mPlayerPosition{100, 100};
+    Vec2 mDirectionVector{0, 0};
     Laser mLaser;
     double mRotation = 0;
     bool mIsUp = false;
