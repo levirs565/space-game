@@ -1,6 +1,7 @@
 #include <iostream>
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_mixer.h>
 #include <cmath>
 #include <vector>
 #include <unordered_map>
@@ -74,6 +75,10 @@ public:
             exit(1);
         }
         IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
+        if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) == 1) {
+            std::cout << "Initializing mixer failed" << std::endl;
+            exit(1);
+        }
 
         mWindow = SDL_CreateWindow(
                 "Space",
@@ -99,6 +104,8 @@ public:
 
         mTextureLoader = std::make_unique<TextureLoader>(mRenderer);
         mSpaceShipTexture = mTextureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
+
+        mLaserSound = Mix_LoadWAV("/home/levirs565/Unduhan/SpaceShooterRedux/Bonus/sfx_laser1.ogg");
     }
 
     void processKeyDown(const SDL_KeyboardEvent &key) {
@@ -201,9 +208,10 @@ public:
                                                                        mRotation);
                 mLaserList.push_back(std::move(laser));
                 mLastFire = SDL_GetTicks();
+                Mix_PlayChannel(1, mLaserSound, 0);
             }
 
-            for (const std::unique_ptr<Laser>& laser: mLaserList) {
+            for (const std::unique_ptr<Laser> &laser: mLaserList) {
                 laser->position.add(laser->directionVector, 15);
                 blit(laser->texture, int(laser->position.x), int(laser->position.y), laser->angle);
             }
@@ -232,6 +240,7 @@ private:
     std::vector<std::unique_ptr<Laser>> mLaserList;
     Vec2 mPlayerPosition{100, 100};
     Vec2 mDirectionVector{0, 0};
+    Mix_Chunk *mLaserSound;
     Uint32 mLastFire = 0;
     double mRotation = 0;
     bool mIsUp = false;
