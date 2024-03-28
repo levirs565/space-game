@@ -2,6 +2,31 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <cmath>
+#include <vector>
+#include <unordered_map>
+#include <memory>
+
+class TextureLoader {
+public:
+    explicit TextureLoader(SDL_Renderer *renderer) : mRenderer(renderer) {
+    }
+
+    TextureLoader(const TextureLoader &other) = delete;
+
+    SDL_Texture *load(const std::string &name) {
+        if (mCache.count(name) > 0)
+            return mCache[name];
+
+        SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO, "Loading texture %s", name.c_str());
+        SDL_Texture *texture = IMG_LoadTexture(mRenderer, name.c_str());
+        mCache[name] = texture;
+        return texture;
+    }
+
+private:
+    SDL_Renderer *mRenderer;
+    std::unordered_map<std::string, SDL_Texture *> mCache;
+};
 
 class Vec2 {
 public:
@@ -22,7 +47,7 @@ public:
         y = nextY;
     }
 
-    void add(const Vec2& other, double scale) {
+    void add(const Vec2 &other, double scale) {
         x += scale * other.x;
         y += scale * other.y;
     }
@@ -30,12 +55,15 @@ public:
 
 class Laser {
 public:
-    SDL_Texture* texture = nullptr;
+    SDL_Texture *texture;
     Vec2 position{0, 0};
-    Vec2 directionVector{0, 0};
+    Vec2 directionVector{0, -1};
     double angle = 0;
 
-    Laser() {}
+    Laser(TextureLoader *textureLoader, const Vec2 &position, double angle) : angle{angle}, position{position} {
+        texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Lasers/laserBlue01.png");
+        directionVector.rotate(angle * M_PI / 180.0);
+    }
 };
 
 class App {
@@ -62,18 +90,18 @@ public:
 
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 
-        mRenderer = SDL_CreateRenderer(mWindow, -1,  SDL_RENDERER_ACCELERATED);
+        mRenderer = SDL_CreateRenderer(mWindow, -1, SDL_RENDERER_ACCELERATED);
 
         if (!mRenderer) {
             std::cout << "Initializing renderer failed" << std::endl;
             exit(1);
         }
 
-        mSpaceShipTexture = loadTexture("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
-        mLaser.texture = loadTexture("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Lasers/laserBlue01.png");
+        mTextureLoader = std::make_unique<TextureLoader>(mRenderer);
+        mSpaceShipTexture = mTextureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
     }
 
-    void processKeyDown(const SDL_KeyboardEvent& key) {
+    void processKeyDown(const SDL_KeyboardEvent &key) {
         if (key.repeat != 0) return;
 
         if (key.keysym.scancode == SDL_SCANCODE_UP)
@@ -92,7 +120,7 @@ public:
             mIsFire = true;
     }
 
-    void processKeyUp(const SDL_KeyboardEvent& key) {
+    void processKeyUp(const SDL_KeyboardEvent &key) {
         if (key.repeat != 0) return;
 
         if (key.keysym.scancode == SDL_SCANCODE_UP)
@@ -168,17 +196,16 @@ public:
 
             blit(mSpaceShipTexture, int(mPlayerPosition.x), int(mPlayerPosition.y), mRotation);
 
-            if (mIsFire && mLaser.angle == 0) {
-                mLaser.angle = mRotation;
-                mLaser.directionVector.x = 0;
-                mLaser.directionVector.y = -1;
-                mLaser.directionVector.rotate(mRotation * M_PI / 180.0);
-                mLaser.position = mPlayerPosition;
+            if (mIsFire && (SDL_GetTicks() - mLastFire >= 300 || mLastFire == 0)) {
+                std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), mPlayerPosition,
+                                                                       mRotation);
+                mLaserList.push_back(std::move(laser));
+                mLastFire = SDL_GetTicks();
             }
 
-            if (mLaser.angle != 0) {
-                mLaser.position.add(mLaser.directionVector, 10);
-                blit(mLaser.texture, int(mLaser.position.x), int(mLaser.position.y), mLaser.angle);
+            for (const std::unique_ptr<Laser>& laser: mLaserList) {
+                laser->position.add(laser->directionVector, 10);
+                blit(laser->texture, int(laser->position.x), int(laser->position.y), laser->angle);
             }
 
             presentScene();
@@ -186,12 +213,8 @@ public:
         }
     }
 
-    SDL_Texture* loadTexture(char* filename) {
-        SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO, "Loading texture %s", filename);
-        return IMG_LoadTexture(mRenderer, filename);
-    }
 
-    void blit(SDL_Texture* texture, int x, int y, double angle) {
+    void blit(SDL_Texture *texture, int x, int y, double angle) {
         SDL_Rect rect;
         rect.x = x;
         rect.y = y;
@@ -200,13 +223,16 @@ public:
         rect.y -= rect.h / 2;
         SDL_RenderCopyEx(mRenderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
     }
+
 private:
     SDL_Renderer *mRenderer;
     SDL_Window *mWindow;
     SDL_Texture *mSpaceShipTexture;
+    std::unique_ptr<TextureLoader> mTextureLoader;
+    std::vector<std::unique_ptr<Laser>> mLaserList;
     Vec2 mPlayerPosition{100, 100};
     Vec2 mDirectionVector{0, 0};
-    Laser mLaser;
+    Uint32 mLastFire = 0;
     double mRotation = 0;
     bool mIsUp = false;
     bool mIsLeft = false;
