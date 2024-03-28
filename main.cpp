@@ -28,6 +28,16 @@ public:
     }
 };
 
+class Laser {
+public:
+    SDL_Texture* texture = nullptr;
+    Vector2 position{0, 0};
+    Vector2 directionVector{0, 0};
+    double angle = 0;
+
+    Laser() {}
+};
+
 class App {
 public:
     App() {
@@ -60,6 +70,7 @@ public:
         }
 
         mSpaceShipTexture = loadTexture("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
+        mLaser.texture = loadTexture("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Lasers/laserBlue01.png");
     }
 
     void processKeyDown(const SDL_KeyboardEvent& key) {
@@ -76,6 +87,9 @@ public:
 
         if (key.keysym.scancode == SDL_SCANCODE_RIGHT)
             mIsRight = true;
+
+        if (key.keysym.scancode == SDL_SCANCODE_SPACE)
+            mIsFire = true;
     }
 
     void processKeyUp(const SDL_KeyboardEvent& key) {
@@ -92,6 +106,9 @@ public:
 
         if (key.keysym.scancode == SDL_SCANCODE_RIGHT)
             mIsRight = false;
+
+        if (key.keysym.scancode == SDL_SCANCODE_SPACE)
+            mIsFire = false;
     }
 
     void processInput() {
@@ -151,6 +168,19 @@ public:
 
             blit(mSpaceShipTexture, int(mPlayerPosition.x), int(mPlayerPosition.y), mRotation);
 
+            if (mIsFire && mLaser.angle == 0) {
+                mLaser.angle = mRotation;
+                mLaser.directionVector.x = 0;
+                mLaser.directionVector.y = -1;
+                mLaser.directionVector.rotate(mRotation * M_PI / 180.0);
+                mLaser.position = mPlayerPosition;
+            }
+
+            if (mLaser.angle != 0) {
+                mLaser.position.add(mLaser.directionVector, 10);
+                blit(mLaser.texture, int(mLaser.position.x), int(mLaser.position.y), mLaser.angle);
+            }
+
             presentScene();
             SDL_Delay(16);
         }
@@ -166,6 +196,8 @@ public:
         rect.x = x;
         rect.y = y;
         SDL_QueryTexture(texture, NULL, NULL, &rect.w, &rect.h);
+        rect.x -= rect.w / 2;
+        rect.y -= rect.h / 2;
         SDL_RenderCopyEx(mRenderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
     }
 private:
@@ -174,11 +206,13 @@ private:
     SDL_Texture *mSpaceShipTexture;
     Vector2 mPlayerPosition{100, 100};
     Vector2 mDirectionVector{0, 0};
+    Laser mLaser;
     double mRotation = 0;
     bool mIsUp = false;
     bool mIsLeft = false;
     bool mIsDown = false;
     bool mIsRight = false;
+    bool mIsFire = false;
 };
 
 int main() {
