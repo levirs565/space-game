@@ -196,7 +196,7 @@ public:
 
             blit(mSpaceShipTexture, int(mPlayerPosition.x), int(mPlayerPosition.y), mRotation);
 
-            if (mIsFire && (SDL_GetTicks() - mLastFire >= 300 || mLastFire == 0)) {
+            if (mIsFire && (SDL_GetTicks() - mLastFire >= 150)) {
                 std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), mPlayerPosition,
                                                                        mRotation);
                 mLaserList.push_back(std::move(laser));
@@ -204,7 +204,7 @@ public:
             }
 
             for (const std::unique_ptr<Laser>& laser: mLaserList) {
-                laser->position.add(laser->directionVector, 10);
+                laser->position.add(laser->directionVector, 15);
                 blit(laser->texture, int(laser->position.x), int(laser->position.y), laser->angle);
             }
 
