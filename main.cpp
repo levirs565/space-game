@@ -54,30 +54,47 @@ public:
     }
 };
 
-bool almostEqual(double a, double b) {
-    return fabs(a - b) < DBL_EPSILON;
-}
-
-class Laser {
+class GameEntity {
 public:
     SDL_Texture *texture;
-    Vec2 position{0, 0};
+    Vec2 position;
+
+    GameEntity(const Vec2 &position) : position(position) {}
+
+    SDL_Rect getRect() {
+        SDL_Rect r;
+        r.x = int(position.x);
+        r.y = int(position.y);
+        SDL_QueryTexture(texture, nullptr, nullptr, &r.w, &r.h);
+        return r;
+    }
+};
+
+class Laser : public GameEntity {
+public:
+    SDL_Texture *texture;
     Vec2 directionVector{0, -1};
     double angle = 0;
 
-    Laser(TextureLoader *textureLoader, const Vec2 &position, double angle) : angle{angle}, position{position} {
+    Laser(TextureLoader *textureLoader, const Vec2 &position, double angle) : GameEntity(position), angle{angle} {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Lasers/laserBlue01.png");
         directionVector.rotate(angle * M_PI / 180.0);
     }
 };
 
-class Enemy {
+class Enemy : public GameEntity {
 public:
-    SDL_Texture *texture;
-    Vec2 position{0, 0};
-
-    explicit Enemy(TextureLoader *textureLoader, const Vec2 &position) : position{position} {
+    Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
+    }
+};
+
+class PlayerShip : public GameEntity {
+public:
+    Vec2 mDirectionVector{0, 0};
+
+    explicit PlayerShip(TextureLoader* textureLoader, const Vec2& position): GameEntity(position) {
+        texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
     }
 };
 
@@ -117,11 +134,11 @@ public:
         }
 
         mTextureLoader = std::make_unique<TextureLoader>(mRenderer);
-        mSpaceShipTexture = mTextureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
         mBackgroundTexture = mTextureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/Backgrounds/black.png");
 
         mLaserSound = Mix_LoadWAV("/home/levirs565/Unduhan/SpaceShooterRedux/Bonus/sfx_laser1.ogg");
 
+        mPlayerShip = std::make_unique<PlayerShip>(mTextureLoader.get(), Vec2(  400, 400));
         mEnemyList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 100))));
     }
 
@@ -198,14 +215,14 @@ public:
             processInput();
 
             if (mIsUp) {
-                mDirectionVector.y = -1;
-                mDirectionVector.x = 0;
+                mPlayerShip->mDirectionVector.y = -1;
+                mPlayerShip->mDirectionVector.x = 0;
             } else if (mIsDown) {
-                mDirectionVector.x = 0;
-                mDirectionVector.y = 1;
+                mPlayerShip->mDirectionVector.x = 0;
+                mPlayerShip->mDirectionVector.y = 1;
             } else {
-                mDirectionVector.x = 0;
-                mDirectionVector.y = 0;
+                mPlayerShip->mDirectionVector.x = 0;
+                mPlayerShip->mDirectionVector.y = 0;
             }
 
             if (mIsLeft)
@@ -214,15 +231,15 @@ public:
             if (mIsRight)
                 mRotation += 5;
 
-            mDirectionVector.rotate(mRotation * M_PI / 180.0);
+            mPlayerShip->mDirectionVector.rotate(mRotation * M_PI / 180.0);
 
-            mPlayerPosition.add(mDirectionVector, 5);
+            mPlayerShip->position.add(mPlayerShip->mDirectionVector, 5);
 
-            mCameraPosition.x = SDL_clamp(mPlayerPosition.x - mCameraSize.x / 2, 0, mWordSize.x - mCameraSize.x);
-            mCameraPosition.y = SDL_clamp(mPlayerPosition.y - mCameraSize.y / 2, 0, mWordSize.y - mCameraSize.y);
+            mCameraPosition.x = SDL_clamp(mPlayerShip->position.x - mCameraSize.x / 2, 0, mWordSize.x - mCameraSize.x);
+            mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2, 0, mWordSize.y - mCameraSize.y);
 
-            mPlayerPosition.x = SDL_clamp(mPlayerPosition.x, 0, mWordSize.x);
-            mPlayerPosition.y = SDL_clamp(mPlayerPosition.y, 0, mWordSize.y);
+            mPlayerShip->position.x = SDL_clamp(mPlayerShip->position.x, 0, mWordSize.x);
+            mPlayerShip->position.y = SDL_clamp(mPlayerShip->position.y, 0, mWordSize.y);
 
             int backgroundWidth, backgroundHeight;
             SDL_QueryTexture(mBackgroundTexture, nullptr, nullptr, &backgroundWidth, &backgroundHeight);
@@ -241,10 +258,10 @@ public:
                 }
             }
 
-            blit(mSpaceShipTexture, mPlayerPosition.x, mPlayerPosition.y, mRotation);
+            blit(mPlayerShip->texture, mPlayerShip->position.x, mPlayerShip->position.y, mRotation);
 
             if (mIsFire && (SDL_GetTicks() - mLastFire >= 150)) {
-                std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), mPlayerPosition,
+                std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), mPlayerShip->position,
                                                                        mRotation);
                 mLaserList.push_back(std::move(laser));
                 mLastFire = SDL_GetTicks();
@@ -279,13 +296,11 @@ public:
 private:
     SDL_Renderer *mRenderer;
     SDL_Window *mWindow;
-    SDL_Texture *mSpaceShipTexture;
     SDL_Texture *mBackgroundTexture;
+    std::unique_ptr<PlayerShip> mPlayerShip;
     std::unique_ptr<TextureLoader> mTextureLoader;
     std::vector<std::unique_ptr<Laser>> mLaserList;
     std::vector<std::unique_ptr<Enemy>> mEnemyList;
-    Vec2 mPlayerPosition{400, 400};
-    Vec2 mDirectionVector{0, 0};
     Vec2 mCameraSize{800, 600};
     Vec2 mCameraPosition{0, 0};
     Vec2 mWordSize{5000, 5000};
