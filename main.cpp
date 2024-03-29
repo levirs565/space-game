@@ -205,30 +205,11 @@ public:
 
             mPlayerPosition.add(mDirectionVector, 5);
 
-            const bool xInStartWorld = mPlayerPosition.x < mCameraSize.x / 2;
-            const bool xInEndWorld = mPlayerPosition.x > mWordSize.x - mCameraSize.x / 2;
-            if ((!xInStartWorld && !xInEndWorld) ||
-                (xInStartWorld && mCameraPosition.x > 0) ||
-                (xInEndWorld && mCameraPosition.x < mWordSize.x - mCameraSize.x)) {
-                mCameraPosition.x += 5 * mDirectionVector.x;
-            }
-
-            const bool yInStartWorld = mPlayerPosition.y < mCameraSize.y / 2;
-            const bool yInEndWorld = mPlayerPosition.y > mWordSize.y - mCameraSize.y / 2;
-            if ((!yInStartWorld && !yInEndWorld) ||
-                (yInStartWorld && mCameraPosition.y > 0) ||
-                (yInEndWorld && mCameraPosition.y < mWordSize.y - mCameraSize.y)) {
-                mCameraPosition.y += 5 * mDirectionVector.y;
-            }
-
-            mCameraPosition.x = SDL_clamp(mCameraPosition.x, 0, mWordSize.x - mCameraSize.x);
-            mCameraPosition.y = SDL_clamp(mCameraPosition.y, 0, mWordSize.y - mCameraSize.y);
+            mCameraPosition.x = SDL_clamp(mPlayerPosition.x - mCameraSize.x / 2, 0, mWordSize.x - mCameraSize.x);
+            mCameraPosition.y = SDL_clamp(mPlayerPosition.y - mCameraSize.y / 2, 0, mWordSize.y - mCameraSize.y);
 
             mPlayerPosition.x = SDL_clamp(mPlayerPosition.x, 0, mWordSize.x);
             mPlayerPosition.y = SDL_clamp(mPlayerPosition.y, 0, mWordSize.y);
-
-            SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO, "Camera pos %f,%f", mCameraPosition.x,
-                           mCameraPosition.y);
 
             blit(mSpaceShipTexture, mPlayerPosition.x, mPlayerPosition.y, mRotation);
 
