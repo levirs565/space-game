@@ -54,6 +54,10 @@ public:
     }
 };
 
+bool almostEqual(double a, double b) {
+    return fabs(a - b) < DBL_EPSILON;
+}
+
 class Laser {
 public:
     SDL_Texture *texture;
@@ -201,7 +205,32 @@ public:
 
             mPlayerPosition.add(mDirectionVector, 5);
 
-            blit(mSpaceShipTexture, int(mPlayerPosition.x), int(mPlayerPosition.y), mRotation);
+            const bool xInStartWorld = mPlayerPosition.x < mCameraSize.x / 2;
+            const bool xInEndWorld = mPlayerPosition.x > mWordSize.x - mCameraSize.x / 2;
+            if ((!xInStartWorld && !xInEndWorld) ||
+                (xInStartWorld && mCameraPosition.x > 0) ||
+                (xInEndWorld && mCameraPosition.x < mWordSize.x - mCameraSize.x)) {
+                mCameraPosition.x += 5 * mDirectionVector.x;
+            }
+
+            const bool yInStartWorld = mPlayerPosition.y < mCameraSize.y / 2;
+            const bool yInEndWorld = mPlayerPosition.y > mWordSize.y - mCameraSize.y / 2;
+            if ((!yInStartWorld && !yInEndWorld) ||
+                (yInStartWorld && mCameraPosition.y > 0) ||
+                (yInEndWorld && mCameraPosition.y < mWordSize.y - mCameraSize.y)) {
+                mCameraPosition.y += 5 * mDirectionVector.y;
+            }
+
+            mCameraPosition.x = SDL_clamp(mCameraPosition.x, 0, mWordSize.x - mCameraSize.x);
+            mCameraPosition.y = SDL_clamp(mCameraPosition.y, 0, mWordSize.y - mCameraSize.y);
+
+            mPlayerPosition.x = SDL_clamp(mPlayerPosition.x, 0, mWordSize.x);
+            mPlayerPosition.y = SDL_clamp(mPlayerPosition.y, 0, mWordSize.y);
+
+            SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO, "Camera pos %f,%f", mCameraPosition.x,
+                           mCameraPosition.y);
+
+            blit(mSpaceShipTexture, mPlayerPosition.x, mPlayerPosition.y, mRotation);
 
             if (mIsFire && (SDL_GetTicks() - mLastFire >= 150)) {
                 std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), mPlayerPosition,
@@ -213,7 +242,7 @@ public:
 
             for (const std::unique_ptr<Laser> &laser: mLaserList) {
                 laser->position.add(laser->directionVector, 15);
-                blit(laser->texture, int(laser->position.x), int(laser->position.y), laser->angle);
+                blit(laser->texture, laser->position.x, laser->position.y, laser->angle);
             }
 
             presentScene();
@@ -222,10 +251,10 @@ public:
     }
 
 
-    void blit(SDL_Texture *texture, int x, int y, double angle) {
+    void blit(SDL_Texture *texture, double x, double y, double angle) {
         SDL_Rect rect;
-        rect.x = x;
-        rect.y = y;
+        rect.x = int(x - mCameraPosition.x);
+        rect.y = int(y - mCameraPosition.y);
         SDL_QueryTexture(texture, NULL, NULL, &rect.w, &rect.h);
         rect.x -= rect.w / 2;
         rect.y -= rect.h / 2;
@@ -240,6 +269,9 @@ private:
     std::vector<std::unique_ptr<Laser>> mLaserList;
     Vec2 mPlayerPosition{100, 100};
     Vec2 mDirectionVector{0, 0};
+    Vec2 mCameraSize{800, 600};
+    Vec2 mCameraPosition{0, 0};
+    Vec2 mWordSize{5000, 5000};
     Mix_Chunk *mLaserSound;
     Uint32 mLastFire = 0;
     double mRotation = 0;
