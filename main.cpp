@@ -79,6 +79,8 @@ public:
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Lasers/laserBlue01.png");
         directionVector.rotate(angle * M_PI / 180.0);
     }
+
+    bool mustGone = false;
 };
 
 class Enemy : public GameEntity {
@@ -270,19 +272,22 @@ public:
             }
 
             for (const std::unique_ptr<Laser> &laser: mLaserList) {
+                if (laser->mustGone) continue;
+
                 laser->position.add(laser->directionVector, 15);
 
-                bool isHit = false;
                 for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
+                    if (enemy->isHit) continue;
+
                     SDL_Rect enemyRect = enemy->getRect();
                     SDL_Rect laserRect = laser->getRect();
                     if (SDL_HasIntersection(&enemyRect, &laserRect)) {
-                        isHit = true;
+                        laser->mustGone = true;
                         enemy->isHit = true;
                     }
                 }
 
-                if (!isHit)
+                if (!laser->mustGone)
                     blit(laser->texture, laser->position.x, laser->position.y, laser->angle);
             }
 
