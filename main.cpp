@@ -71,6 +71,16 @@ public:
     }
 };
 
+class Enemy {
+public:
+    SDL_Texture *texture;
+    Vec2 position{0, 0};
+
+    explicit Enemy(TextureLoader *textureLoader, const Vec2 &position) : position{position} {
+        texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
+    }
+};
+
 class App {
 public:
     App() {
@@ -111,6 +121,8 @@ public:
         mBackgroundTexture = mTextureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/Backgrounds/black.png");
 
         mLaserSound = Mix_LoadWAV("/home/levirs565/Unduhan/SpaceShooterRedux/Bonus/sfx_laser1.ogg");
+
+        mEnemyList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 100))));
     }
 
     void processKeyDown(const SDL_KeyboardEvent &key) {
@@ -244,6 +256,10 @@ public:
                 blit(laser->texture, laser->position.x, laser->position.y, laser->angle);
             }
 
+            for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
+                blit(enemy->texture, enemy->position.x, enemy->position.y, 0);
+            }
+
             presentScene();
             SDL_Delay(16);
         }
@@ -267,7 +283,8 @@ private:
     SDL_Texture *mBackgroundTexture;
     std::unique_ptr<TextureLoader> mTextureLoader;
     std::vector<std::unique_ptr<Laser>> mLaserList;
-    Vec2 mPlayerPosition{100, 100};
+    std::vector<std::unique_ptr<Enemy>> mEnemyList;
+    Vec2 mPlayerPosition{400, 400};
     Vec2 mDirectionVector{0, 0};
     Vec2 mCameraSize{800, 600};
     Vec2 mCameraPosition{0, 0};
