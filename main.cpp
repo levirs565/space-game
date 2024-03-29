@@ -108,6 +108,7 @@ public:
 
         mTextureLoader = std::make_unique<TextureLoader>(mRenderer);
         mSpaceShipTexture = mTextureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
+        mBackgroundTexture = mTextureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/Backgrounds/black.png");
 
         mLaserSound = Mix_LoadWAV("/home/levirs565/Unduhan/SpaceShooterRedux/Bonus/sfx_laser1.ogg");
     }
@@ -211,6 +212,23 @@ public:
             mPlayerPosition.x = SDL_clamp(mPlayerPosition.x, 0, mWordSize.x);
             mPlayerPosition.y = SDL_clamp(mPlayerPosition.y, 0, mWordSize.y);
 
+            int backgroundWidth, backgroundHeight;
+            SDL_QueryTexture(mBackgroundTexture, nullptr, nullptr, &backgroundWidth, &backgroundHeight);
+
+            double backgroundStartY = mCameraPosition.y - fmod(mCameraPosition.y, double(backgroundHeight));
+            double backgroundStartX = mCameraPosition.x - fmod(mCameraPosition.x, double(backgroundWidth));
+            int backgroundCountY = int(
+                    ceil((mCameraPosition.y + mCameraSize.y - backgroundStartY) / double(backgroundHeight)));
+            int backgroundCountX = int(
+                    ceil((mCameraPosition.x + mCameraSize.x - backgroundStartX) / double(backgroundWidth)));
+
+            for (int backgroundRow = 0; backgroundRow <= backgroundCountY; backgroundRow++) {
+                for (int backgroundColumn = 0; backgroundColumn <= backgroundCountX; backgroundColumn++) {
+                    blit(mBackgroundTexture, backgroundStartX + backgroundColumn * backgroundWidth,
+                         backgroundStartY + backgroundRow * backgroundHeight, 0.0);
+                }
+            }
+
             blit(mSpaceShipTexture, mPlayerPosition.x, mPlayerPosition.y, mRotation);
 
             if (mIsFire && (SDL_GetTicks() - mLastFire >= 150)) {
@@ -246,6 +264,7 @@ private:
     SDL_Renderer *mRenderer;
     SDL_Window *mWindow;
     SDL_Texture *mSpaceShipTexture;
+    SDL_Texture *mBackgroundTexture;
     std::unique_ptr<TextureLoader> mTextureLoader;
     std::vector<std::unique_ptr<Laser>> mLaserList;
     Vec2 mPlayerPosition{100, 100};
