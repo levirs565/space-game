@@ -123,7 +123,7 @@ public:
         if (key.keysym.scancode == SDL_SCANCODE_RIGHT)
             mIsRight = true;
 
-        if (key.keysym.scancode == SDL_SCANCODE_SPACE)
+        if (key.keysym.scancode == SDL_SCANCODE_LCTRL)
             mIsFire = true;
     }
 
@@ -142,7 +142,7 @@ public:
         if (key.keysym.scancode == SDL_SCANCODE_RIGHT)
             mIsRight = false;
 
-        if (key.keysym.scancode == SDL_SCANCODE_SPACE)
+        if (key.keysym.scancode == SDL_SCANCODE_LCTRL)
             mIsFire = false;
     }
 
