@@ -72,7 +72,6 @@ public:
 
 class Laser : public GameEntity {
 public:
-    SDL_Texture *texture;
     Vec2 directionVector{0, -1};
     double angle = 0;
 
@@ -87,13 +86,15 @@ public:
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
     }
+
+    bool isHit = false;
 };
 
 class PlayerShip : public GameEntity {
 public:
     Vec2 mDirectionVector{0, 0};
 
-    explicit PlayerShip(TextureLoader* textureLoader, const Vec2& position): GameEntity(position) {
+    explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
     }
 };
@@ -138,7 +139,7 @@ public:
 
         mLaserSound = Mix_LoadWAV("/home/levirs565/Unduhan/SpaceShooterRedux/Bonus/sfx_laser1.ogg");
 
-        mPlayerShip = std::make_unique<PlayerShip>(mTextureLoader.get(), Vec2(  400, 400));
+        mPlayerShip = std::make_unique<PlayerShip>(mTextureLoader.get(), Vec2(400, 400));
         mEnemyList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 100))));
     }
 
@@ -270,11 +271,24 @@ public:
 
             for (const std::unique_ptr<Laser> &laser: mLaserList) {
                 laser->position.add(laser->directionVector, 15);
-                blit(laser->texture, laser->position.x, laser->position.y, laser->angle);
+
+                bool isHit = false;
+                for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
+                    SDL_Rect enemyRect = enemy->getRect();
+                    SDL_Rect laserRect = laser->getRect();
+                    if (SDL_HasIntersection(&enemyRect, &laserRect)) {
+                        isHit = true;
+                        enemy->isHit = true;
+                    }
+                }
+
+                if (!isHit)
+                    blit(laser->texture, laser->position.x, laser->position.y, laser->angle);
             }
 
             for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
-                blit(enemy->texture, enemy->position.x, enemy->position.y, 0);
+                if (!enemy->isHit)
+                    blit(enemy->texture, enemy->position.x, enemy->position.y, 0);
             }
 
             presentScene();
