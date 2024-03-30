@@ -88,9 +88,9 @@ public:
 
     SDL_Rect getRect() {
         SDL_Rect r;
-        r.x = int(position.x);
-        r.y = int(position.y);
         SDL_QueryTexture(texture, nullptr, nullptr, &r.w, &r.h);
+        r.x = int(position.x - r.w / 2);
+        r.y = int(position.y - r.h / 2);
         return r;
     }
 };
@@ -111,6 +111,7 @@ public:
 class Enemy : public GameEntity {
 public:
     Vec2 velocity{0, 0};
+    Uint32 lastFire = 0;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -313,9 +314,6 @@ public:
                         enemy->isHit = true;
                     }
                 }
-
-                if (!laser->mustGone)
-                    blit(laser->texture, laser->position.x, laser->position.y, laser->angle);
             }
 
             for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
@@ -328,8 +326,25 @@ public:
                     steering.substract(enemy->velocity);
                     enemy->velocity.add(steering, 1);
                     enemy->position.add(enemy->velocity, 1);
-                    blit(enemy->texture, enemy->position.x, enemy->position.y, enemy->velocity.getRotation() * 180.0 / M_PI - 90);
+                    double enemyRotation = enemy->velocity.getRotation() * 180.0 / M_PI - 90;
+                    blit(enemy->texture, enemy->position.x, enemy->position.y, enemyRotation);
+
+                    if (SDL_GetTicks() - enemy->lastFire >= 150) {
+                        SDL_Rect enemyRect = enemy->getRect();
+                        Vec2 laserPos(0, enemyRect.h);
+                        laserPos.rotate((enemyRotation) * M_PI / 180.0);
+                        laserPos.add(enemy->position, 1);
+                        std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), laserPos,
+                                                                               enemyRotation - 180);
+                        mLaserList.push_back(std::move(laser));
+                        enemy->lastFire = SDL_GetTicks();
+                        Mix_PlayChannel(1, mLaserSound, 0);
+                    }
                 }
+            }
+            for (const std::unique_ptr<Laser> &laser: mLaserList) {
+                if (!laser->mustGone)
+                    blit(laser->texture, laser->position.x, laser->position.y, laser->angle);
             }
 
             presentScene();
