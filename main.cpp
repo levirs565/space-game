@@ -67,6 +67,11 @@ public:
         return SDL_sqrt(x * x + y * y);
     }
 
+    double getRotation() {
+        return SDL_atan2(y, x);
+    }
+
+
     void normalize() {
         double l = length();
         x /= l;
@@ -323,7 +328,7 @@ public:
                     steering.substract(enemy->velocity);
                     enemy->velocity.add(steering, 1);
                     enemy->position.add(enemy->velocity, 1);
-                    blit(enemy->texture, enemy->position.x, enemy->position.y, 0);
+                    blit(enemy->texture, enemy->position.x, enemy->position.y, enemy->velocity.getRotation() * 180.0 / M_PI - 90);
                 }
             }
 
