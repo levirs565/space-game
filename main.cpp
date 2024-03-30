@@ -326,6 +326,8 @@ public:
                     desiredVelocity.normalize();
                     desiredVelocity.scale(2);
 
+                    Vec2 direction(desiredVelocity);
+
                     double slowingDistance = 100;
                     double stopRadius = 200;
 
@@ -334,10 +336,17 @@ public:
                     }
 
                     Vec2 steering = Vec2(desiredVelocity);
+
                     steering.substract(enemy->velocity);
+                    direction.substract(enemy->velocity);
+
+                    direction.add(enemy->velocity, 1);
                     enemy->velocity.add(steering, 1);
+
                     enemy->position.add(enemy->velocity, 1);
-                    double enemyRotation = enemy->velocity.getRotation() * 180.0 / M_PI - 90;
+
+                    double enemyRotation = direction.getRotation() * 180.0 / M_PI - 90;
+
                     blit(enemy->texture, enemy->position.x, enemy->position.y, enemyRotation);
 
                     if (SDL_GetTicks() - enemy->lastFire >= 150) {
