@@ -302,7 +302,7 @@ public:
             for (const std::unique_ptr<Laser> &laser: mLaserList) {
                 if (laser->mustGone) continue;
 
-                laser->position.add(laser->directionVector, 15);
+                laser->position.add(laser->directionVector, 7.5);
 
                 for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
                     if (enemy->isHit) continue;
@@ -330,8 +330,10 @@ public:
 
                     double slowingDistance = 100;
                     double stopRadius = 200;
+                    bool canAttack = false;
 
                     if (distance < slowingDistance + stopRadius) {
+                        canAttack = true;
                         desiredVelocity.scale((std::max(distance - stopRadius, 0.0)) / slowingDistance);
                     }
 
@@ -349,7 +351,7 @@ public:
 
                     blit(enemy->texture, enemy->position.x, enemy->position.y, enemyRotation);
 
-                    if (SDL_GetTicks() - enemy->lastFire >= 150) {
+                    if (SDL_GetTicks() - enemy->lastFire >= 1000 && canAttack) {
                         SDL_Rect enemyRect = enemy->getRect();
                         Vec2 laserPos(0, enemyRect.h);
                         laserPos.rotate((enemyRotation) * M_PI / 180.0);
