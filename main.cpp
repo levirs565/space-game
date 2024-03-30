@@ -320,8 +320,19 @@ public:
                 if (!enemy->isHit) {
                     Vec2 desiredVelocity = Vec2(mPlayerShip->position);
                     desiredVelocity.substract(enemy->position);
+
+                    double distance = desiredVelocity.length();
+
                     desiredVelocity.normalize();
                     desiredVelocity.scale(2);
+
+                    double slowingDistance = 100;
+                    double stopRadius = 200;
+
+                    if (distance < slowingDistance + stopRadius) {
+                        desiredVelocity.scale((std::max(distance - stopRadius, 0.0)) / slowingDistance);
+                    }
+
                     Vec2 steering = Vec2(desiredVelocity);
                     steering.substract(enemy->velocity);
                     enemy->velocity.add(steering, 1);
