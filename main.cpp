@@ -52,6 +52,26 @@ public:
         x += scale * other.x;
         y += scale * other.y;
     }
+
+    void substract(const Vec2 &other) {
+        x -= other.x;
+        y -= other.y;
+    }
+
+    void scale(double factor) {
+        x *= factor;
+        y *= factor;
+    }
+
+    double length() const {
+        return SDL_sqrt(x * x + y * y);
+    }
+
+    void normalize() {
+        double l = length();
+        x /= l;
+        y /= l;
+    }
 };
 
 class GameEntity {
@@ -85,6 +105,8 @@ public:
 
 class Enemy : public GameEntity {
 public:
+    Vec2 velocity{0, 0};
+
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
     }
@@ -292,8 +314,17 @@ public:
             }
 
             for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
-                if (!enemy->isHit)
+                if (!enemy->isHit) {
+                    Vec2 desiredVelocity = Vec2(mPlayerShip->position);
+                    desiredVelocity.substract(enemy->position);
+                    desiredVelocity.normalize();
+                    desiredVelocity.scale(2);
+                    Vec2 steering = Vec2(desiredVelocity);
+                    steering.substract(enemy->velocity);
+                    enemy->velocity.add(steering, 1);
+                    enemy->position.add(enemy->velocity, 1);
                     blit(enemy->texture, enemy->position.x, enemy->position.y, 0);
+                }
             }
 
             presentScene();
