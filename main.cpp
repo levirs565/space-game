@@ -93,10 +93,12 @@ class GameEntity {
 public:
     SDL_Texture *texture;
     Vec2 position;
+    double angle;
+    bool mustGone = false;
 
-    GameEntity(const Vec2 &position) : position(position) {}
+    GameEntity(const Vec2 &position, double angle) : position(position), angle(angle) {}
 
-    SDL_Rect getRect() {
+    SDL_Rect getRect() const {
         SDL_Rect r;
         SDL_QueryTexture(texture, nullptr, nullptr, &r.w, &r.h);
         r.x = int(position.x - r.w / 2);
@@ -105,22 +107,27 @@ public:
     }
 
     virtual void onTick(IGameStage *stage) = 0;
+
+    virtual void onHit(GameEntity *other) {
+
+    }
 };
 
 class Laser : public GameEntity {
 public:
     Vec2 directionVector{0, -1};
-    double angle = 0;
 
-    Laser(TextureLoader *textureLoader, const Vec2 &position, double angle) : GameEntity(position), angle{angle} {
+    Laser(TextureLoader *textureLoader, const Vec2 &position, double angle) : GameEntity(position, angle) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Lasers/laserBlue01.png");
         directionVector.rotate(angle * M_PI / 180.0);
     }
 
-    bool mustGone = false;
-
     void onTick(IGameStage *stage) override {
         position.add(directionVector, 7.5);
+    }
+
+    void onHit(GameEntity *other) override {
+        mustGone = true;
     }
 };
 
@@ -139,10 +146,9 @@ public:
     };
 
     Vec2 directionVector{0, 0};
-    double angle = 0;
     Uint32 lastFire = 0;
 
-    explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position) {
+    explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
     }
 
@@ -187,13 +193,10 @@ class Enemy : public GameEntity {
 public:
     Vec2 velocity{0, 0};
     Uint32 lastFire = 0;
-    double angle = 0;
 
-    Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position) {
+    Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
     }
-
-    bool isHit = false;
 
     void onTick(IGameStage *stage) override {
         Vec2 desiredVelocity = Vec2(stage->getPlayerPosition());
@@ -234,6 +237,12 @@ public:
             laserPos.add(position, 1);
             stage->addLaser(laserPos, angle - 180);
             lastFire = SDL_GetTicks();
+        }
+    }
+
+    void onHit(GameEntity *other) override {
+        if (Laser *laser = dynamic_cast<Laser *>(other); laser != nullptr) {
+            mustGone = true;
         }
     }
 };
@@ -278,8 +287,10 @@ public:
 
         mLaserSound = Mix_LoadWAV("/home/levirs565/Unduhan/SpaceShooterRedux/Bonus/sfx_laser1.ogg");
 
-        mPlayerShip = std::make_unique<PlayerShip>(mTextureLoader.get(), Vec2(400, 400));
-        mEnemyList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 100))));
+        std::unique_ptr<PlayerShip> playerShip = std::make_unique<PlayerShip>(mTextureLoader.get(), Vec2(400, 400));
+        mPlayerShip = playerShip.get();
+        mEntityList.push_back(std::move(playerShip));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 100))));
     }
 
     void processKeyDown(const SDL_KeyboardEvent &key) {
@@ -349,6 +360,30 @@ public:
         SDL_RenderPresent(mRenderer);
     }
 
+    void calculateCamera() {
+        mCameraPosition.x = SDL_clamp(mPlayerShip->position.x - mCameraSize.x / 2, 0, mWordSize.x - mCameraSize.x);
+        mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2, 0, mWordSize.y - mCameraSize.y);
+    }
+
+    void drawBackground() {
+        int backgroundWidth, backgroundHeight;
+        SDL_QueryTexture(mBackgroundTexture, nullptr, nullptr, &backgroundWidth, &backgroundHeight);
+
+        double backgroundStartY = mCameraPosition.y - fmod(mCameraPosition.y, double(backgroundHeight));
+        double backgroundStartX = mCameraPosition.x - fmod(mCameraPosition.x, double(backgroundWidth));
+        int backgroundCountY = int(
+                ceil((mCameraPosition.y + mCameraSize.y - backgroundStartY) / double(backgroundHeight)));
+        int backgroundCountX = int(
+                ceil((mCameraPosition.x + mCameraSize.x - backgroundStartX) / double(backgroundWidth)));
+
+        for (int backgroundRow = 0; backgroundRow <= backgroundCountY; backgroundRow++) {
+            for (int backgroundColumn = 0; backgroundColumn <= backgroundCountX; backgroundColumn++) {
+                blit(mBackgroundTexture, backgroundStartX + backgroundColumn * backgroundWidth,
+                     backgroundStartY + backgroundRow * backgroundHeight, 0.0);
+            }
+        }
+    }
+
     void run() {
         while (true) {
             prepareScene();
@@ -362,69 +397,45 @@ public:
                             : mIsRight ? PlayerShip::ROTATION_RIGHT
                                        : PlayerShip::ROTATION_NONE);
 
+            size_t entityCount = mEntityList.size();
+            for (size_t i = 0; i < entityCount; i++) {
+                const std::unique_ptr<GameEntity> &entity = mEntityList[i];
+                entity->onTick(this);
+            }
 
-            mPlayerShip->onTick(this);
+            calculateCamera();
+            drawBackground();
 
             if (mIsFire)
                 mPlayerShip->doFire(this);
 
-            mCameraPosition.x = SDL_clamp(mPlayerShip->position.x - mCameraSize.x / 2, 0, mWordSize.x - mCameraSize.x);
-            mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2, 0, mWordSize.y - mCameraSize.y);
+            for (std::vector<std::unique_ptr<GameEntity>>::iterator it = mEntityList.begin();
+                 it != mEntityList.end(); it++) {
+                std::unique_ptr<GameEntity> &entity = *it;
+                SDL_Rect entityRect = entity->getRect();
 
-            int backgroundWidth, backgroundHeight;
-            SDL_QueryTexture(mBackgroundTexture, nullptr, nullptr, &backgroundWidth, &backgroundHeight);
+                for (std::vector<std::unique_ptr<GameEntity>>::iterator otherIt = it + 1;
+                     otherIt != mEntityList.end(); otherIt++) {
+                    std::unique_ptr<GameEntity> &otherEntity = *otherIt;
 
-            double backgroundStartY = mCameraPosition.y - fmod(mCameraPosition.y, double(backgroundHeight));
-            double backgroundStartX = mCameraPosition.x - fmod(mCameraPosition.x, double(backgroundWidth));
-            int backgroundCountY = int(
-                    ceil((mCameraPosition.y + mCameraSize.y - backgroundStartY) / double(backgroundHeight)));
-            int backgroundCountX = int(
-                    ceil((mCameraPosition.x + mCameraSize.x - backgroundStartX) / double(backgroundWidth)));
-
-            for (int backgroundRow = 0; backgroundRow <= backgroundCountY; backgroundRow++) {
-                for (int backgroundColumn = 0; backgroundColumn <= backgroundCountX; backgroundColumn++) {
-                    blit(mBackgroundTexture, backgroundStartX + backgroundColumn * backgroundWidth,
-                         backgroundStartY + backgroundRow * backgroundHeight, 0.0);
-                }
-            }
-
-            blit(mPlayerShip->texture, mPlayerShip->position.x, mPlayerShip->position.y, mPlayerShip->angle);
-
-
-            for (const std::unique_ptr<Laser> &laser: mLaserList) {
-                if (laser->mustGone) continue;
-
-                laser->onTick(this);
-            }
-
-            for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
-                if (enemy->isHit) continue;
-
-                enemy->onTick(this);
-            }
-
-            for (const std::unique_ptr<Laser> &laser: mLaserList) {
-                if (laser->mustGone) continue;
-
-                for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
-                    if (enemy->isHit) continue;
-
-                    SDL_Rect enemyRect = enemy->getRect();
-                    SDL_Rect laserRect = laser->getRect();
-                    if (SDL_HasIntersection(&enemyRect, &laserRect)) {
-                        laser->mustGone = true;
-                        enemy->isHit = true;
+                    SDL_Rect otherRect = otherEntity->getRect();
+                    if (SDL_HasIntersection(&entityRect, &otherRect)) {
+                        entity->onHit(otherEntity.get());
+                        otherEntity->onHit(entity.get());
                     }
                 }
-                if (laser->mustGone) continue;
-
-                blit(laser->texture, laser->position.x, laser->position.y, laser->angle);
             }
 
-            for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
-                if (enemy->isHit) continue;
+            for (std::vector<std::unique_ptr<GameEntity>>::iterator it = mEntityList.begin();
+                 it != mEntityList.end(); it++) {
+                std::unique_ptr<GameEntity> &entity = *it;
 
-                blit(enemy->texture, enemy->position.x, enemy->position.y, enemy->angle);
+                if (entity->mustGone) {
+                    it = mEntityList.erase(it) - 1;
+                    continue;
+                }
+
+                blit(entity->texture, entity->position.x, entity->position.y, entity->angle);
             }
 
             presentScene();
@@ -450,7 +461,7 @@ public:
     void addLaser(const Vec2 &position, double angle) override {
         std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), position,
                                                                angle);
-        mLaserList.push_back(std::move(laser));
+        mEntityList.push_back(std::move(laser));
         Mix_PlayChannel(1, mLaserSound, 0);
     }
 
@@ -462,10 +473,9 @@ private:
     SDL_Renderer *mRenderer;
     SDL_Window *mWindow;
     SDL_Texture *mBackgroundTexture;
-    std::unique_ptr<PlayerShip> mPlayerShip;
+    PlayerShip *mPlayerShip;
     std::unique_ptr<TextureLoader> mTextureLoader;
-    std::vector<std::unique_ptr<Laser>> mLaserList;
-    std::vector<std::unique_ptr<Enemy>> mEnemyList;
+    std::vector<std::unique_ptr<GameEntity>> mEntityList;
     Vec2 mCameraSize{800, 600};
     Vec2 mCameraPosition{0, 0};
     Vec2 mWordSize{5000, 5000};
