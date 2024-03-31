@@ -291,7 +291,7 @@ public:
 
             blit(mPlayerShip->texture, mPlayerShip->position.x, mPlayerShip->position.y, mRotation);
 
-            if (mIsFire && (SDL_GetTicks() - mLastFire >= 150)) {
+            if (mIsFire && (SDL_GetTicks() - mLastFire >= 500)) {
                 std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), mPlayerShip->position,
                                                                        mRotation);
                 mLaserList.push_back(std::move(laser));
