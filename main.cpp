@@ -148,7 +148,7 @@ public:
     Vec2 directionVector{0, 0};
     Uint32 lastFire = 0;
 
-    explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
+    explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 140) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
     }
 
@@ -183,7 +183,11 @@ public:
 
     void doFire(IGameStage *stage) {
         if ((SDL_GetTicks() - lastFire >= 500)) {
-            stage->addLaser(position, angle);
+            SDL_Rect rect = getRect();
+            Vec2 laserPos(0, - rect.h);
+            laserPos.rotate(angle * M_PI / 180.0);
+            laserPos.add(position, 1);
+            stage->addLaser(laserPos, angle);
             lastFire = SDL_GetTicks();
         }
     }
