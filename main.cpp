@@ -463,20 +463,21 @@ public:
     }
 
     void drawBackground() {
-        int backgroundWidth, backgroundHeight;
-        SDL_QueryTexture(mBackgroundTexture, nullptr, nullptr, &backgroundWidth, &backgroundHeight);
+        SDL_Rect rect;
+        SDL_QueryTexture(mBackgroundTexture, nullptr, nullptr, &rect.w, &rect.h);
 
-        double backgroundStartY = mCameraPosition.y - fmod(mCameraPosition.y, double(backgroundHeight));
-        double backgroundStartX = mCameraPosition.x - fmod(mCameraPosition.x, double(backgroundWidth));
+        double backgroundStartY = -fmod(mCameraPosition.y, double(rect.h));
+        double backgroundStartX = -fmod(mCameraPosition.x, double(rect.w));
         int backgroundCountY = int(
-                ceil((mCameraPosition.y + mCameraSize.y - backgroundStartY) / double(backgroundHeight)));
+                ceil(( mCameraSize.y - backgroundStartY) / double(rect.h)));
         int backgroundCountX = int(
-                ceil((mCameraPosition.x + mCameraSize.x - backgroundStartX) / double(backgroundWidth)));
+                ceil((mCameraSize.x - backgroundStartX) / double(rect.w)));
 
-        for (int backgroundRow = 0; backgroundRow <= backgroundCountY; backgroundRow++) {
-            for (int backgroundColumn = 0; backgroundColumn <= backgroundCountX; backgroundColumn++) {
-                blit(mBackgroundTexture, backgroundStartX + backgroundColumn * backgroundWidth,
-                     backgroundStartY + backgroundRow * backgroundHeight, 0.0);
+        for (int backgroundRow = 0; backgroundRow < backgroundCountY; backgroundRow++) {
+            for (int backgroundColumn = 0; backgroundColumn < backgroundCountX; backgroundColumn++) {
+                rect.x = int(backgroundStartX + backgroundColumn * rect.w);
+                rect.y = int(backgroundStartY + backgroundRow * rect.h);
+                SDL_RenderCopy(mRenderer, mBackgroundTexture, nullptr, &rect);
             }
         }
     }
@@ -547,17 +548,6 @@ public:
             presentScene();
             SDL_Delay(16);
         }
-    }
-
-
-    void blit(SDL_Texture *texture, double x, double y, double angle) {
-        SDL_Rect rect;
-        rect.x = int(x - mCameraPosition.x);
-        rect.y = int(y - mCameraPosition.y);
-        SDL_QueryTexture(texture, NULL, NULL, &rect.w, &rect.h);
-        rect.x -= rect.w / 2;
-        rect.y -= rect.h / 2;
-        SDL_RenderCopyEx(mRenderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
     }
 
     const Vec2 &getPlayerPosition() override {
