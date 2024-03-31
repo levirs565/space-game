@@ -79,6 +79,16 @@ public:
     }
 };
 
+class IGameStage {
+public:
+    virtual const Vec2 &getPlayerPosition() = 0;
+
+    virtual void addLaser(const Vec2 &position, double angle) = 0;
+
+    virtual const Vec2 &getWorldSize() = 0;
+};
+
+
 class GameEntity {
 public:
     SDL_Texture *texture;
@@ -93,6 +103,8 @@ public:
         r.y = int(position.y - r.h / 2);
         return r;
     }
+
+    virtual void onTick(IGameStage *stage) = 0;
 };
 
 class Laser : public GameEntity {
@@ -106,30 +118,127 @@ public:
     }
 
     bool mustGone = false;
+
+    void onTick(IGameStage *stage) override {
+        position.add(directionVector, 7.5);
+    }
+};
+
+class PlayerShip : public GameEntity {
+public:
+    enum Direction {
+        DIRECTION_UP,
+        DIRECTION_DOWN,
+        DIRECTION_NONE
+    };
+
+    enum Rotation {
+        ROTATION_LEFT,
+        ROTATION_RIGHT,
+        ROTATION_NONE
+    };
+
+    Vec2 directionVector{0, 0};
+    double angle = 0;
+    Uint32 lastFire = 0;
+
+    explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position) {
+        texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
+    }
+
+    void setDirection(Direction direction, Rotation rotation) {
+        if (direction == DIRECTION_UP) {
+            directionVector.y = -1;
+            directionVector.x = 0;
+        } else if (direction == DIRECTION_DOWN) {
+            directionVector.x = 0;
+            directionVector.y = 1;
+        } else {
+            directionVector.x = 0;
+            directionVector.y = 0;
+        }
+
+        if (rotation == ROTATION_LEFT)
+            angle -= 5;
+
+        if (rotation == ROTATION_RIGHT)
+            angle += 5;
+
+        directionVector.rotate(angle * M_PI / 180.0);
+    }
+
+    void onTick(IGameStage *stage) override {
+        position.add(directionVector, 5);
+
+        const Vec2 &worldSize = stage->getWorldSize();
+        position.x = SDL_clamp(position.x, 0, worldSize.x);
+        position.y = SDL_clamp(position.y, 0, worldSize.y);
+    }
+
+    void doFire(IGameStage *stage) {
+        if ((SDL_GetTicks() - lastFire >= 500)) {
+            stage->addLaser(position, angle);
+            lastFire = SDL_GetTicks();
+        }
+    }
 };
 
 class Enemy : public GameEntity {
 public:
     Vec2 velocity{0, 0};
     Uint32 lastFire = 0;
+    double angle = 0;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
     }
 
     bool isHit = false;
-};
 
-class PlayerShip : public GameEntity {
-public:
-    Vec2 mDirectionVector{0, 0};
+    void onTick(IGameStage *stage) override {
+        Vec2 desiredVelocity = Vec2(stage->getPlayerPosition());
+        desiredVelocity.substract(position);
 
-    explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position) {
-        texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
+        double distance = desiredVelocity.length();
+
+        desiredVelocity.normalize();
+        desiredVelocity.scale(2);
+
+        Vec2 direction(desiredVelocity);
+
+        double slowingDistance = 100;
+        double stopRadius = 200;
+        bool canAttack = false;
+
+        if (distance < slowingDistance + stopRadius) {
+            canAttack = true;
+            desiredVelocity.scale((std::max(distance - stopRadius, 0.0)) / slowingDistance);
+        }
+
+        Vec2 steering = Vec2(desiredVelocity);
+
+        steering.substract(velocity);
+        direction.substract(velocity);
+
+        direction.add(velocity, 1);
+        velocity.add(steering, 1);
+
+        position.add(velocity, 1);
+
+        angle = direction.getRotation() * 180.0 / M_PI - 90;
+
+        if (SDL_GetTicks() - lastFire >= 1000 && canAttack) {
+            SDL_Rect enemyRect = getRect();
+            Vec2 laserPos(0, enemyRect.h);
+            laserPos.rotate((angle) * M_PI / 180.0);
+            laserPos.add(position, 1);
+            stage->addLaser(laserPos, angle - 180);
+            lastFire = SDL_GetTicks();
+        }
     }
 };
 
-class App {
+class App : public IGameStage {
 public:
     App() {
         if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -245,32 +354,22 @@ public:
             prepareScene();
             processInput();
 
-            if (mIsUp) {
-                mPlayerShip->mDirectionVector.y = -1;
-                mPlayerShip->mDirectionVector.x = 0;
-            } else if (mIsDown) {
-                mPlayerShip->mDirectionVector.x = 0;
-                mPlayerShip->mDirectionVector.y = 1;
-            } else {
-                mPlayerShip->mDirectionVector.x = 0;
-                mPlayerShip->mDirectionVector.y = 0;
-            }
+            mPlayerShip->setDirection(
+                    mIsUp ? PlayerShip::DIRECTION_UP
+                          : mIsDown ? PlayerShip::DIRECTION_DOWN
+                                    : PlayerShip::DIRECTION_NONE,
+                    mIsLeft ? PlayerShip::ROTATION_LEFT
+                            : mIsRight ? PlayerShip::ROTATION_RIGHT
+                                       : PlayerShip::ROTATION_NONE);
 
-            if (mIsLeft)
-                mRotation -= 5;
 
-            if (mIsRight)
-                mRotation += 5;
+            mPlayerShip->onTick(this);
 
-            mPlayerShip->mDirectionVector.rotate(mRotation * M_PI / 180.0);
-
-            mPlayerShip->position.add(mPlayerShip->mDirectionVector, 5);
+            if (mIsFire)
+                mPlayerShip->doFire(this);
 
             mCameraPosition.x = SDL_clamp(mPlayerShip->position.x - mCameraSize.x / 2, 0, mWordSize.x - mCameraSize.x);
             mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2, 0, mWordSize.y - mCameraSize.y);
-
-            mPlayerShip->position.x = SDL_clamp(mPlayerShip->position.x, 0, mWordSize.x);
-            mPlayerShip->position.y = SDL_clamp(mPlayerShip->position.y, 0, mWordSize.y);
 
             int backgroundWidth, backgroundHeight;
             SDL_QueryTexture(mBackgroundTexture, nullptr, nullptr, &backgroundWidth, &backgroundHeight);
@@ -289,20 +388,23 @@ public:
                 }
             }
 
-            blit(mPlayerShip->texture, mPlayerShip->position.x, mPlayerShip->position.y, mRotation);
+            blit(mPlayerShip->texture, mPlayerShip->position.x, mPlayerShip->position.y, mPlayerShip->angle);
 
-            if (mIsFire && (SDL_GetTicks() - mLastFire >= 500)) {
-                std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), mPlayerShip->position,
-                                                                       mRotation);
-                mLaserList.push_back(std::move(laser));
-                mLastFire = SDL_GetTicks();
-                Mix_PlayChannel(1, mLaserSound, 0);
-            }
 
             for (const std::unique_ptr<Laser> &laser: mLaserList) {
                 if (laser->mustGone) continue;
 
-                laser->position.add(laser->directionVector, 7.5);
+                laser->onTick(this);
+            }
+
+            for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
+                if (enemy->isHit) continue;
+
+                enemy->onTick(this);
+            }
+
+            for (const std::unique_ptr<Laser> &laser: mLaserList) {
+                if (laser->mustGone) continue;
 
                 for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
                     if (enemy->isHit) continue;
@@ -314,59 +416,15 @@ public:
                         enemy->isHit = true;
                     }
                 }
+                if (laser->mustGone) continue;
+
+                blit(laser->texture, laser->position.x, laser->position.y, laser->angle);
             }
 
             for (const std::unique_ptr<Enemy> &enemy: mEnemyList) {
-                if (!enemy->isHit) {
-                    Vec2 desiredVelocity = Vec2(mPlayerShip->position);
-                    desiredVelocity.substract(enemy->position);
+                if (enemy->isHit) continue;
 
-                    double distance = desiredVelocity.length();
-
-                    desiredVelocity.normalize();
-                    desiredVelocity.scale(2);
-
-                    Vec2 direction(desiredVelocity);
-
-                    double slowingDistance = 100;
-                    double stopRadius = 200;
-                    bool canAttack = false;
-
-                    if (distance < slowingDistance + stopRadius) {
-                        canAttack = true;
-                        desiredVelocity.scale((std::max(distance - stopRadius, 0.0)) / slowingDistance);
-                    }
-
-                    Vec2 steering = Vec2(desiredVelocity);
-
-                    steering.substract(enemy->velocity);
-                    direction.substract(enemy->velocity);
-
-                    direction.add(enemy->velocity, 1);
-                    enemy->velocity.add(steering, 1);
-
-                    enemy->position.add(enemy->velocity, 1);
-
-                    double enemyRotation = direction.getRotation() * 180.0 / M_PI - 90;
-
-                    blit(enemy->texture, enemy->position.x, enemy->position.y, enemyRotation);
-
-                    if (SDL_GetTicks() - enemy->lastFire >= 1000 && canAttack) {
-                        SDL_Rect enemyRect = enemy->getRect();
-                        Vec2 laserPos(0, enemyRect.h);
-                        laserPos.rotate((enemyRotation) * M_PI / 180.0);
-                        laserPos.add(enemy->position, 1);
-                        std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), laserPos,
-                                                                               enemyRotation - 180);
-                        mLaserList.push_back(std::move(laser));
-                        enemy->lastFire = SDL_GetTicks();
-                        Mix_PlayChannel(1, mLaserSound, 0);
-                    }
-                }
-            }
-            for (const std::unique_ptr<Laser> &laser: mLaserList) {
-                if (!laser->mustGone)
-                    blit(laser->texture, laser->position.x, laser->position.y, laser->angle);
+                blit(enemy->texture, enemy->position.x, enemy->position.y, enemy->angle);
             }
 
             presentScene();
@@ -385,6 +443,21 @@ public:
         SDL_RenderCopyEx(mRenderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
     }
 
+    const Vec2 &getPlayerPosition() override {
+        return mPlayerShip->position;
+    }
+
+    void addLaser(const Vec2 &position, double angle) override {
+        std::unique_ptr<Laser> laser = std::make_unique<Laser>(mTextureLoader.get(), position,
+                                                               angle);
+        mLaserList.push_back(std::move(laser));
+        Mix_PlayChannel(1, mLaserSound, 0);
+    }
+
+    const Vec2 &getWorldSize() override {
+        return mWordSize;
+    }
+
 private:
     SDL_Renderer *mRenderer;
     SDL_Window *mWindow;
@@ -397,8 +470,6 @@ private:
     Vec2 mCameraPosition{0, 0};
     Vec2 mWordSize{5000, 5000};
     Mix_Chunk *mLaserSound;
-    Uint32 mLastFire = 0;
-    double mRotation = 0;
     bool mIsUp = false;
     bool mIsLeft = false;
     bool mIsDown = false;
