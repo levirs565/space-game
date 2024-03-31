@@ -93,11 +93,11 @@ public:
     }
 };
 
-std::pair<double, double> findPolygonProjectionMinMax(std::vector<Vec2>&polygon, Vec2 target) {
+std::pair<double, double> findPolygonProjectionMinMax(std::vector<Vec2> &polygon, Vec2 target) {
     double minProjection = std::numeric_limits<double>::max();
     double maxProjection = std::numeric_limits<double>::min();
 
-    for (const Vec2& vertex : polygon) {
+    for (const Vec2 &vertex: polygon) {
         const double projection = vertex.dot(target);
         minProjection = std::min(minProjection, projection);
         maxProjection = std::max(maxProjection, projection);
@@ -159,7 +159,7 @@ public:
 
     virtual void onTick(IGameStage *stage) = 0;
 
-    virtual void onDraw(SDL_Renderer *renderer, const Vec2& cameraPosition) {
+    void drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition, SDL_Texture *texture) {
         SDL_Rect rect;
 
         SDL_QueryTexture(texture, nullptr, nullptr, &rect.w, &rect.h);
@@ -167,6 +167,10 @@ public:
         rect.y = int(position.y - cameraPosition.y - double(rect.h) / 2);
 
         SDL_RenderCopyEx(renderer, texture, nullptr, &rect, angle, nullptr, SDL_FLIP_NONE);
+    }
+
+    virtual void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
+        drawTexture(renderer, cameraPosition, texture);
     };
 
     virtual void onHit(GameEntity *other) {
@@ -236,9 +240,17 @@ public:
 
     Vec2 directionVector{0, 0};
     Uint32 lastFire = 0;
+    int healthCount = 4;
+    std::vector<SDL_Texture *> damagedTexture;
 
     explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 25) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
+        damagedTexture.push_back(textureLoader->load(
+                "/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Damage/playerShip3_damage1.png"));
+        damagedTexture.push_back(textureLoader->load(
+                "/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Damage/playerShip3_damage2.png"));
+        damagedTexture.push_back(textureLoader->load(
+                "/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Damage/playerShip3_damage3.png"));
     }
 
     void setDirection(Direction direction, Rotation rotation) {
@@ -272,10 +284,24 @@ public:
         updateBoundingBox();
     }
 
+    void onHit(GameEntity *other) override {
+        if (Laser *laser = dynamic_cast<Laser *>(other); other != nullptr) {
+            healthCount--;
+        }
+    }
+
+    void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) override {
+        GameEntity::onDraw(renderer, cameraPosition);
+        if (healthCount <= 3) {
+            int index = std::min(4 - healthCount, int(damagedTexture.size())) - 1;
+            drawTexture(renderer, cameraPosition, damagedTexture[index]);
+        }
+    }
+
     void doFire(IGameStage *stage) {
         if ((SDL_GetTicks() - lastFire >= 500)) {
             SDL_Rect rect = getRect();
-            Vec2 laserPos(0, - rect.h);
+            Vec2 laserPos(0, -rect.h);
             laserPos.rotate(angle * M_PI / 180.0);
             laserPos.add(position, 1);
             stage->addLaser(laserPos, angle);
@@ -469,7 +495,7 @@ public:
         double backgroundStartY = -fmod(mCameraPosition.y, double(rect.h));
         double backgroundStartX = -fmod(mCameraPosition.x, double(rect.w));
         int backgroundCountY = int(
-                ceil(( mCameraSize.y - backgroundStartY) / double(rect.h)));
+                ceil((mCameraSize.y - backgroundStartY) / double(rect.h)));
         int backgroundCountX = int(
                 ceil((mCameraSize.x - backgroundStartX) / double(rect.w)));
 
@@ -535,7 +561,7 @@ public:
 
                 entity->onDraw(mRenderer, mCameraPosition);
 
-                for (size_t i = 0 ; i < entity->boundingBox.size(); i++) {
+                for (size_t i = 0; i < entity->boundingBox.size(); i++) {
                     Vec2 current = entity->boundingBox[i];
                     Vec2 next = entity->boundingBox[(i + 1) % entity->boundingBox.size()];
 
