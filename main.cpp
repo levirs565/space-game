@@ -159,6 +159,16 @@ public:
 
     virtual void onTick(IGameStage *stage) = 0;
 
+    virtual void onDraw(SDL_Renderer *renderer, const Vec2& cameraPosition) {
+        SDL_Rect rect;
+
+        SDL_QueryTexture(texture, nullptr, nullptr, &rect.w, &rect.h);
+        rect.x = int(position.x - cameraPosition.x - double(rect.w) / 2);
+        rect.y = int(position.y - cameraPosition.y - double(rect.h) / 2);
+
+        SDL_RenderCopyEx(renderer, texture, nullptr, &rect, angle, nullptr, SDL_FLIP_NONE);
+    };
+
     virtual void onHit(GameEntity *other) {
 
     }
@@ -522,7 +532,7 @@ public:
                     continue;
                 }
 
-                blit(entity->texture, entity->position.x, entity->position.y, entity->angle);
+                entity->onDraw(mRenderer, mCameraPosition);
 
                 for (size_t i = 0 ; i < entity->boundingBox.size(); i++) {
                     Vec2 current = entity->boundingBox[i];
