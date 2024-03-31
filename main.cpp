@@ -48,6 +48,12 @@ public:
         y = nextY;
     }
 
+    void rotateAround(double radian, const Vec2 &center) {
+        substract(center);
+        rotate(radian);
+        add(center, 1);
+    }
+
     void add(const Vec2 &other, double scale) {
         x += scale * other.x;
         y += scale * other.y;
@@ -71,13 +77,57 @@ public:
         return SDL_atan2(y, x);
     }
 
-
     void normalize() {
         double l = length();
         x /= l;
         y /= l;
     }
+
+    void makePerpendicular() {
+        std::swap(x, y);
+        x *= -1;
+    }
+
+    double dot(const Vec2 &other) const {
+        return x * other.x + y * other.y;
+    }
 };
+
+std::pair<double, double> findPolygonProjectionMinMax(std::vector<Vec2>&polygon, Vec2 target) {
+    double minProjection = std::numeric_limits<double>::max();
+    double maxProjection = std::numeric_limits<double>::min();
+
+    for (const Vec2& vertex : polygon) {
+        const double projection = vertex.dot(target);
+        minProjection = std::min(minProjection, projection);
+        maxProjection = std::max(maxProjection, projection);
+    }
+
+    return {minProjection, maxProjection};
+}
+
+bool isPolygonCollideInternal(std::vector<Vec2> &polygonA, std::vector<Vec2> &polygonB) {
+    for (size_t i = 0; i < polygonA.size(); i++) {
+        const Vec2 &currentVertex = polygonA.at(i);
+        const Vec2 &nextVertex = polygonA.at((i + 1) % polygonA.size());
+
+        Vec2 normal(nextVertex);
+        normal.substract(currentVertex);
+        normal.makePerpendicular();
+        normal.normalize();
+
+        auto [minProjectionA, maxProjectionA] = findPolygonProjectionMinMax(polygonA, normal);
+        auto [minProjectionB, maxProjectionB] = findPolygonProjectionMinMax(polygonB, normal);
+
+        if (maxProjectionA < minProjectionB || maxProjectionB < minProjectionA) return false;
+    }
+
+    return true;
+}
+
+bool isPolygonCollide(std::vector<Vec2> &polygonA, std::vector<Vec2> &polygonB) {
+    return isPolygonCollideInternal(polygonA, polygonB) && isPolygonCollideInternal(polygonB, polygonA);
+}
 
 class IGameStage {
 public:
@@ -95,6 +145,7 @@ public:
     Vec2 position;
     double angle;
     bool mustGone = false;
+    std::vector<Vec2> boundingBox;
 
     GameEntity(const Vec2 &position, double angle) : position(position), angle(angle) {}
 
@@ -111,6 +162,31 @@ public:
     virtual void onHit(GameEntity *other) {
 
     }
+
+    void updateBoundingBox() {
+        boundingBox.clear();
+
+        int width, height;
+        SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
+        double halfWidth = double(width) / 2;
+        double halfHeight = double(height) / 2;
+
+        Vec2 topRight(position.x + halfWidth, position.y - halfHeight);
+        Vec2 bottomRight{position.x + halfWidth, position.y + halfHeight};
+        Vec2 bottomLeft{position.x - halfWidth, position.y + halfHeight};
+        Vec2 topLeft{position.x - halfWidth, position.y - halfHeight};
+
+        double radianAngle = angle * M_PI / 180.0;
+        topRight.rotateAround(radianAngle, position);
+        bottomRight.rotateAround(radianAngle, position);
+        bottomLeft.rotateAround(radianAngle, position);
+        topLeft.rotateAround(radianAngle, position);
+
+        boundingBox.push_back(topRight);
+        boundingBox.push_back(bottomRight);
+        boundingBox.push_back(bottomLeft);
+        boundingBox.push_back(topLeft);
+    }
 };
 
 class Laser : public GameEntity {
@@ -120,10 +196,13 @@ public:
     Laser(TextureLoader *textureLoader, const Vec2 &position, double angle) : GameEntity(position, angle) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Lasers/laserBlue01.png");
         directionVector.rotate(angle * M_PI / 180.0);
+        updateBoundingBox();
     }
 
     void onTick(IGameStage *stage) override {
         position.add(directionVector, 7.5);
+
+        updateBoundingBox();
     }
 
     void onHit(GameEntity *other) override {
@@ -148,7 +227,7 @@ public:
     Vec2 directionVector{0, 0};
     Uint32 lastFire = 0;
 
-    explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 140) {
+    explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 25) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
     }
 
@@ -179,6 +258,8 @@ public:
         const Vec2 &worldSize = stage->getWorldSize();
         position.x = SDL_clamp(position.x, 0, worldSize.x);
         position.y = SDL_clamp(position.y, 0, worldSize.y);
+
+        updateBoundingBox();
     }
 
     void doFire(IGameStage *stage) {
@@ -242,6 +323,8 @@ public:
             stage->addLaser(laserPos, angle - 180);
             lastFire = SDL_GetTicks();
         }
+
+        updateBoundingBox();
     }
 
     void onHit(GameEntity *other) override {
@@ -405,6 +488,8 @@ public:
             for (size_t i = 0; i < entityCount; i++) {
                 const std::unique_ptr<GameEntity> &entity = mEntityList[i];
                 entity->onTick(this);
+                // setelah onTick, jangan gunakan entity kembali karena ada kemungkinan penambahan elemen ke mEntityList
+                // yang menyebabkan operasi std::move terhadap entity sehingga entity berada dalam keadaan invalid
             }
 
             calculateCamera();
@@ -416,14 +501,12 @@ public:
             for (std::vector<std::unique_ptr<GameEntity>>::iterator it = mEntityList.begin();
                  it != mEntityList.end(); it++) {
                 std::unique_ptr<GameEntity> &entity = *it;
-                SDL_Rect entityRect = entity->getRect();
 
                 for (std::vector<std::unique_ptr<GameEntity>>::iterator otherIt = it + 1;
                      otherIt != mEntityList.end(); otherIt++) {
                     std::unique_ptr<GameEntity> &otherEntity = *otherIt;
 
-                    SDL_Rect otherRect = otherEntity->getRect();
-                    if (SDL_HasIntersection(&entityRect, &otherRect)) {
+                    if (isPolygonCollide(entity->boundingBox, otherEntity->boundingBox)) {
                         entity->onHit(otherEntity.get());
                         otherEntity->onHit(entity.get());
                     }
@@ -440,6 +523,15 @@ public:
                 }
 
                 blit(entity->texture, entity->position.x, entity->position.y, entity->angle);
+
+                for (size_t i = 0 ; i < entity->boundingBox.size(); i++) {
+                    Vec2 current = entity->boundingBox[i];
+                    Vec2 next = entity->boundingBox[(i + 1) % entity->boundingBox.size()];
+
+                    current.substract(mCameraPosition);
+                    next.substract(mCameraPosition);
+                    SDL_RenderDrawLine(mRenderer, int(current.x), int(current.y), int(next.x), int(next.y));
+                }
             }
 
             presentScene();
