@@ -129,6 +129,8 @@ bool isPolygonCollide(std::vector<Vec2> &polygonA, std::vector<Vec2> &polygonB) 
     return isPolygonCollideInternal(polygonA, polygonB) && isPolygonCollideInternal(polygonB, polygonA);
 }
 
+class GameEntity;
+
 class IGameStage {
 public:
     virtual const Vec2 &getPlayerPosition() = 0;
@@ -136,6 +138,8 @@ public:
     virtual void addLaser(const Vec2 &position, double angle) = 0;
 
     virtual const Vec2 &getWorldSize() = 0;
+
+    virtual std::vector<std::unique_ptr<GameEntity>>& getEntities() = 0;
 };
 
 
@@ -146,6 +150,7 @@ public:
     double angle;
     bool mustGone = false;
     std::vector<Vec2> boundingBox;
+    double boundingRadius = 0;
 
     GameEntity(const Vec2 &position, double angle) : position(position), angle(angle) {}
 
@@ -184,6 +189,8 @@ public:
         SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
         double halfWidth = double(width) / 2;
         double halfHeight = double(height) / 2;
+
+        boundingRadius = std::max(halfWidth, halfHeight);
 
         Vec2 topRight(position.x + halfWidth, position.y - halfHeight);
         Vec2 bottomRight{position.x + halfWidth, position.y + halfHeight};
@@ -344,6 +351,26 @@ public:
         steering.substract(velocity);
         direction.substract(velocity);
 
+        const double separationDistance = 250;
+        for (const std::unique_ptr<GameEntity>& entity : stage->getEntities()) {
+            if (entity.get() == this) continue;
+
+            Enemy* otherEnemy = dynamic_cast<Enemy*>(entity.get());
+            if (otherEnemy == nullptr) continue;
+
+            Vec2 distanceVec(entity->position);
+            distanceVec.substract(position);
+            double distance = distanceVec.length();
+
+            if (distance < separationDistance) {
+                distanceVec.scale(-1);
+                distanceVec.normalize();
+                distanceVec.scale(1.0 / (distance / separationDistance));
+
+                steering.add(distanceVec, 1);
+            }
+        }
+
         direction.add(velocity, 1);
         velocity.add(steering, 1);
 
@@ -413,7 +440,10 @@ public:
         std::unique_ptr<PlayerShip> playerShip = std::make_unique<PlayerShip>(mTextureLoader.get(), Vec2(400, 400));
         mPlayerShip = playerShip.get();
         mEntityList.push_back(std::move(playerShip));
+
         mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 100))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 100))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, 100))));
     }
 
     void processKeyDown(const SDL_KeyboardEvent &key) {
@@ -589,6 +619,10 @@ public:
 
     const Vec2 &getWorldSize() override {
         return mWordSize;
+    }
+
+    std::vector<std::unique_ptr<GameEntity>> & getEntities() override {
+        return mEntityList;
     }
 
 private:
