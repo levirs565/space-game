@@ -206,7 +206,7 @@ public:
         double halfWidth = double(width) / 2;
         double halfHeight = double(height) / 2;
 
-        boundingRadius = std::max(halfWidth, halfHeight);
+        boundingRadius = hypot(halfWidth, halfHeight);
 
         Vec2 topRight(position.x + halfWidth, position.y - halfHeight);
         Vec2 bottomRight{position.x + halfWidth, position.y + halfHeight};
