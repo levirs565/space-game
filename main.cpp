@@ -129,6 +129,22 @@ bool isPolygonCollide(std::vector<Vec2> &polygonA, std::vector<Vec2> &polygonB) 
     return isPolygonCollideInternal(polygonA, polygonB) && isPolygonCollideInternal(polygonB, polygonA);
 }
 
+bool lineIntersectCircle(const Vec2 &nonAhead, const Vec2 &ahead, const Vec2 &ahead2, double myRadius,
+                         const Vec2 &circlePosition,
+                         double circleRadius) {
+    Vec2 pureDistance(circlePosition);
+    pureDistance.substract(nonAhead);
+
+    Vec2 distanceAhead(circlePosition);
+    distanceAhead.substract(ahead);
+
+    Vec2 distanceAhead2(circlePosition);
+    distanceAhead2.substract(ahead2);
+
+    return pureDistance.length() <= circleRadius + myRadius || distanceAhead.length() <= circleRadius + myRadius ||
+           distanceAhead2.length() <= circleRadius + myRadius;
+}
+
 class GameEntity;
 
 class IGameStage {
@@ -139,7 +155,7 @@ public:
 
     virtual const Vec2 &getWorldSize() = 0;
 
-    virtual std::vector<std::unique_ptr<GameEntity>>& getEntities() = 0;
+    virtual std::vector<std::unique_ptr<GameEntity>> &getEntities() = 0;
 };
 
 
@@ -228,6 +244,19 @@ public:
 
     void onHit(GameEntity *other) override {
         mustGone = true;
+    }
+};
+
+class Meteor : public GameEntity {
+public:
+    explicit Meteor(TextureLoader *textureLoader, const Vec2 &position, const std::string &type)
+            : GameEntity(position, 0) {
+        texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Meteors/meteor" + type + ".png");
+        updateBoundingBox();
+    }
+
+    void onTick(IGameStage *stage) override {
+
     }
 };
 
@@ -321,6 +350,7 @@ class Enemy : public GameEntity {
 public:
     Vec2 velocity{0, 0};
     Uint32 lastFire = 0;
+    int num;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -352,27 +382,66 @@ public:
         direction.substract(velocity);
 
         const double separationDistance = 250;
-        for (const std::unique_ptr<GameEntity>& entity : stage->getEntities()) {
+        const double maxSeeAhead = 100;
+        double dynamicLength = maxSeeAhead;
+        Vec2 normalizedVelocity(velocity);
+        normalizedVelocity.normalize();
+        Vec2 ahead(position);
+        ahead.add(normalizedVelocity, dynamicLength);
+        Vec2 ahead2(position);
+        ahead2.add(normalizedVelocity, dynamicLength / 2);
+        Meteor *mostThreateningMeteor = nullptr;
+
+        for (const std::unique_ptr<GameEntity> &entity: stage->getEntities()) {
             if (entity.get() == this) continue;
 
-            Enemy* otherEnemy = dynamic_cast<Enemy*>(entity.get());
-            if (otherEnemy == nullptr) continue;
 
-            Vec2 distanceVec(entity->position);
-            distanceVec.substract(position);
-            double distance = distanceVec.length();
+            if (Enemy *otherEnemy = dynamic_cast<Enemy *>(entity.get()); otherEnemy != nullptr) {
+                Vec2 distanceVec(entity->position);
+                distanceVec.substract(position);
+                double distance = distanceVec.length();
 
-            if (distance < separationDistance) {
-                distanceVec.scale(-1);
-                distanceVec.normalize();
-                distanceVec.scale(1.0 / (distance / separationDistance));
+                if (distance < separationDistance) {
+                    distanceVec.scale(-1);
+                    distanceVec.normalize();
+                    distanceVec.scale(1.0 / (distance / separationDistance));
 
-                steering.add(distanceVec, 1);
+                    steering.add(distanceVec, 1);
+                }
+            } else if (Meteor *meteor = dynamic_cast<Meteor *>(entity.get()); meteor != nullptr) {
+                if (lineIntersectCircle(position, ahead, ahead, boundingRadius + 50, meteor->position,
+                                        meteor->boundingRadius)) {
+                    if (mostThreateningMeteor != nullptr) {
+                        Vec2 currentDistance(position);
+                        currentDistance.substract(meteor->position);
+
+                        Vec2 prevDistance(position);
+                        prevDistance.substract(mostThreateningMeteor->position);
+
+                        if (prevDistance.length() <= currentDistance.length()) continue;
+                    }
+
+                    mostThreateningMeteor = meteor;
+                }
             }
+        }
+
+        if (mostThreateningMeteor != nullptr) {
+            Vec2 avoidance(ahead);
+            avoidance.substract(mostThreateningMeteor->position);
+            double distance = avoidance.length();
+            avoidance.normalize();
+            avoidance.scale(2);
+            steering.add(avoidance, 1);
         }
 
         direction.add(velocity, 1);
         velocity.add(steering, 1);
+
+        if (velocity.length() > 2) {
+            velocity.normalize();
+            velocity.scale(2);
+        }
 
         position.add(velocity, 1);
 
@@ -393,6 +462,8 @@ public:
     void onHit(GameEntity *other) override {
         if (Laser *laser = dynamic_cast<Laser *>(other); laser != nullptr) {
             mustGone = true;
+        } else if (dynamic_cast<Meteor *>(other) != nullptr) {
+            //mustGone = true;
         }
     }
 };
@@ -441,9 +512,13 @@ public:
         mPlayerShip = playerShip.get();
         mEntityList.push_back(std::move(playerShip));
 
-        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 100))));
-        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 100))));
-        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, 100))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, -100))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, -100))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, -100))));
+
+        mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(100, 250), "Brown_big1")));
+        mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(300, 250), "Brown_big2")));
+        mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(600, 250), "Brown_big3")));
     }
 
     void processKeyDown(const SDL_KeyboardEvent &key) {
@@ -621,7 +696,7 @@ public:
         return mWordSize;
     }
 
-    std::vector<std::unique_ptr<GameEntity>> & getEntities() override {
+    std::vector<std::unique_ptr<GameEntity>> &getEntities() override {
         return mEntityList;
     }
 
