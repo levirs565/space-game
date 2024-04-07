@@ -159,7 +159,7 @@ public:
 
     virtual std::vector<std::unique_ptr<GameEntity>> &getEntities() = 0;
 
-    virtual void findPath(const Vec2& from, const Vec2& to) = 0;
+    virtual void findPath(const Vec2 &from, const Vec2 &to) = 0;
 };
 
 
@@ -549,6 +549,49 @@ public:
     }
 };
 
+namespace SteeringBehaviour {
+    Vec2 seek(const Vec2 &from, const Vec2 &to, const Vec2 &currentVelocity, double maxVelocity, double slowingDistance,
+              double stopRadius) {
+        Vec2 desiredVelocity = Vec2(to);
+        desiredVelocity.substract(from);
+
+        double distance = desiredVelocity.length();
+
+        desiredVelocity.normalize();
+        desiredVelocity.scale(maxVelocity);
+
+        Vec2 direction(desiredVelocity);
+
+        if (distance < slowingDistance + stopRadius) {
+            desiredVelocity.scale((std::max(distance - stopRadius, 0.0)) / slowingDistance);
+        }
+
+        Vec2 steering = Vec2(desiredVelocity);
+        steering.substract(currentVelocity);
+        return steering;
+    }
+
+    Vec2
+    separation(GameEntity *currentEntity, const std::vector<GameEntity *> othersEntity, double separationDistance) {
+        Vec2 steering{0, 0};
+        for (GameEntity *other: othersEntity) {
+            Vec2 distanceVec(other->position);
+            distanceVec.substract(currentEntity->position);
+            double distance = distanceVec.length();
+
+            if (distance < separationDistance) {
+                distanceVec.scale(-1);
+                distanceVec.normalize();
+                distanceVec.scale(1.0 / (distance / separationDistance));
+
+                steering.add(distanceVec, 1);
+            }
+        }
+
+        return steering;
+    }
+}
+
 class Enemy : public GameEntity {
 public:
     Vec2 velocity{0, 0};
@@ -560,85 +603,22 @@ public:
     }
 
     void onTick(IGameStage *stage) override {
-        Vec2 desiredVelocity = Vec2(stage->getPlayerPosition());
-        desiredVelocity.substract(position);
-
-        double distance = desiredVelocity.length();
-
-        desiredVelocity.normalize();
-        desiredVelocity.scale(2);
-
-        Vec2 direction(desiredVelocity);
-
-        double slowingDistance = 100;
-        double stopRadius = 200;
         bool canAttack = false;
+        Vec2 steering = SteeringBehaviour::seek(position, stage->getPlayerPosition(), velocity, 2, 100, 200);
+        Vec2 direction = stage->getPlayerPosition();
+        direction.substract(position);
 
-        if (distance < slowingDistance + stopRadius) {
-            canAttack = true;
-            desiredVelocity.scale((std::max(distance - stopRadius, 0.0)) / slowingDistance);
-        }
-
-        Vec2 steering = Vec2(desiredVelocity);
-
-        steering.substract(velocity);
-        direction.substract(velocity);
-
-        const double separationDistance = 250;
-        const double maxSeeAhead = 100;
-        double dynamicLength = maxSeeAhead;
-        Vec2 normalizedVelocity(velocity);
-        normalizedVelocity.normalize();
-        Vec2 ahead(position);
-        ahead.add(normalizedVelocity, dynamicLength);
-        Vec2 ahead2(position);
-        ahead2.add(normalizedVelocity, dynamicLength / 2);
-        Meteor *mostThreateningMeteor = nullptr;
-
+        std::vector<GameEntity *> othersEnemy;
         for (const std::unique_ptr<GameEntity> &entity: stage->getEntities()) {
             if (entity.get() == this) continue;
 
-
             if (Enemy *otherEnemy = dynamic_cast<Enemy *>(entity.get()); otherEnemy != nullptr) {
-                Vec2 distanceVec(entity->position);
-                distanceVec.substract(position);
-                double distance = distanceVec.length();
-
-                if (distance < separationDistance) {
-                    distanceVec.scale(-1);
-                    distanceVec.normalize();
-                    distanceVec.scale(1.0 / (distance / separationDistance));
-
-                    steering.add(distanceVec, 1);
-                }
-            } else if (Meteor *meteor = dynamic_cast<Meteor *>(entity.get()); meteor != nullptr) {
-                if (lineIntersectCircle(position, ahead, ahead, boundingRadius + 50, meteor->position,
-                                        meteor->boundingRadius)) {
-                    if (mostThreateningMeteor != nullptr) {
-                        Vec2 currentDistance(position);
-                        currentDistance.substract(meteor->position);
-
-                        Vec2 prevDistance(position);
-                        prevDistance.substract(mostThreateningMeteor->position);
-
-                        if (prevDistance.length() <= currentDistance.length()) continue;
-                    }
-
-                    mostThreateningMeteor = meteor;
-                }
+                othersEnemy.push_back(otherEnemy);
             }
         }
 
-        if (mostThreateningMeteor != nullptr) {
-            Vec2 avoidance(ahead);
-            avoidance.substract(mostThreateningMeteor->position);
-            double distance = avoidance.length();
-            avoidance.normalize();
-            avoidance.scale(2);
-            steering.add(avoidance, 1);
-        }
+        steering.add(SteeringBehaviour::separation(this, othersEnemy, 250), 1);
 
-        direction.add(velocity, 1);
         velocity.add(steering, 1);
 
         if (velocity.length() > 2) {
