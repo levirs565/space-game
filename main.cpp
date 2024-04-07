@@ -6,6 +6,8 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <functional>
+#include <set>
 
 class TextureLoader {
 public:
@@ -156,6 +158,8 @@ public:
     virtual const Vec2 &getWorldSize() = 0;
 
     virtual std::vector<std::unique_ptr<GameEntity>> &getEntities() = 0;
+
+    virtual void findPath(const Vec2& from, const Vec2& to) = 0;
 };
 
 
@@ -346,6 +350,205 @@ public:
     }
 };
 
+class APathFinder {
+public:
+    using NodePosition = std::pair<int, int>;
+private:
+    class Node {
+    public:
+        NodePosition parentPosition;
+        bool isWalkable = true;
+        int gCost;
+        int hCost;
+        bool isSelected = false;
+
+        int getFCost() const {
+            return gCost + hCost;
+        }
+    };
+
+    std::vector<std::vector<Node>> mGrid;
+    int mRowCount = 0;
+    int mColumnCount = 0;
+    int mEntitySize = 0;
+
+public:
+
+    void init(const Vec2 &worldSize, int entitySize) {
+        mRowCount = ceil(worldSize.y / entitySize);
+        mColumnCount = ceil(worldSize.x / entitySize);
+        mEntitySize = entitySize;
+        mGrid.clear();
+        mGrid.resize(mRowCount, std::vector<Node>(mColumnCount));
+    }
+
+    void clearState() {
+        for (std::vector<Node> &row: mGrid) {
+            for (Node &cell: row) {
+                cell.isWalkable = true;
+            }
+        }
+    }
+
+    void clearSelection() {
+        for (std::vector<Node> &row: mGrid) {
+            for (Node &cell: row) {
+                cell.isSelected = false;
+            }
+        }
+    }
+
+    void addObstacle(const Vec2 &centerPosition, int radius) {
+        int left = floor(std::max((centerPosition.x - radius) / mEntitySize, 0.0));
+        int top = floor(std::max((centerPosition.y - radius) / mEntitySize, 0.0));
+        int right = ceil(std::max((centerPosition.x + radius) / mEntitySize, 0.0));
+        int bottom = ceil(std::max((centerPosition.y + radius) / mEntitySize, 0.0));
+
+        if (left >= mColumnCount || right >= mColumnCount) return;
+        if (top >= mRowCount || bottom >= mRowCount) return;
+
+        for (int row = top; row < bottom; row++) {
+            for (int column = left; column < right; column++) {
+                mGrid[row][column].isWalkable = false;
+            }
+        }
+    }
+
+    void drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition, Vec2 &cameraSize) {
+        int left = floor(cameraPosition.x / mEntitySize);
+        int top = floor(cameraPosition.y / mEntitySize);
+        int right = ceil((cameraPosition.x + cameraSize.x) / mEntitySize);
+        int bottom = ceil((cameraPosition.y + cameraSize.y) / mEntitySize);
+
+        int startX = -int(fmod(cameraPosition.x, mEntitySize));
+        int startY = -int(fmod(cameraPosition.y, mEntitySize));
+
+        SDL_Rect r;
+        r.w = mEntitySize;
+        r.h = mEntitySize;
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        for (int row = top; row <= bottom; row++) {
+            for (int column = left; column <= right; column++) {
+                r.x = startX + (column - left) * mEntitySize;
+                r.y = startY + (row - top) * mEntitySize;
+                if (mGrid[row][column].isSelected)
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 64);
+                else if (mGrid[row][column].isWalkable)
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 64);
+                else
+                    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 64);
+                SDL_RenderFillRect(renderer, &r);
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 192);
+                SDL_RenderDrawRect(renderer, &r);
+            }
+        }
+    }
+
+    NodePosition getNodePositionFromWorldPosition(const Vec2 &position) {
+        return {
+                std::clamp(int(position.y / mEntitySize), 0, mRowCount - 1),
+                std::clamp(int(position.x / mEntitySize), 0, mColumnCount - 1)
+        };
+    }
+
+    std::vector<NodePosition> getNeighbours(const NodePosition &position) {
+        std::vector<NodePosition> neighbours;
+
+        for (int rowShift = -1; rowShift <= 1; rowShift++) {
+            for (int columnShift = -1; columnShift <= 1; columnShift++) {
+                if (rowShift == 0 && columnShift == 0) continue;
+
+                NodePosition newPos{
+                        position.first + rowShift,
+                        position.second + columnShift
+                };
+
+                if (newPos.first < 0 || newPos.first >= mRowCount) continue;
+                if (newPos.second < 0 || newPos.second >= mColumnCount) continue;
+
+                neighbours.push_back(newPos);
+            }
+        }
+
+        return neighbours;
+    }
+
+    int getDistance(const NodePosition &from, const NodePosition &to) {
+        int deltaRow = std::abs(from.first - to.first);
+        int deltaColumn = std::abs(from.second - to.second);
+
+        if (deltaColumn > deltaRow)
+            return 14 * deltaRow + 10 * (deltaColumn - deltaRow);
+
+        return 14 * deltaColumn + 10 * (deltaRow - deltaColumn);
+    }
+
+    void retracePath(const NodePosition &from, const NodePosition &to) {
+        NodePosition pos = to;
+
+        while (pos != from) {
+            Node &node = mGrid[pos.first][pos.second];
+            node.isSelected = true;
+            pos = node.parentPosition;
+        }
+    }
+
+    void findPath(const Vec2 &from, const Vec2 &to) {
+        const NodePosition fromNodePos = getNodePositionFromWorldPosition(from);
+        const NodePosition toNodePos = getNodePositionFromWorldPosition(to);
+
+        std::vector<NodePosition> openSet;
+        std::set<NodePosition> closedSet;
+
+        openSet.push_back(fromNodePos);
+
+        while (!openSet.empty()) {
+            int minCostIndex = 0;
+            NodePosition minPos = openSet[0];
+            const Node *minCostNode = &mGrid[minPos.first][minPos.second];
+
+            for (int i = 1; i < openSet.size(); i++) {
+                const Node *currentNode = &mGrid[openSet[i].first][openSet[i].second];
+                if (currentNode->getFCost() < minCostNode->getFCost() ||
+                    currentNode->getFCost() == currentNode->getFCost()) {
+                    if (currentNode->hCost < minCostNode->hCost) {
+                        minCostNode = currentNode;
+                        minCostIndex = i;
+                        minPos = openSet[i];
+                    }
+                }
+            }
+
+            openSet.erase(openSet.begin() + minCostIndex);
+            closedSet.insert(minPos);
+
+            if (minPos == toNodePos) {
+                retracePath(fromNodePos, toNodePos);
+                return;
+            }
+
+            for (const NodePosition &neighbour: getNeighbours(minPos)) {
+                Node &node = mGrid[neighbour.first][neighbour.second];
+
+                if (!node.isWalkable || closedSet.count(neighbour) > 0)
+                    continue;
+
+                int newGCost = minCostNode->gCost + getDistance(neighbour, minPos);
+
+                if (newGCost < node.gCost || std::count(openSet.begin(), openSet.end(), neighbour) == 0) {
+                    node.gCost = newGCost;
+                    node.hCost = getDistance(neighbour, toNodePos);
+                    node.parentPosition = minPos;
+
+                    if (std::count(openSet.begin(), openSet.end(), neighbour) == 0)
+                        openSet.push_back(neighbour);
+                }
+            }
+        }
+    }
+};
+
 class Enemy : public GameEntity {
 public:
     Vec2 velocity{0, 0};
@@ -456,6 +659,8 @@ public:
             lastFire = SDL_GetTicks();
         }
 
+        stage->findPath(position, stage->getPlayerPosition());
+
         updateBoundingBox();
     }
 
@@ -519,6 +724,15 @@ public:
         mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(100, 250), "Brown_big1")));
         mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(300, 250), "Brown_big2")));
         mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(600, 250), "Brown_big3")));
+        mPathFinder.init(mWordSize, 110);
+
+        mPathFinder.clearState();
+        for (std::vector<std::unique_ptr<GameEntity>>::iterator it = mEntityList.begin();
+             it != mEntityList.end(); it++) {
+            std::unique_ptr<GameEntity> &entity = *it;
+            if (dynamic_cast<Meteor *>(entity.get()) == nullptr) continue;
+            mPathFinder.addObstacle(entity->position, entity->boundingRadius);
+        }
     }
 
     void processKeyDown(const SDL_KeyboardEvent &key) {
@@ -618,6 +832,7 @@ public:
             prepareScene();
             processInput();
 
+            mPathFinder.clearSelection();
             mPlayerShip->setDirection(
                     mIsUp ? PlayerShip::DIRECTION_UP
                           : mIsDown ? PlayerShip::DIRECTION_DOWN
@@ -655,6 +870,7 @@ public:
                 }
             }
 
+            SDL_SetRenderDrawColor(mRenderer, 0, 255, 0, 255);
             for (std::vector<std::unique_ptr<GameEntity>>::iterator it = mEntityList.begin();
                  it != mEntityList.end(); it++) {
                 std::unique_ptr<GameEntity> &entity = *it;
@@ -675,6 +891,8 @@ public:
                     SDL_RenderDrawLine(mRenderer, int(current.x), int(current.y), int(next.x), int(next.y));
                 }
             }
+
+            mPathFinder.drawGrid(mRenderer, mCameraPosition, mCameraSize);
 
             presentScene();
             SDL_Delay(16);
@@ -700,6 +918,10 @@ public:
         return mEntityList;
     }
 
+    void findPath(const Vec2 &from, const Vec2 &to) override {
+        mPathFinder.findPath(from, to);
+    }
+
 private:
     SDL_Renderer *mRenderer;
     SDL_Window *mWindow;
@@ -707,6 +929,7 @@ private:
     PlayerShip *mPlayerShip;
     std::unique_ptr<TextureLoader> mTextureLoader;
     std::vector<std::unique_ptr<GameEntity>> mEntityList;
+    APathFinder mPathFinder;
     Vec2 mCameraSize{800, 600};
     Vec2 mCameraPosition{0, 0};
     Vec2 mWordSize{5000, 5000};
