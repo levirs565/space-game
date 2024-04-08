@@ -159,7 +159,7 @@ public:
 
     virtual std::vector<std::unique_ptr<GameEntity>> &getEntities() = 0;
 
-    virtual void findPath(const Vec2 &from, const Vec2 &to) = 0;
+    virtual std::vector<Vec2> findPath(const Vec2 &from, const Vec2 &to) = 0;
 };
 
 
@@ -484,17 +484,27 @@ public:
         return 14 * deltaColumn + 10 * (deltaRow - deltaColumn);
     }
 
-    void retracePath(const NodePosition &from, const NodePosition &to) {
+    std::vector<Vec2> retracePath(const NodePosition &from, const NodePosition &to) {
+        std::vector<Vec2> path;
         NodePosition pos = to;
 
         while (pos != from) {
             Node &node = mGrid[pos.first][pos.second];
+
+            path.emplace_back(pos.second * mEntitySize + mEntitySize / 2,
+                              pos.first * mEntitySize + mEntitySize / 2);
+
             node.isSelected = true;
             pos = node.parentPosition;
         }
+
+        mGrid[from.first][from.second].isSelected = true;
+        std::reverse(path.begin(), path.end());
+
+        return path;
     }
 
-    void findPath(const Vec2 &from, const Vec2 &to) {
+    std::vector<Vec2> findPath(const Vec2 &from, const Vec2 &to) {
         const NodePosition fromNodePos = getNodePositionFromWorldPosition(from);
         const NodePosition toNodePos = getNodePositionFromWorldPosition(to);
 
@@ -524,8 +534,7 @@ public:
             closedSet.insert(minPos);
 
             if (minPos == toNodePos) {
-                retracePath(fromNodePos, toNodePos);
-                return;
+                return retracePath(fromNodePos, toNodePos);
             }
 
             for (const NodePosition &neighbour: getNeighbours(minPos)) {
@@ -546,6 +555,8 @@ public:
                 }
             }
         }
+
+        return std::vector<Vec2>();
     }
 };
 
@@ -590,13 +601,33 @@ namespace SteeringBehaviour {
 
         return steering;
     }
+
+    Vec2 pathFollowing(const Vec2& currentPosition, const std::vector<Vec2>& path, int& currentNode, const Vec2& currentVelocity, double maxVelocity) {
+        if (!path.empty()) {
+            const Vec2& target = path[currentNode];
+            Vec2 delta = currentPosition;
+            delta.substract(target);
+
+            if (delta.length() <= 10) {
+                currentNode += 1;
+                if (currentNode >= path.size())
+                    currentNode = path.size() - 1;
+            }
+
+            return seek(currentPosition, target, currentVelocity, maxVelocity, 0, 0);
+        }
+
+        return {0, 0};
+    }
 }
 
 class Enemy : public GameEntity {
 public:
     Vec2 velocity{0, 0};
     Uint32 lastFire = 0;
-    int num;
+    Uint32 lastUpdatePath = 0;
+    std::vector<Vec2> path;
+    int currentPathNode;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -604,7 +635,7 @@ public:
 
     void onTick(IGameStage *stage) override {
         bool canAttack = false;
-        Vec2 steering = SteeringBehaviour::seek(position, stage->getPlayerPosition(), velocity, 2, 100, 200);
+        Vec2 steering = SteeringBehaviour::pathFollowing(position, path, currentPathNode, velocity, 2);
         Vec2 direction = stage->getPlayerPosition();
         direction.substract(position);
 
@@ -639,9 +670,28 @@ public:
             lastFire = SDL_GetTicks();
         }
 
-        stage->findPath(position, stage->getPlayerPosition());
+        if (SDL_GetTicks() - lastUpdatePath >= 250) {
+            path = stage->findPath(position, stage->getPlayerPosition());
+            currentPathNode = 0;
+        }
 
         updateBoundingBox();
+    }
+
+    void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) override {
+        GameEntity::onDraw(renderer, cameraPosition);
+
+        if (path.size() > 1)
+            for (int i = 0; i < path.size(); i++) {
+                Vec2 prevPoint = i > 0 ? path[i - 1] : position;
+                Vec2 currentPoint = path[i];
+
+                prevPoint.substract(cameraPosition);
+                currentPoint.substract(cameraPosition);
+
+                SDL_RenderDrawLine(renderer, int(prevPoint.x), int(prevPoint.y), int(currentPoint.x),
+                                   int(currentPoint.y));
+            }
     }
 
     void onHit(GameEntity *other) override {
@@ -898,8 +948,8 @@ public:
         return mEntityList;
     }
 
-    void findPath(const Vec2 &from, const Vec2 &to) override {
-        mPathFinder.findPath(from, to);
+    std::vector<Vec2> findPath(const Vec2 &from, const Vec2 &to) override {
+        return mPathFinder.findPath(from, to);
     }
 
 private:
