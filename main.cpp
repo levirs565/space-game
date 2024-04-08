@@ -561,21 +561,32 @@ public:
 };
 
 namespace SteeringBehaviour {
-    Vec2 seek(const Vec2 &from, const Vec2 &to, const Vec2 &currentVelocity, double maxVelocity, double slowingDistance,
-              double stopRadius) {
+    Vec2
+    makeArrival(const Vec2 &from, const Vec2 &to, const Vec2 &steering, const Vec2 &velocity, double slowingDistance,
+                double stopRadius) {
+        Vec2 delta = Vec2(to);
+        delta.substract(from);
+        double distance = delta.length();
+
+        if (distance < slowingDistance + stopRadius) {
+            Vec2 desiredVelocity = velocity;
+            desiredVelocity.add(steering, 1);
+            desiredVelocity.scale((std::max(distance - stopRadius, 0.0)) / slowingDistance);
+
+            Vec2 newSteering = desiredVelocity;
+            newSteering.substract(velocity);
+            return newSteering;
+        }
+
+        return steering;
+    }
+
+    Vec2 seek(const Vec2 &from, const Vec2 &to, const Vec2 &currentVelocity, double maxVelocity) {
         Vec2 desiredVelocity = Vec2(to);
         desiredVelocity.substract(from);
 
-        double distance = desiredVelocity.length();
-
         desiredVelocity.normalize();
         desiredVelocity.scale(maxVelocity);
-
-        Vec2 direction(desiredVelocity);
-
-        if (distance < slowingDistance + stopRadius) {
-            desiredVelocity.scale((std::max(distance - stopRadius, 0.0)) / slowingDistance);
-        }
 
         Vec2 steering = Vec2(desiredVelocity);
         steering.substract(currentVelocity);
@@ -602,9 +613,10 @@ namespace SteeringBehaviour {
         return steering;
     }
 
-    Vec2 pathFollowing(const Vec2& currentPosition, const std::vector<Vec2>& path, int& currentNode, const Vec2& currentVelocity, double maxVelocity) {
+    Vec2 pathFollowing(const Vec2 &currentPosition, const std::vector<Vec2> &path, int &currentNode,
+                       const Vec2 &currentVelocity, double maxVelocity) {
         if (!path.empty()) {
-            const Vec2& target = path[currentNode];
+            const Vec2 &target = path[currentNode];
             Vec2 delta = currentPosition;
             delta.substract(target);
 
@@ -614,7 +626,7 @@ namespace SteeringBehaviour {
                     currentNode = path.size() - 1;
             }
 
-            return seek(currentPosition, target, currentVelocity, maxVelocity, 0, 0);
+            return seek(currentPosition, target, currentVelocity, maxVelocity);
         }
 
         return {0, 0};
@@ -636,6 +648,7 @@ public:
     void onTick(IGameStage *stage) override {
         bool canAttack = false;
         Vec2 steering = SteeringBehaviour::pathFollowing(position, path, currentPathNode, velocity, 2);
+        steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
         Vec2 direction = stage->getPlayerPosition();
         direction.substract(position);
 
