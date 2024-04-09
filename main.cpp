@@ -752,8 +752,11 @@ public:
         }
 
         if (SDL_GetTicks() - lastUpdatePath >= 250) {
-            path = stage->findPath(position, stage->getPlayerPosition());
-            currentPathNode = 0;
+            std::vector<Vec2> newPath = stage->findPath(position, stage->getPlayerPosition());
+            if (!newPath.empty()) {
+                path = newPath;
+                currentPathNode = 0;
+            }
         }
 
         updateBoundingBox();
@@ -763,8 +766,8 @@ public:
         GameEntity::onDraw(renderer, cameraPosition);
 
         if (path.size() > 1)
-            for (int i = 0; i < path.size(); i++) {
-                Vec2 prevPoint = i > 0 ? path[i - 1] : position;
+            for (int i = 1; i < path.size(); i++) {
+                Vec2 prevPoint = path[i - 1];
                 Vec2 currentPoint = path[i];
 
                 prevPoint.substract(cameraPosition);
