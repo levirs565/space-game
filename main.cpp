@@ -401,13 +401,13 @@ public:
     }
 
     void addObstacle(const Vec2 &centerPosition, int radius) {
-        int left = floor(std::max((centerPosition.x - radius) / mEntitySize, 0.0));
-        int top = floor(std::max((centerPosition.y - radius) / mEntitySize, 0.0));
-        int right = ceil(std::max((centerPosition.x + radius) / mEntitySize, 0.0));
-        int bottom = ceil(std::max((centerPosition.y + radius) / mEntitySize, 0.0));
+        int left = floor(std::max((centerPosition.x - radius) / mEntitySize - 0.5, 0.0));
+        int top = floor(std::max((centerPosition.y - radius) / mEntitySize - 0.5, 0.0));
+        int right = int(round(std::max((centerPosition.x + radius) / mEntitySize + 0.5, 0.0)));
+        int bottom = int(round(std::max((centerPosition.y + radius) / mEntitySize + 0.5, 0.0)));
 
-        if (left >= mColumnCount || right >= mColumnCount) return;
-        if (top >= mRowCount || bottom >= mRowCount) return;
+        if (left > mColumnCount || right > mColumnCount) return;
+        if (top > mRowCount || bottom > mRowCount) return;
 
         for (int row = top; row < bottom; row++) {
             for (int column = left; column < right; column++) {
@@ -528,6 +528,8 @@ public:
     std::vector<Vec2> findPath(const Vec2 &from, const Vec2 &to) {
         const NodePosition fromNodePos = getNodePositionFromWorldPosition(from);
         const NodePosition toNodePos = getNodePositionFromWorldPosition(to);
+
+        if (!mGrid[toNodePos.first][toNodePos.second].isWalkable) return {};
 
         std::vector<NodePosition> openSet;
         std::set<NodePosition> closedSet;
@@ -724,7 +726,7 @@ public:
 
         for (const Vec2 &obstacle: stage->findNeighbourObstacle(position)) {
             steering.add(
-                    SteeringBehaviour::singleSeparation(position, obstacle, 200),
+                    SteeringBehaviour::singleSeparation(position, obstacle, 110),
                     1
             );
         }
@@ -822,17 +824,18 @@ public:
 
         mLaserSound = Mix_LoadWAV("/home/levirs565/Unduhan/SpaceShooterRedux/Bonus/sfx_laser1.ogg");
 
-        std::unique_ptr<PlayerShip> playerShip = std::make_unique<PlayerShip>(mTextureLoader.get(), Vec2(400, 400));
+        std::unique_ptr<PlayerShip> playerShip = std::make_unique<PlayerShip>(mTextureLoader.get(), Vec2(400, 700));
         mPlayerShip = playerShip.get();
         mEntityList.push_back(std::move(playerShip));
 
-        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, -100))));
-        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, -100))));
-        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, -100))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, 0))));
 
-        mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(100, 250), "Brown_big1")));
-        mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(300, 250), "Brown_big2")));
-        mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(600, 250), "Brown_big3")));
+        mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(100, 500), "Brown_big1")));
+        mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(300, 500), "Brown_big2")));
+        mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(600, 500), "Brown_big3")));
+        mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(615, 1000), "Brown_big3")));
         mPathFinder.init(mWordSize, 110);
 
         mPathFinder.clearState();
