@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <set>
+#include <exception>
 
 class TextureLoader {
 public:
@@ -525,6 +526,21 @@ public:
         return path;
     }
 
+    bool canWalk(const NodePosition &from, const NodePosition &to) {
+        if (!mGrid[to.first][to.second].isWalkable) return false;
+
+        int deltaRow = to.first - from.first;
+        int deltaColumn = to.second - from.second;
+
+        if (deltaRow == 0 || deltaColumn == 0) return true;
+
+        if (abs(deltaRow) > 1 || abs(deltaColumn) > 1)
+            throw std::invalid_argument("node is too far");
+
+        return mGrid[from.first][to.second].isWalkable &&
+               mGrid[to.first][from.second].isWalkable;
+    }
+
     std::vector<Vec2> findPath(const Vec2 &from, const Vec2 &to) {
         const NodePosition fromNodePos = getNodePositionFromWorldPosition(from);
         const NodePosition toNodePos = getNodePositionFromWorldPosition(to);
@@ -563,7 +579,7 @@ public:
             for (const NodePosition &neighbour: getNeighbours(minPos)) {
                 Node &node = mGrid[neighbour.first][neighbour.second];
 
-                if (!node.isWalkable || closedSet.count(neighbour) > 0)
+                if (!canWalk(minPos, neighbour) || closedSet.count(neighbour) > 0)
                     continue;
 
                 int newGCost = minCostNode->gCost + getDistance(neighbour, minPos);
