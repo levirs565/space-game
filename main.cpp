@@ -160,6 +160,8 @@ public:
     virtual std::vector<std::unique_ptr<GameEntity>> &getEntities() = 0;
 
     virtual std::vector<Vec2> findPath(const Vec2 &from, const Vec2 &to) = 0;
+
+    virtual std::vector<Vec2> findNeighbourObstacle(const Vec2 &position) = 0;
 };
 
 
@@ -474,6 +476,25 @@ public:
         return neighbours;
     }
 
+    std::vector<Vec2> getNeighbourObstacle(const Vec2 &position) {
+        NodePosition nodePosition = getNodePositionFromWorldPosition(position);
+
+        std::vector<Vec2> obstacle;
+
+        if (!mGrid[nodePosition.first][nodePosition.second].isWalkable)
+            obstacle.emplace_back(nodePosition.second * mEntitySize + mEntitySize / 2,
+                                  nodePosition.first * mEntitySize + mEntitySize / 2);
+
+        for (const NodePosition &neighbour: getNeighbours(nodePosition)) {
+            if (mGrid[neighbour.first][neighbour.second].isWalkable) continue;
+
+            obstacle.emplace_back(neighbour.second * mEntitySize + mEntitySize / 2,
+                                  neighbour.first * mEntitySize + mEntitySize / 2);
+        }
+
+        return obstacle;
+    }
+
     int getDistance(const NodePosition &from, const NodePosition &to) {
         int deltaRow = std::abs(from.first - to.first);
         int deltaColumn = std::abs(from.second - to.second);
@@ -593,6 +614,28 @@ namespace SteeringBehaviour {
         return steering;
     }
 
+    Vec2 flee(const Vec2 &from, const Vec2 &to, const Vec2 &currentVelocity, double maxVelocity) {
+        Vec2 desiredVelocity = Vec2(from);
+        desiredVelocity.substract(to);
+
+        desiredVelocity.normalize();
+        desiredVelocity.scale(maxVelocity);
+
+        Vec2 steering = Vec2(desiredVelocity);
+        steering.substract(currentVelocity);
+        return steering;
+    }
+
+    Vec2 applyOnlyNear(const Vec2 &from, const Vec2 &to, const Vec2 &steering, double maxDistance) {
+        Vec2 delta = Vec2(to);
+        delta.substract(from);
+        double distance = delta.length();
+
+        if (distance >= maxDistance) return {0, 0};
+
+        return steering;
+    }
+
     Vec2
     separation(GameEntity *currentEntity, const std::vector<GameEntity *> othersEntity, double separationDistance) {
         Vec2 steering{0, 0};
@@ -611,6 +654,22 @@ namespace SteeringBehaviour {
         }
 
         return steering;
+    }
+
+    Vec2 singleSeparation(const Vec2 &from, const Vec2 &to, double separationDistance) {
+        Vec2 distanceVec(to);
+        distanceVec.substract(from);
+        double distance = distanceVec.length();
+
+        if (distance < separationDistance) {
+            distanceVec.scale(-1);
+            distanceVec.normalize();
+            distanceVec.scale(1.0 / (distance / separationDistance));
+
+            return distanceVec;
+        }
+
+        return {0, 0};
     }
 
     Vec2 pathFollowing(const Vec2 &currentPosition, const std::vector<Vec2> &path, int &currentNode,
@@ -662,6 +721,13 @@ public:
         }
 
         steering.add(SteeringBehaviour::separation(this, othersEnemy, 250), 1);
+
+        for (const Vec2 &obstacle: stage->findNeighbourObstacle(position)) {
+            steering.add(
+                    SteeringBehaviour::singleSeparation(position, obstacle, 200),
+                    1
+            );
+        }
 
         velocity.add(steering, 1);
 
@@ -963,6 +1029,10 @@ public:
 
     std::vector<Vec2> findPath(const Vec2 &from, const Vec2 &to) override {
         return mPathFinder.findPath(from, to);
+    }
+
+    std::vector<Vec2> findNeighbourObstacle(const Vec2 &position) override {
+        return mPathFinder.getNeighbourObstacle(position);
     }
 
 private:
