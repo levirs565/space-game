@@ -655,22 +655,26 @@ namespace SteeringBehaviour {
     }
 
     Vec2
-    separation(GameEntity *currentEntity, const std::vector<GameEntity *> othersEntity, double separationDistance) {
+    separation(GameEntity *currentEntity, const std::vector<GameEntity *>& othersEntity, double separationDistance) {
         Vec2 steering{0, 0};
+        int total = 0;
         for (GameEntity *other: othersEntity) {
             Vec2 distanceVec(other->position);
             distanceVec.substract(currentEntity->position);
-            double distance = distanceVec.length();
+            double distance = distanceVec.length() - other->boundingRadius - currentEntity->boundingRadius;
 
-            if (distance < separationDistance) {
+            if (distance < separationDistance && separationDistance - distance > 0.1) {
                 distanceVec.scale(-1);
                 distanceVec.normalize();
-                distanceVec.scale(1.0 / (distance / separationDistance));
+                distanceVec.scale(separationDistance / distance);
 
                 steering.add(distanceVec, 1);
+                total++;
             }
         }
 
+        if (total > 0)
+            steering.scale(1.0 / total);
         return steering;
     }
 
@@ -738,7 +742,7 @@ public:
             }
         }
 
-        steering.add(SteeringBehaviour::separation(this, othersEnemy, 250), 1);
+        steering.add(SteeringBehaviour::separation(this, othersEnemy, 10), 1);
 
         for (const Vec2 &obstacle: stage->findNeighbourObstacle(position)) {
             steering.add(
@@ -752,6 +756,9 @@ public:
         if (velocity.length() > 2) {
             velocity.normalize();
             velocity.scale(2);
+        }
+        if (velocity.length() < 0.5) {
+            velocity.scale(0);
         }
 
         position.add(velocity, 1);
