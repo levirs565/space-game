@@ -678,15 +678,15 @@ namespace SteeringBehaviour {
         return steering;
     }
 
-    Vec2 singleSeparation(const Vec2 &from, const Vec2 &to, double separationDistance) {
+    Vec2 singleSeparation(const Vec2 &from,  double fromRadius, const Vec2 &to, double toRadius, double separationDistance) {
         Vec2 distanceVec(to);
         distanceVec.substract(from);
-        double distance = distanceVec.length();
+        double distance = distanceVec.length() - fromRadius - toRadius;
 
-        if (distance < separationDistance) {
+        if (distance < separationDistance && separationDistance - distance > 0.1) {
             distanceVec.scale(-1);
             distanceVec.normalize();
-            distanceVec.scale(1.0 / (distance / separationDistance));
+            distanceVec.scale(separationDistance / distance);
 
             return distanceVec;
         }
@@ -744,12 +744,19 @@ public:
 
         steering.add(SteeringBehaviour::separation(this, othersEnemy, 10), 1);
 
+        Vec2 obstacleAvoidance{0, 0};
+        int totalObstacleAvoidance = 0;
         for (const Vec2 &obstacle: stage->findNeighbourObstacle(position)) {
-            steering.add(
-                    SteeringBehaviour::singleSeparation(position, obstacle, 110),
-                    1
-            );
+            Vec2 force = SteeringBehaviour::singleSeparation(position, boundingRadius, obstacle, 0, 55);
+            if (force.length() > 0) {
+                totalObstacleAvoidance++;
+                obstacleAvoidance.add(force, 1);
+            }
         }
+
+        if (totalObstacleAvoidance > 0)
+            obstacleAvoidance.scale(1.0 / totalObstacleAvoidance);
+        steering.add(obstacleAvoidance, 1);
 
         velocity.add(steering, 1);
 
