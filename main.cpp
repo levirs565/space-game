@@ -811,7 +811,7 @@ public:
 
         position.add(velocity, 1);
 
-        angle = direction.getRotation() * 180.0 / M_PI - 90;
+        angle = velocity.getRotation() * 180.0 / M_PI - 90;
 
         if (SDL_GetTicks() - lastFire >= 1000 && canAttack) {
             SDL_Rect enemyRect = getRect();
