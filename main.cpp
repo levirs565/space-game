@@ -620,7 +620,7 @@ namespace SteeringBehaviour {
         return steering;
     }
 
-    Vec2 seek(const Vec2 &from, const Vec2 &to, const Vec2 &currentVelocity, double maxVelocity) {
+    Vec2 seek(const Vec2 &from, const Vec2 &to, const Vec2 &currentVelocity, double maxVelocity, double maxSteering) {
         Vec2 desiredVelocity = Vec2(to);
         desiredVelocity.substract(from);
 
@@ -629,6 +629,12 @@ namespace SteeringBehaviour {
 
         Vec2 steering = Vec2(desiredVelocity);
         steering.substract(currentVelocity);
+
+        if (steering.length() > maxSteering) {
+            steering.normalize();
+            steering.scale(maxSteering);
+        }
+
         return steering;
     }
 
@@ -655,27 +661,77 @@ namespace SteeringBehaviour {
     }
 
     Vec2
-    separation(GameEntity *currentEntity, const std::vector<GameEntity *>& othersEntity, double separationDistance) {
-        Vec2 steering{0, 0};
+    separation(GameEntity *currentEntity, const std::vector<GameEntity *>& othersEntity, const Vec2& currentVelocity, double separationDistance, double maxSpeed, double maxForce) {
+        Vec2 desiredVelocity{0, 0};
         int total = 0;
         for (GameEntity *other: othersEntity) {
             Vec2 distanceVec(other->position);
             distanceVec.substract(currentEntity->position);
-            double distance = distanceVec.length() - other->boundingRadius - currentEntity->boundingRadius;
+            double distance = distanceVec.length();
 
-            if (distance < separationDistance && separationDistance - distance > 0.1) {
+            if (distance < separationDistance) {
                 distanceVec.scale(-1);
                 distanceVec.normalize();
-                distanceVec.scale(separationDistance / distance);
+                distanceVec.scale(1 / distance);
 
-                steering.add(distanceVec, 1);
+                desiredVelocity.add(distanceVec, 1);
                 total++;
             }
         }
 
-        if (total > 0)
-            steering.scale(1.0 / total);
-        return steering;
+        if (total > 0) {
+            desiredVelocity.scale(1.0 / total);
+            desiredVelocity.normalize();
+            desiredVelocity.scale(maxSpeed);
+
+            Vec2 steering = Vec2(desiredVelocity);
+            steering.substract(currentVelocity);
+
+            if (steering.length() > maxForce) {
+                steering.normalize();
+                steering.scale(maxForce);
+            }
+
+            return steering;
+        }
+        return {0, 0};
+    }
+
+    Vec2
+    separation(const Vec2& currentPosition, const std::vector<Vec2>& othersPosition, const Vec2& currentVelocity, double separationDistance, double maxSpeed, double maxForce) {
+        Vec2 desiredVelocity{0, 0};
+        int total = 0;
+        for (const Vec2& other: othersPosition) {
+            Vec2 distanceVec(other);
+            distanceVec.substract(currentPosition);
+            double distance = distanceVec.length();
+
+            if (distance < separationDistance) {
+                distanceVec.scale(-1);
+                distanceVec.normalize();
+                distanceVec.scale(1 / distance);
+
+                desiredVelocity.add(distanceVec, 1);
+                total++;
+            }
+        }
+
+        if (total > 0) {
+            desiredVelocity.scale(1.0 / total);
+            desiredVelocity.normalize();
+            desiredVelocity.scale(maxSpeed);
+
+            Vec2 steering = Vec2(desiredVelocity);
+            steering.substract(currentVelocity);
+
+            if (steering.length() > maxForce) {
+                steering.normalize();
+                steering.scale(maxForce);
+            }
+
+            return steering;
+        }
+        return {0, 0};
     }
 
     Vec2 singleSeparation(const Vec2 &from,  double fromRadius, const Vec2 &to, double toRadius, double separationDistance) {
@@ -695,7 +751,7 @@ namespace SteeringBehaviour {
     }
 
     Vec2 pathFollowing(const Vec2 &currentPosition, const std::vector<Vec2> &path, int &currentNode,
-                       const Vec2 &currentVelocity, double maxVelocity) {
+                       const Vec2 &currentVelocity, double maxVelocity, double maxSteering) {
         if (!path.empty()) {
             const Vec2 &target = path[currentNode];
             Vec2 delta = currentPosition;
@@ -707,7 +763,7 @@ namespace SteeringBehaviour {
                     currentNode = path.size() - 1;
             }
 
-            return seek(currentPosition, target, currentVelocity, maxVelocity);
+            return seek(currentPosition, target, currentVelocity, maxVelocity, maxSteering);
         }
 
         return {0, 0};
@@ -728,8 +784,8 @@ public:
 
     void onTick(IGameStage *stage) override {
         bool canAttack = false;
-        Vec2 steering = SteeringBehaviour::pathFollowing(position, path, currentPathNode, velocity, 2);
-        steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
+        Vec2 steering = SteeringBehaviour::pathFollowing(position, path, currentPathNode, velocity, 2, 0.1);
+        //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
         Vec2 direction = stage->getPlayerPosition();
         direction.substract(position);
 
@@ -742,30 +798,15 @@ public:
             }
         }
 
-        steering.add(SteeringBehaviour::separation(this, othersEnemy, 10), 1);
+        steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, 165, 2, 0.1), 1.5);
 
-        Vec2 obstacleAvoidance{0, 0};
-        int totalObstacleAvoidance = 0;
-        for (const Vec2 &obstacle: stage->findNeighbourObstacle(position)) {
-            Vec2 force = SteeringBehaviour::singleSeparation(position, boundingRadius, obstacle, 0, 55);
-            if (force.length() > 0) {
-                totalObstacleAvoidance++;
-                obstacleAvoidance.add(force, 1);
-            }
-        }
-
-        if (totalObstacleAvoidance > 0)
-            obstacleAvoidance.scale(1.0 / totalObstacleAvoidance);
-        steering.add(obstacleAvoidance, 1);
+        steering.add(SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1), 3);
 
         velocity.add(steering, 1);
 
         if (velocity.length() > 2) {
             velocity.normalize();
             velocity.scale(2);
-        }
-        if (velocity.length() < 0.5) {
-            velocity.scale(0);
         }
 
         position.add(velocity, 1);
