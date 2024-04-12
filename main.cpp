@@ -1,7 +1,9 @@
 #include <iostream>
 #include <SDL.h>
+#include <SDL_surface.h>
 #include <SDL_image.h>
 #include <SDL_mixer.h>
+#include <SDL_ttf.h>
 #include <cmath>
 #include <vector>
 #include <unordered_map>
@@ -417,6 +419,8 @@ public:
     }
 
     void drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition, Vec2 &cameraSize) {
+        static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
+
         int left = floor(cameraPosition.x / mEntitySize);
         int top = floor(cameraPosition.y / mEntitySize);
         int right = ceil((cameraPosition.x + cameraSize.x) / mEntitySize);
@@ -429,12 +433,19 @@ public:
         r.w = mEntitySize;
         r.h = mEntitySize;
 
+        SDL_Color color;
+        color.r = 255;
+        color.g = 0;
+        color.b = 0;
+        color.a = 192;
+
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         for (int row = top; row <= bottom; row++) {
             for (int column = left; column <= right; column++) {
+                const Node& node = mGrid[row][column];
                 r.x = startX + (column - left) * mEntitySize;
                 r.y = startY + (row - top) * mEntitySize;
-                if (mGrid[row][column].isWalkable)
+                if (node.isWalkable)
                     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 64);
                 else
                     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 64);
@@ -450,6 +461,19 @@ public:
 
                 SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
                 SDL_RenderDrawLine(renderer, arrowFrom.x, arrowFrom.y, arrowTo.x, arrowTo.y);
+
+                std::string text = node.cost != std::numeric_limits<int>::max() ? std::to_string(node.cost) : "INFTY";
+                SDL_Surface* sf = TTF_RenderText_Solid(font, text.data(), color);
+                SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, sf);
+                SDL_Rect textRect;
+                SDL_QueryTexture(texture, nullptr, nullptr, &textRect.w, &textRect.h);
+                textRect.x = r.x;
+                textRect.y = r.y;
+
+                SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+
+                SDL_DestroyTexture(texture);
+                SDL_FreeSurface(sf);
             }
         }
     }
@@ -533,12 +557,15 @@ public:
     Vec2 getDirection(const NodePosition &nodePosition) {
         int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
 
+        if (currentCost == 0) return {0, 0};
+
         NodePosition min = nodePosition;
         int minCost = std::numeric_limits<int>::max();
 
         for (const NodePosition &neighbour: getNeighbours(nodePosition)) {
+            if (!canWalk(nodePosition, neighbour)) continue;
+
             const Node &neighbourNode = mGrid[neighbour.first][neighbour.second];
-            if (!neighbourNode.isWalkable) continue;
 
             int cost = neighbourNode.cost - currentCost;
 
@@ -880,7 +907,7 @@ public:
             }
         }
 
-        steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, 165, 2, 0.1), 1.5);
+        steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, 165, 2, 0.1), 3);
 
         steering.add(
                 SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1),
@@ -993,6 +1020,11 @@ public:
         }
 
         mPathFinder.generateHeatmap(mPlayerShip->position);
+
+        if (TTF_Init() < 0) {
+            std::cout << "TTF Init failed" << std::endl;
+            exit(1);
+        }
     }
 
     void processKeyDown(const SDL_KeyboardEvent &key) {
@@ -1152,6 +1184,7 @@ public:
             }
 
             mPathFinder.drawGrid(mRenderer, mCameraPosition, mCameraSize);
+            mPathFinder.generateHeatmap(mPlayerShip->position);
 
             presentScene();
             SDL_Delay(16);
