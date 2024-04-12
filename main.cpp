@@ -1,6 +1,5 @@
 #include <iostream>
 #include <SDL.h>
-#include <SDL_surface.h>
 #include <SDL_image.h>
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
@@ -107,6 +106,10 @@ public:
         else if (clamp && projectionLength > other.length()) projectionLength = other.length();
         axis.scale(projectionLength);
         return axis;
+    }
+
+    double angleBetween(const Vec2 &other) const {
+        return std::acos(dot(other) / length() / other.length());
     }
 };
 
@@ -719,6 +722,7 @@ namespace SteeringBehaviour {
 
     Vec2
     separation(GameEntity *currentEntity, const std::vector<GameEntity *> &othersEntity, const Vec2 &currentVelocity,
+               const Vec2 &currentDirection,
                double separationDistance, double maxSpeed, double maxForce) {
         Vec2 desiredVelocity{0, 0};
         int total = 0;
@@ -726,8 +730,9 @@ namespace SteeringBehaviour {
             Vec2 distanceVec(other->position);
             distanceVec.substract(currentEntity->position);
             double distance = distanceVec.length();
+            double angle = distanceVec.angleBetween(currentDirection);
 
-            if (distance < separationDistance) {
+            if (distance < separationDistance && angle < 3 * M_PI_4) {
                 distanceVec.scale(-1);
                 distanceVec.normalize();
                 distanceVec.scale(1 / distance);
@@ -884,8 +889,10 @@ class Enemy : public GameEntity {
 public:
     Vec2 velocity{0, 0};
     Vec2 acceleration{0, 0};
+    Vec2 directionVector{0, 0};
     Uint32 lastFire = 0;
     Uint32 lastUpdatePath = 0;
+    std::vector<GameEntity *> othersEnemy;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -898,7 +905,7 @@ public:
         Vec2 direction = stage->getPlayerPosition();
         direction.substract(position);
 
-        std::vector<GameEntity *> othersEnemy;
+        othersEnemy.clear();
         for (const std::unique_ptr<GameEntity> &entity: stage->getEntities()) {
             if (entity.get() == this) continue;
 
@@ -907,7 +914,7 @@ public:
             }
         }
 
-        steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, 165, 2, 0.1), 3);
+        steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, direction, 165, 2, 0.1), 3);
 
         steering.add(
                 SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1),
@@ -928,9 +935,27 @@ public:
             velocity.scale(2);
         }
 
+        if (directionVector.length() == 0) {
+            directionVector = velocity;
+            direction.normalize();
+        } else {
+            Vec2 desiredDirection{velocity};
+            desiredDirection.normalize();
+            desiredDirection.substract(directionVector);
+
+            Vec2 directionForce{desiredDirection};
+            if (directionForce.length() > 0.1) {
+                directionForce.normalize();
+                directionForce.scale(0.1);
+            }
+
+            directionVector.add(directionForce, 1);
+            directionVector.normalize();
+        }
+
         position.add(velocity, 1);
 
-        angle = velocity.getRotation() * 180.0 / M_PI - 90;
+        angle = directionVector.getRotation() * 180.0 / M_PI - 90;
 
         if (SDL_GetTicks() - lastFire >= 1000 && canAttack) {
             SDL_Rect enemyRect = getRect();
@@ -946,6 +971,54 @@ public:
 
     void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) override {
         GameEntity::onDraw(renderer, cameraPosition);
+
+//        static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
+//        SDL_Color color;
+//        color.r = 255;
+//        color.g = 255;
+//        color.b = 255;
+//        color.a = 255;
+//        Vec2 posInCamera{position};
+//        posInCamera.substract(cameraPosition);
+//        for (GameEntity * other : othersEnemy) {
+//            Vec2 distanceVec(other->position);
+//            distanceVec.substract(position);
+//            double distance = distanceVec.length();
+//            double angle = distanceVec.angleBetween(directionVector);
+//
+//            if (distance < 165) {
+//                Vec2 projection = distanceVec.projectInto(directionVector, false);
+//                projection.add(position, 1);
+//                projection.substract(cameraPosition);
+//
+//                distanceVec.scale(-1);
+//                distanceVec.normalize();
+//                distanceVec.scale(1 / distance);
+//
+//
+//                Vec2 otherInCamera{other->position};
+//                otherInCamera.substract(cameraPosition);
+//
+//                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+//                SDL_RenderDrawLine(renderer, posInCamera.x, posInCamera.y, otherInCamera.x, otherInCamera.y);
+//                SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+//                SDL_RenderDrawLine(renderer, posInCamera.x, posInCamera.y, projection.x, projection.y);
+//                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+//                SDL_RenderDrawLine(renderer, otherInCamera.x, otherInCamera.y, projection.x, projection.y);
+//
+//                std::string text = std::to_string(angle);
+//                SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
+//                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+//                SDL_Rect textRect;
+//                SDL_QueryTexture(texture, nullptr, nullptr, &textRect.w, &textRect.h);
+//                textRect.x = (otherInCamera.x + projection.x) / 2.0 - textRect.w;
+//                textRect.y = (otherInCamera.y + projection.y) / 2.0 - textRect.h;
+//                SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+//
+//                SDL_DestroyTexture(texture);
+//                SDL_FreeSurface(surface);
+//            }
+//        }
     }
 
     void onHit(GameEntity *other) override {
@@ -992,6 +1065,11 @@ public:
             exit(1);
         }
 
+        if (TTF_Init() < 0) {
+            std::cout << "TTF Init failed" << std::endl;
+            exit(1);
+        }
+
         mTextureLoader = std::make_unique<TextureLoader>(mRenderer);
         mBackgroundTexture = mTextureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/Backgrounds/black.png");
 
@@ -1020,11 +1098,6 @@ public:
         }
 
         mPathFinder.generateHeatmap(mPlayerShip->position);
-
-        if (TTF_Init() < 0) {
-            std::cout << "TTF Init failed" << std::endl;
-            exit(1);
-        }
     }
 
     void processKeyDown(const SDL_KeyboardEvent &key) {
