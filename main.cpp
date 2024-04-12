@@ -821,6 +821,7 @@ class Enemy : public GameEntity {
 public:
     Vec2 velocity{0, 0};
     Vec2 acceleration{0, 0};
+    Vec2 directionVector{0, 0};
     Uint32 lastFire = 0;
     Uint32 lastUpdatePath = 0;
     std::vector<Vec2> path;
@@ -865,9 +866,27 @@ public:
             velocity.scale(2);
         }
 
+        if (directionVector.length() == 0) {
+            directionVector = velocity;
+            direction.normalize();
+        } else {
+            Vec2 desiredDirection{velocity};
+            desiredDirection.normalize();
+            desiredDirection.substract(directionVector);
+
+            Vec2 directionForce{desiredDirection};
+            if (directionForce.length() > 0.1) {
+                directionForce.normalize();
+                directionForce.scale(0.1);
+            }
+
+            directionVector.add(directionForce, 1);
+            directionVector.normalize();
+        }
+
         position.add(velocity, 1);
 
-        angle = velocity.getRotation() * 180.0 / M_PI - 90;
+        angle = directionVector.getRotation() * 180.0 / M_PI - 90;
 
         if (SDL_GetTicks() - lastFire >= 1000 && canAttack) {
             SDL_Rect enemyRect = getRect();
