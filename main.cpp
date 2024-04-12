@@ -82,6 +82,7 @@ public:
 
     void normalize() {
         double l = length();
+        if (l == 0) return;
         x /= l;
         y /= l;
     }
@@ -93,6 +94,16 @@ public:
 
     double dot(const Vec2 &other) const {
         return x * other.x + y * other.y;
+    }
+
+    Vec2 projectInto(const Vec2 &other, bool clamp) const {
+        Vec2 axis = other;
+        axis.normalize();
+        double projectionLength = dot(axis);
+        if (clamp && projectionLength < 0) projectionLength = 0;
+        else if (clamp && projectionLength > other.length()) projectionLength = other.length();
+        axis.scale(projectionLength);
+        return axis;
     }
 };
 
@@ -661,7 +672,8 @@ namespace SteeringBehaviour {
     }
 
     Vec2
-    separation(GameEntity *currentEntity, const std::vector<GameEntity *>& othersEntity, const Vec2& currentVelocity, double separationDistance, double maxSpeed, double maxForce) {
+    separation(GameEntity *currentEntity, const std::vector<GameEntity *> &othersEntity, const Vec2 &currentVelocity,
+               double separationDistance, double maxSpeed, double maxForce) {
         Vec2 desiredVelocity{0, 0};
         int total = 0;
         for (GameEntity *other: othersEntity) {
@@ -698,10 +710,11 @@ namespace SteeringBehaviour {
     }
 
     Vec2
-    separation(const Vec2& currentPosition, const std::vector<Vec2>& othersPosition, const Vec2& currentVelocity, double separationDistance, double maxSpeed, double maxForce) {
+    separation(const Vec2 &currentPosition, const std::vector<Vec2> &othersPosition, const Vec2 &currentVelocity,
+               double separationDistance, double maxSpeed, double maxForce) {
         Vec2 desiredVelocity{0, 0};
         int total = 0;
-        for (const Vec2& other: othersPosition) {
+        for (const Vec2 &other: othersPosition) {
             Vec2 distanceVec(other);
             distanceVec.substract(currentPosition);
             double distance = distanceVec.length();
@@ -734,7 +747,8 @@ namespace SteeringBehaviour {
         return {0, 0};
     }
 
-    Vec2 singleSeparation(const Vec2 &from,  double fromRadius, const Vec2 &to, double toRadius, double separationDistance) {
+    Vec2
+    singleSeparation(const Vec2 &from, double fromRadius, const Vec2 &to, double toRadius, double separationDistance) {
         Vec2 distanceVec(to);
         distanceVec.substract(from);
         double distance = distanceVec.length() - fromRadius - toRadius;
@@ -753,17 +767,50 @@ namespace SteeringBehaviour {
     Vec2 pathFollowing(const Vec2 &currentPosition, const std::vector<Vec2> &path, int &currentNode,
                        const Vec2 &currentVelocity, double maxVelocity, double maxSteering) {
         if (!path.empty()) {
-            const Vec2 &target = path[currentNode];
-            Vec2 delta = currentPosition;
-            delta.substract(target);
+            const double nextTime = 25;
+            Vec2 future = currentVelocity;
+            future.normalize();
+            future.scale(nextTime);
+            future.add(currentPosition, 1);
 
-            if (delta.length() <= 10) {
-                currentNode += 1;
-                if (currentNode >= path.size())
-                    currentNode = path.size() - 1;
+            Vec2 projection{0, 0};
+            Vec2 target{0, 0};
+            double minDistance = std::numeric_limits<double>::max();
+
+            for (size_t i = 0; i < path.size() - 1; i++) {
+                const Vec2 &currentPoint = path[i];
+                const Vec2 &nextPoint = path[i + 1];
+
+                Vec2 futureFromCurrent{future};
+                futureFromCurrent.substract(currentPoint);
+                Vec2 nextFromCurrent{nextPoint};
+                nextFromCurrent.substract(currentPoint);
+
+                Vec2 futureProjection = futureFromCurrent.projectInto(nextFromCurrent, true);
+                futureProjection.add(currentPoint, 1);
+
+                Vec2 distanceVec = future;
+                distanceVec.substract(futureProjection);
+                double distance = distanceVec.length();
+
+                if (distance < minDistance) {
+                    currentNode = i;
+                    minDistance = distance;
+                    projection = futureProjection;
+
+                    Vec2 direction{nextPoint};
+                    direction.substract(currentPoint);
+                    direction.normalize();
+                    direction.scale(10);
+
+                    target = futureProjection;
+                    target.add(direction, 1);
+                }
             }
 
-            return seek(currentPosition, target, currentVelocity, maxVelocity, maxSteering);
+            if (minDistance > 55 && minDistance != std::numeric_limits<double>::max()) {
+                return seek(currentPosition, target, currentVelocity, maxVelocity, maxSteering);
+            }
         }
 
         return {0, 0};
@@ -773,6 +820,7 @@ namespace SteeringBehaviour {
 class Enemy : public GameEntity {
 public:
     Vec2 velocity{0, 0};
+    Vec2 acceleration{0, 0};
     Uint32 lastFire = 0;
     Uint32 lastUpdatePath = 0;
     std::vector<Vec2> path;
@@ -802,7 +850,15 @@ public:
 
         steering.add(SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1), 3);
 
-        velocity.add(steering, 1);
+        if (steering.length() != 0)
+            acceleration = steering;
+        else {
+            acceleration = velocity;
+            acceleration.normalize();
+            acceleration.scale(0.1);
+        }
+
+        velocity.add(acceleration, 1);
 
         if (velocity.length() > 2) {
             velocity.normalize();
@@ -837,13 +893,17 @@ public:
         GameEntity::onDraw(renderer, cameraPosition);
 
         if (path.size() > 1)
-            for (int i = 1; i < path.size(); i++) {
-                Vec2 prevPoint = path[i - 1];
-                Vec2 currentPoint = path[i];
+            for (int i = 0; i < path.size() - 1; i++) {
+                Vec2 prevPoint = path[i];
+                Vec2 currentPoint = path[i + 1];
 
                 prevPoint.substract(cameraPosition);
                 currentPoint.substract(cameraPosition);
 
+                if (i == currentPathNode)
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+                else
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
                 SDL_RenderDrawLine(renderer, int(prevPoint.x), int(prevPoint.y), int(currentPoint.x),
                                    int(currentPoint.y));
             }
