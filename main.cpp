@@ -9,6 +9,7 @@
 #include <functional>
 #include <set>
 #include <exception>
+#include <queue>
 
 class TextureLoader {
 public:
@@ -171,7 +172,7 @@ public:
 
     virtual std::vector<std::unique_ptr<GameEntity>> &getEntities() = 0;
 
-    virtual std::vector<Vec2> findPath(const Vec2 &from, const Vec2 &to) = 0;
+    virtual Vec2 getFlowDirection(const Vec2 &position) = 0;
 
     virtual std::vector<Vec2> findNeighbourObstacle(const Vec2 &position) = 0;
 };
@@ -372,13 +373,8 @@ private:
     public:
         NodePosition parentPosition;
         bool isWalkable = true;
-        int gCost;
-        int hCost;
-        bool isSelected = false;
-
-        int getFCost() const {
-            return gCost + hCost;
-        }
+        int cost;
+        Vec2 direction{0, 0};
     };
 
     std::vector<std::vector<Node>> mGrid;
@@ -400,14 +396,6 @@ public:
         for (std::vector<Node> &row: mGrid) {
             for (Node &cell: row) {
                 cell.isWalkable = true;
-            }
-        }
-    }
-
-    void clearSelection() {
-        for (std::vector<Node> &row: mGrid) {
-            for (Node &cell: row) {
-                cell.isSelected = false;
             }
         }
     }
@@ -446,15 +434,22 @@ public:
             for (int column = left; column <= right; column++) {
                 r.x = startX + (column - left) * mEntitySize;
                 r.y = startY + (row - top) * mEntitySize;
-                if (mGrid[row][column].isSelected)
-                    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 64);
-                else if (mGrid[row][column].isWalkable)
+                if (mGrid[row][column].isWalkable)
                     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 64);
                 else
                     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 64);
                 SDL_RenderFillRect(renderer, &r);
                 SDL_SetRenderDrawColor(renderer, 255, 255, 255, 192);
                 SDL_RenderDrawRect(renderer, &r);
+
+                Vec2 direction = getDirection(NodePosition{row, column});
+                Vec2 arrowFrom = {r.x + mEntitySize / 2.0, r.y + mEntitySize / 2.0};
+                direction.scale(mEntitySize / 3.0);
+                Vec2 arrowTo{arrowFrom};
+                arrowTo.add(direction, 1);
+
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+                SDL_RenderDrawLine(renderer, arrowFrom.x, arrowFrom.y, arrowTo.x, arrowTo.y);
             }
         }
     }
@@ -488,6 +483,30 @@ public:
         return neighbours;
     }
 
+    std::vector<NodePosition> edgeOffsets = {
+            {0, -1},
+            {-1, 0},
+            {1, 0},
+            {0, 1}
+    };
+    std::vector<NodePosition> getEdges(const NodePosition& position) {
+        std::vector<NodePosition> neighbours;
+
+        for (auto [offsetFirst, offsetSecond] : edgeOffsets) {
+                NodePosition newPos{
+                        position.first + offsetFirst,
+                        position.second + offsetSecond
+                };
+
+                if (newPos.first < 0 || newPos.first >= mRowCount) continue;
+                if (newPos.second < 0 || newPos.second >= mColumnCount) continue;
+
+                neighbours.push_back(newPos);
+        }
+
+        return neighbours;
+    }
+
     std::vector<Vec2> getNeighbourObstacle(const Vec2 &position) {
         NodePosition nodePosition = getNodePositionFromWorldPosition(position);
 
@@ -507,6 +526,40 @@ public:
         return obstacle;
     }
 
+    Vec2 getDirection(const Vec2& position) {
+        return getDirection(getNodePositionFromWorldPosition(position));
+    }
+
+    Vec2 getDirection(const NodePosition &nodePosition) {
+        int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
+
+        NodePosition min = nodePosition;
+        int minCost = std::numeric_limits<int>::max();
+
+        for (const NodePosition &neighbour: getNeighbours(nodePosition)) {
+            const Node &neighbourNode = mGrid[neighbour.first][neighbour.second];
+            if (!neighbourNode.isWalkable) continue;
+
+            int cost = neighbourNode.cost - currentCost;
+
+            if (cost < minCost) {
+                min = neighbour;
+                minCost = cost;
+            }
+        }
+
+        if (minCost != std::numeric_limits<int>::max()) {
+            Vec2 force{
+                    double(min.second - nodePosition.second),
+                    double(min.first - nodePosition.first)
+            };
+            force.normalize();
+            return force;
+        }
+
+        return {0, 0};
+    }
+
     int getDistance(const NodePosition &from, const NodePosition &to) {
         int deltaRow = std::abs(from.first - to.first);
         int deltaColumn = std::abs(from.second - to.second);
@@ -515,26 +568,6 @@ public:
             return 14 * deltaRow + 10 * (deltaColumn - deltaRow);
 
         return 14 * deltaColumn + 10 * (deltaRow - deltaColumn);
-    }
-
-    std::vector<Vec2> retracePath(const NodePosition &from, const NodePosition &to) {
-        std::vector<Vec2> path;
-        NodePosition pos = to;
-
-        while (pos != from) {
-            Node &node = mGrid[pos.first][pos.second];
-
-            path.emplace_back(pos.second * mEntitySize + mEntitySize / 2,
-                              pos.first * mEntitySize + mEntitySize / 2);
-
-            node.isSelected = true;
-            pos = node.parentPosition;
-        }
-
-        mGrid[from.first][from.second].isSelected = true;
-        std::reverse(path.begin(), path.end());
-
-        return path;
     }
 
     bool canWalk(const NodePosition &from, const NodePosition &to) {
@@ -552,61 +585,47 @@ public:
                mGrid[to.first][from.second].isWalkable;
     }
 
-    std::vector<Vec2> findPath(const Vec2 &from, const Vec2 &to) {
-        const NodePosition fromNodePos = getNodePositionFromWorldPosition(from);
-        const NodePosition toNodePos = getNodePositionFromWorldPosition(to);
+    void generateHeatmap(const Vec2 &target) {
+        const NodePosition targetNodePos = getNodePositionFromWorldPosition(target);
 
-        if (!mGrid[toNodePos.first][toNodePos.second].isWalkable) return {};
+        if (!mGrid[targetNodePos.first][targetNodePos.second].isWalkable) return;
+
+        for (std::vector<Node> &row: mGrid) {
+            for (Node &cell: row) {
+                cell.cost = std::numeric_limits<int>::max();
+            }
+        }
 
         std::vector<NodePosition> openSet;
         std::set<NodePosition> closedSet;
 
-        openSet.push_back(fromNodePos);
+        mGrid[targetNodePos.first][targetNodePos.second].cost = 0;
+        openSet.push_back(targetNodePos);
 
         while (!openSet.empty()) {
-            int minCostIndex = 0;
-            NodePosition minPos = openSet[0];
-            const Node *minCostNode = &mGrid[minPos.first][minPos.second];
+            NodePosition currentPos = openSet.front();
+            openSet.erase(openSet.begin());
+            closedSet.insert(currentPos);
 
-            for (int i = 1; i < openSet.size(); i++) {
-                const Node *currentNode = &mGrid[openSet[i].first][openSet[i].second];
-                if (currentNode->getFCost() < minCostNode->getFCost() ||
-                    currentNode->getFCost() == currentNode->getFCost()) {
-                    if (currentNode->hCost < minCostNode->hCost) {
-                        minCostNode = currentNode;
-                        minCostIndex = i;
-                        minPos = openSet[i];
-                    }
-                }
-            }
+            Node &currentNode = mGrid[currentPos.first][currentPos.second];
 
-            openSet.erase(openSet.begin() + minCostIndex);
-            closedSet.insert(minPos);
-
-            if (minPos == toNodePos) {
-                return retracePath(fromNodePos, toNodePos);
-            }
-
-            for (const NodePosition &neighbour: getNeighbours(minPos)) {
+            for (const NodePosition &neighbour: getNeighbours(currentPos)) {
                 Node &node = mGrid[neighbour.first][neighbour.second];
 
-                if (!canWalk(minPos, neighbour) || closedSet.count(neighbour) > 0)
+                if (!canWalk(currentPos, neighbour) || closedSet.count(neighbour) > 0)
                     continue;
 
-                int newGCost = minCostNode->gCost + getDistance(neighbour, minPos);
+                int newCost = currentNode.cost + 1;
 
-                if (newGCost < node.gCost || std::count(openSet.begin(), openSet.end(), neighbour) == 0) {
-                    node.gCost = newGCost;
-                    node.hCost = getDistance(neighbour, toNodePos);
-                    node.parentPosition = minPos;
-
-                    if (std::count(openSet.begin(), openSet.end(), neighbour) == 0)
+                bool isQueued = std::count(openSet.begin(), openSet.end(), neighbour) > 0;
+                if (newCost < node.cost || !isQueued) {
+                    node.cost = newCost;
+                    node.parentPosition = currentPos;
+                    if (!isQueued)
                         openSet.push_back(neighbour);
                 }
             }
         }
-
-        return std::vector<Vec2>();
     }
 };
 
@@ -815,6 +834,23 @@ namespace SteeringBehaviour {
 
         return {0, 0};
     }
+
+    Vec2 followField(const Vec2 &direction, const Vec2 &currentVelocity, double maxVelocity, double maxSteering) {
+        Vec2 desiredVelocity = direction;
+
+        desiredVelocity.normalize();
+        desiredVelocity.scale(maxVelocity);
+
+        Vec2 steering = Vec2(desiredVelocity);
+        steering.substract(currentVelocity);
+
+        if (steering.length() > maxSteering) {
+            steering.normalize();
+            steering.scale(maxSteering);
+        }
+
+        return steering;
+    }
 }
 
 class Enemy : public GameEntity {
@@ -823,8 +859,6 @@ public:
     Vec2 acceleration{0, 0};
     Uint32 lastFire = 0;
     Uint32 lastUpdatePath = 0;
-    std::vector<Vec2> path;
-    int currentPathNode;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -832,7 +866,7 @@ public:
 
     void onTick(IGameStage *stage) override {
         bool canAttack = false;
-        Vec2 steering = SteeringBehaviour::pathFollowing(position, path, currentPathNode, velocity, 2, 0.1);
+        Vec2 steering = SteeringBehaviour::followField(stage->getFlowDirection(position), velocity, 2, 0.1);
         //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
         Vec2 direction = stage->getPlayerPosition();
         direction.substract(position);
@@ -848,7 +882,9 @@ public:
 
         steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, 165, 2, 0.1), 1.5);
 
-        steering.add(SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1), 3);
+        steering.add(
+                SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1),
+                3);
 
         if (steering.length() != 0)
             acceleration = steering;
@@ -878,35 +914,11 @@ public:
             lastFire = SDL_GetTicks();
         }
 
-        if (SDL_GetTicks() - lastUpdatePath >= 250) {
-            std::vector<Vec2> newPath = stage->findPath(position, stage->getPlayerPosition());
-            if (!newPath.empty()) {
-                path = newPath;
-                currentPathNode = 0;
-            }
-        }
-
         updateBoundingBox();
     }
 
     void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) override {
         GameEntity::onDraw(renderer, cameraPosition);
-
-        if (path.size() > 1)
-            for (int i = 0; i < path.size() - 1; i++) {
-                Vec2 prevPoint = path[i];
-                Vec2 currentPoint = path[i + 1];
-
-                prevPoint.substract(cameraPosition);
-                currentPoint.substract(cameraPosition);
-
-                if (i == currentPathNode)
-                    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
-                else
-                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-                SDL_RenderDrawLine(renderer, int(prevPoint.x), int(prevPoint.y), int(currentPoint.x),
-                                   int(currentPoint.y));
-            }
     }
 
     void onHit(GameEntity *other) override {
@@ -979,6 +991,8 @@ public:
             if (dynamic_cast<Meteor *>(entity.get()) == nullptr) continue;
             mPathFinder.addObstacle(entity->position, entity->boundingRadius);
         }
+
+        mPathFinder.generateHeatmap(mPlayerShip->position);
     }
 
     void processKeyDown(const SDL_KeyboardEvent &key) {
@@ -1078,7 +1092,6 @@ public:
             prepareScene();
             processInput();
 
-            mPathFinder.clearSelection();
             mPlayerShip->setDirection(
                     mIsUp ? PlayerShip::DIRECTION_UP
                           : mIsDown ? PlayerShip::DIRECTION_DOWN
@@ -1164,8 +1177,8 @@ public:
         return mEntityList;
     }
 
-    std::vector<Vec2> findPath(const Vec2 &from, const Vec2 &to) override {
-        return mPathFinder.findPath(from, to);
+    Vec2 getFlowDirection(const Vec2 &position) override {
+        return mPathFinder.getDirection(position);
     }
 
     std::vector<Vec2> findNeighbourObstacle(const Vec2 &position) override {
