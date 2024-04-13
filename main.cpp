@@ -641,7 +641,7 @@ public:
 
             if (currentNode.cost >= 10) continue;
 
-            for (const NodePosition &neighbour: getNeighbours(currentPos)) {
+            for (const NodePosition &neighbour: getEdges(currentPos)) {
                 Node &node = mGrid[neighbour.first][neighbour.second];
 
                 if (!canWalk(currentPos, neighbour) || closedSet.count(neighbour) > 0)
