@@ -904,8 +904,6 @@ public:
         bool canAttack = false;
         Vec2 steering = SteeringBehaviour::followField(stage->getFlowDirection(position), velocity, 2, 0.1);
         //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
-        Vec2 direction = stage->getPlayerPosition();
-        direction.substract(position);
 
         othersEnemy.clear();
         for (const std::unique_ptr<GameEntity> &entity: stage->getEntities()) {
@@ -916,7 +914,7 @@ public:
             }
         }
 
-        steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, direction, 165, 2, 0.1), 3);
+        steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, directionVector, 165, 2, 0.1), 3);
 
         steering.add(
                 SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1),
@@ -939,7 +937,7 @@ public:
 
         if (directionVector.length() == 0) {
             directionVector = velocity;
-            direction.normalize();
+            directionVector.normalize();
         } else {
             Vec2 desiredDirection{velocity};
             desiredDirection.normalize();
