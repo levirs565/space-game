@@ -639,6 +639,8 @@ public:
 
             Node &currentNode = mGrid[currentPos.first][currentPos.second];
 
+            if (currentNode.cost >= 10) continue;
+
             for (const NodePosition &neighbour: getNeighbours(currentPos)) {
                 Node &node = mGrid[neighbour.first][neighbour.second];
 
