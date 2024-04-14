@@ -917,12 +917,18 @@ public:
         const double distance = distanceVector.length();
 
         Vec2 steering{0, 0};
+        Vec2 directionLock{0, 0};
+
+        if (distance < 250) {
+            directionLock = distanceVector;
+            directionLock.normalize();
+        }
 
         if (distance > 225 && distance < 250) {
-             if (speed > 0) {
-                 steering = direction;
-                 steering.scale(-1 * std::min(0.1, speed));
-             }
+            if (speed != 0) {
+                steering = direction;
+                steering.scale(-1 * std::clamp(speed, -0.1, 0.1));
+            }
         } else {
             Vec2 field = stage->getFlowDirection(position);
             if (distance < 225)
@@ -966,30 +972,33 @@ public:
 
         double newSpeed = std::min(newVelocity.length(), 2.0);
 
-        Vec2 newDirection = newSpeed > 0 ? newVelocity : direction;
+        Vec2 newDirection = newSpeed != 0 ? newVelocity : direction;
         newDirection.normalize();
 
-        // Do not use velocity to calculate angle because velocity can be 0 vector
-        const double maxDeltaAngle = 5.0 / 180.0 * M_PI;
+        if (directionLock.length() > 0) {
+            newSpeed = directionLock.dot(newDirection) * abs(newSpeed);
+            newDirection = directionLock;
+        }
+
+        const double maxDeltaAngle = 15.0 / 180.0 * M_PI;
         const double deltaAngle = direction.orientedAngleTo(newDirection);
         const double absDeltaAngle = abs(deltaAngle);
 
-        if (newSpeed > 0 && absDeltaAngle > maxDeltaAngle) {
+        if (absDeltaAngle > maxDeltaAngle) {
             newDirection = direction;
             newDirection.rotate(std::copysign(maxDeltaAngle, deltaAngle));
 
-            if (absDeltaAngle != M_PI_2) {
-                newSpeed = newVelocity.dot(newDirection);
-                if (newSpeed < 0.1) {
-                    newSpeed = 0.1;
-                }
-            }
+            newSpeed = std::copysign(abs(newVelocity.dot(newDirection)), newSpeed);
         }
 
         newVelocity = newDirection;
         newVelocity.scale(newSpeed);
 
         position.add(newVelocity, 1);
+
+        if (abs(direction.orientedAngleTo(newDirection) * 180 / M_PI) > 15.5)
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Delta rotation exceed limit %f",
+                        direction.orientedAngleTo(newDirection) * 180 / M_PI);
 
         speed = newSpeed;
         direction = newDirection;
