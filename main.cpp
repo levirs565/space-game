@@ -911,7 +911,26 @@ public:
         velocity.scale(speed);
 
         bool canAttack = false;
-        Vec2 steering = SteeringBehaviour::followField(stage->getFlowDirection(position), velocity, 2, 0.1);
+
+        Vec2 distanceVector{stage->getPlayerPosition()};
+        distanceVector.substract(position);
+        const double distance = distanceVector.length();
+
+        Vec2 steering{0, 0};
+
+        if (distance > 225 && distance < 250) {
+             if (speed > 0) {
+                 steering = direction;
+                 steering.scale(-1 * std::min(0.1, speed));
+             }
+        } else {
+            Vec2 field = stage->getFlowDirection(position);
+            if (distance < 225)
+                field.scale(-1);
+            steering = SteeringBehaviour::followField(field, velocity, 2, 0.1);
+        }
+
+
         //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
 
         othersEnemy.clear();
