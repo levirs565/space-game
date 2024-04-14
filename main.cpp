@@ -111,6 +111,10 @@ public:
     double angleBetween(const Vec2 &other) const {
         return std::acos(dot(other) / length() / other.length());
     }
+
+    double orientedAngleTo(const Vec2 &other) const {
+        return std::atan2(x * other.y - y * other.x, dot(other));
+    }
 };
 
 std::pair<double, double> findPolygonProjectionMinMax(std::vector<Vec2> &polygon, Vec2 target) {
@@ -422,7 +426,8 @@ public:
     }
 
     void drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition, Vec2 &cameraSize) {
-        static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
+        static TTF_Font *font = TTF_OpenFont(
+                "/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
 
         int left = floor(cameraPosition.x / mEntitySize);
         int top = floor(cameraPosition.y / mEntitySize);
@@ -445,7 +450,7 @@ public:
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         for (int row = top; row <= bottom; row++) {
             for (int column = left; column <= right; column++) {
-                const Node& node = mGrid[row][column];
+                const Node &node = mGrid[row][column];
                 r.x = startX + (column - left) * mEntitySize;
                 r.y = startY + (row - top) * mEntitySize;
                 if (node.isWalkable)
@@ -466,8 +471,8 @@ public:
                 SDL_RenderDrawLine(renderer, arrowFrom.x, arrowFrom.y, arrowTo.x, arrowTo.y);
 
                 std::string text = node.cost != std::numeric_limits<int>::max() ? std::to_string(node.cost) : "INFTY";
-                SDL_Surface* sf = TTF_RenderText_Solid(font, text.data(), color);
-                SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, sf);
+                SDL_Surface *sf = TTF_RenderText_Solid(font, text.data(), color);
+                SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, sf);
                 SDL_Rect textRect;
                 SDL_QueryTexture(texture, nullptr, nullptr, &textRect.w, &textRect.h);
                 textRect.x = r.x;
@@ -511,24 +516,25 @@ public:
     }
 
     std::vector<NodePosition> edgeOffsets = {
-            {0, -1},
+            {0,  -1},
             {-1, 0},
-            {1, 0},
-            {0, 1}
+            {1,  0},
+            {0,  1}
     };
-    std::vector<NodePosition> getEdges(const NodePosition& position) {
+
+    std::vector<NodePosition> getEdges(const NodePosition &position) {
         std::vector<NodePosition> neighbours;
 
-        for (auto [offsetFirst, offsetSecond] : edgeOffsets) {
-                NodePosition newPos{
-                        position.first + offsetFirst,
-                        position.second + offsetSecond
-                };
+        for (auto [offsetFirst, offsetSecond]: edgeOffsets) {
+            NodePosition newPos{
+                    position.first + offsetFirst,
+                    position.second + offsetSecond
+            };
 
-                if (newPos.first < 0 || newPos.first >= mRowCount) continue;
-                if (newPos.second < 0 || newPos.second >= mColumnCount) continue;
+            if (newPos.first < 0 || newPos.first >= mRowCount) continue;
+            if (newPos.second < 0 || newPos.second >= mColumnCount) continue;
 
-                neighbours.push_back(newPos);
+            neighbours.push_back(newPos);
         }
 
         return neighbours;
@@ -553,7 +559,7 @@ public:
         return obstacle;
     }
 
-    Vec2 getDirection(const Vec2& position) {
+    Vec2 getDirection(const Vec2 &position) {
         return getDirection(getNodePositionFromWorldPosition(position));
     }
 
@@ -889,9 +895,9 @@ namespace SteeringBehaviour {
 
 class Enemy : public GameEntity {
 public:
-    Vec2 velocity{0, 0};
+    double speed;
+    Vec2 direction{0, 0};
     Vec2 acceleration{0, 0};
-    Vec2 directionVector{0, 0};
     Uint32 lastFire = 0;
     Uint32 lastUpdatePath = 0;
     std::vector<GameEntity *> othersEnemy;
@@ -901,6 +907,9 @@ public:
     }
 
     void onTick(IGameStage *stage) override {
+        Vec2 velocity = direction;
+        velocity.scale(speed);
+
         bool canAttack = false;
         Vec2 steering = SteeringBehaviour::followField(stage->getFlowDirection(position), velocity, 2, 0.1);
         //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
@@ -914,7 +923,7 @@ public:
             }
         }
 
-        steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, directionVector, 165, 2, 0.1), 3);
+        steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, velocity, 165, 2, 0.1), 3);
 
         steering.add(
                 SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1),
@@ -928,34 +937,44 @@ public:
             acceleration.scale(0.1);
         }
 
-        velocity.add(acceleration, 1);
+        Vec2 newVelocity{velocity};
+        newVelocity.add(acceleration, 1);
 
-        if (velocity.length() > 2) {
-            velocity.normalize();
-            velocity.scale(2);
+        if (newVelocity.length() > 2) {
+            newVelocity.normalize();
+            newVelocity.scale(2);
         }
 
-        if (directionVector.length() == 0) {
-            directionVector = velocity;
-            directionVector.normalize();
-        } else {
-            Vec2 desiredDirection{velocity};
-            desiredDirection.normalize();
-            desiredDirection.substract(directionVector);
-
-            Vec2 directionForce{desiredDirection};
-            if (directionForce.length() > 0.1) {
-                directionForce.normalize();
-                directionForce.scale(0.1);
+        // Do not use velocity to calculate angle because velocity can be 0 vector
+        const double maxDeltaAngle = 5.0 / 180.0 * M_PI;
+        const double deltaAngle = direction.orientedAngleTo(newVelocity);
+        if (newVelocity.length() > 0 && abs(deltaAngle) > maxDeltaAngle) {
+            Vec2 clampedAngle{direction};
+            clampedAngle.rotate(std::copysign(maxDeltaAngle, deltaAngle));
+            clampedAngle.normalize();
+            if (abs(deltaAngle) == M_PI_2) {
+                const double lastSpeed = newVelocity.length();
+                newVelocity = clampedAngle;
+                newVelocity.scale(lastSpeed);
+            } else {
+                newVelocity = newVelocity.projectInto(clampedAngle, false);
+                if (newVelocity.length() < 0.1) {
+                    newVelocity = clampedAngle;
+                    newVelocity.scale(0.1);
+                }
             }
-
-            directionVector.add(directionForce, 1);
-            directionVector.normalize();
         }
 
-        position.add(velocity, 1);
+        position.add(newVelocity, 1);
 
-        angle = directionVector.getRotation() * 180.0 / M_PI - 90;
+        speed = newVelocity.length();
+
+        if (speed > 0) {
+            direction = newVelocity;
+            direction.normalize();
+        }
+
+        angle = direction.getRotation() * 180.0 / M_PI - 90;
 
         if (SDL_GetTicks() - lastFire >= 1000 && canAttack) {
             SDL_Rect enemyRect = getRect();
@@ -1080,8 +1099,8 @@ public:
         mEntityList.push_back(std::move(playerShip));
 
         mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
-        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
-        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, 0))));
+        //mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
+        //mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, 0))));
 
         mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(100, 500), "Brown_big1")));
         mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(300, 500), "Brown_big2")));
