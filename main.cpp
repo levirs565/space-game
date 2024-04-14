@@ -928,6 +928,11 @@ public:
             if (distance < 225)
                 field.scale(-1);
             steering = SteeringBehaviour::followField(field, velocity, 2, 0.1);
+            if (field.length() == 0) {
+                steering = distanceVector;
+                steering.normalize();
+                steering.scale(-0.1);
+            }
         }
 
 
