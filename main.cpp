@@ -959,39 +959,35 @@ public:
         Vec2 newVelocity{velocity};
         newVelocity.add(acceleration, 1);
 
-        if (newVelocity.length() > 2) {
-            newVelocity.normalize();
-            newVelocity.scale(2);
-        }
+        double newSpeed = std::min(newVelocity.length(), 2.0);
+
+        Vec2 newDirection = newSpeed > 0 ? newVelocity : direction;
+        newDirection.normalize();
 
         // Do not use velocity to calculate angle because velocity can be 0 vector
         const double maxDeltaAngle = 5.0 / 180.0 * M_PI;
-        const double deltaAngle = direction.orientedAngleTo(newVelocity);
-        if (newVelocity.length() > 0 && abs(deltaAngle) > maxDeltaAngle) {
-            Vec2 clampedAngle{direction};
-            clampedAngle.rotate(std::copysign(maxDeltaAngle, deltaAngle));
-            clampedAngle.normalize();
-            if (abs(deltaAngle) == M_PI_2) {
-                const double lastSpeed = newVelocity.length();
-                newVelocity = clampedAngle;
-                newVelocity.scale(lastSpeed);
-            } else {
-                newVelocity = newVelocity.projectInto(clampedAngle, false);
-                if (newVelocity.length() < 0.1) {
-                    newVelocity = clampedAngle;
-                    newVelocity.scale(0.1);
+        const double deltaAngle = direction.orientedAngleTo(newDirection);
+        const double absDeltaAngle = abs(deltaAngle);
+
+        if (newSpeed > 0 && absDeltaAngle > maxDeltaAngle) {
+            newDirection = direction;
+            newDirection.rotate(std::copysign(maxDeltaAngle, deltaAngle));
+
+            if (absDeltaAngle != M_PI_2) {
+                newSpeed = newVelocity.dot(newDirection);
+                if (newSpeed < 0.1) {
+                    newSpeed = 0.1;
                 }
             }
         }
 
+        newVelocity = newDirection;
+        newVelocity.scale(newSpeed);
+
         position.add(newVelocity, 1);
 
-        speed = newVelocity.length();
-
-        if (speed > 0) {
-            direction = newVelocity;
-            direction.normalize();
-        }
+        speed = newSpeed;
+        direction = newDirection;
 
         angle = direction.getRotation() * 180.0 / M_PI - 90;
 
