@@ -108,6 +108,16 @@ public:
         return axis;
     }
 
+    inline Vec2 parallelComponent(const Vec2 &basis) const {
+        return projectInto(basis, false);
+    }
+
+    Vec2 perpendicularComponent(const Vec2 &basis) const {
+        Vec2 copy{*this};
+        copy.substract(parallelComponent(basis));
+        return copy;
+    }
+
     double angleBetween(const Vec2 &other) const {
         return std::acos(dot(other) / length() / other.length());
     }
@@ -426,8 +436,7 @@ public:
     }
 
     void drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition, Vec2 &cameraSize) {
-        static TTF_Font *font = TTF_OpenFont(
-                "/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
+        static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
 
         int left = floor(cameraPosition.x / mEntitySize);
         int top = floor(cameraPosition.y / mEntitySize);
@@ -450,7 +459,7 @@ public:
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         for (int row = top; row <= bottom; row++) {
             for (int column = left; column <= right; column++) {
-                const Node &node = mGrid[row][column];
+                const Node& node = mGrid[row][column];
                 r.x = startX + (column - left) * mEntitySize;
                 r.y = startY + (row - top) * mEntitySize;
                 if (node.isWalkable)
@@ -471,8 +480,8 @@ public:
                 SDL_RenderDrawLine(renderer, arrowFrom.x, arrowFrom.y, arrowTo.x, arrowTo.y);
 
                 std::string text = node.cost != std::numeric_limits<int>::max() ? std::to_string(node.cost) : "INFTY";
-                SDL_Surface *sf = TTF_RenderText_Solid(font, text.data(), color);
-                SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, sf);
+                SDL_Surface* sf = TTF_RenderText_Solid(font, text.data(), color);
+                SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, sf);
                 SDL_Rect textRect;
                 SDL_QueryTexture(texture, nullptr, nullptr, &textRect.w, &textRect.h);
                 textRect.x = r.x;
@@ -516,25 +525,24 @@ public:
     }
 
     std::vector<NodePosition> edgeOffsets = {
-            {0,  -1},
+            {0, -1},
             {-1, 0},
-            {1,  0},
-            {0,  1}
+            {1, 0},
+            {0, 1}
     };
-
-    std::vector<NodePosition> getEdges(const NodePosition &position) {
+    std::vector<NodePosition> getEdges(const NodePosition& position) {
         std::vector<NodePosition> neighbours;
 
-        for (auto [offsetFirst, offsetSecond]: edgeOffsets) {
-            NodePosition newPos{
-                    position.first + offsetFirst,
-                    position.second + offsetSecond
-            };
+        for (auto [offsetFirst, offsetSecond] : edgeOffsets) {
+                NodePosition newPos{
+                        position.first + offsetFirst,
+                        position.second + offsetSecond
+                };
 
-            if (newPos.first < 0 || newPos.first >= mRowCount) continue;
-            if (newPos.second < 0 || newPos.second >= mColumnCount) continue;
+                if (newPos.first < 0 || newPos.first >= mRowCount) continue;
+                if (newPos.second < 0 || newPos.second >= mColumnCount) continue;
 
-            neighbours.push_back(newPos);
+                neighbours.push_back(newPos);
         }
 
         return neighbours;
@@ -559,7 +567,7 @@ public:
         return obstacle;
     }
 
-    Vec2 getDirection(const Vec2 &position) {
+    Vec2 getDirection(const Vec2& position) {
         return getDirection(getNodePositionFromWorldPosition(position));
     }
 
@@ -900,10 +908,122 @@ public:
     Vec2 acceleration{0, 0};
     Uint32 lastFire = 0;
     Uint32 lastUpdatePath = 0;
-    std::vector<GameEntity *> othersEnemy;
+    std::vector<Enemy *> othersEnemy;
+    std::vector<Vec2> steeringList;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
+    }
+
+    Vec2 steerAvoidCloseNeighbors(const double minSeparationDistance, const std::vector<Enemy *> &enemyList) {
+        for (const Enemy *enemy: enemyList) {
+            const double radiusSum = boundingRadius + enemy->boundingRadius;
+            const double minCenterDistance = radiusSum + minSeparationDistance;
+
+            Vec2 distance{enemy->position};
+            distance.substract(position);
+
+            if (distance.length() < minCenterDistance) {
+                distance.scale(-1);
+                Vec2 dir{direction};
+                dir.scale(std::copysign(1, speed));
+                return distance.perpendicularComponent(direction);
+            }
+        }
+
+        return {0, 0};
+    }
+
+    double predictNearestApproachTime(const Enemy *enemy) {
+        Vec2 enemyVelocity{enemy->direction};
+        enemyVelocity.scale(enemy->speed);
+        Vec2 velocity{direction};
+        velocity.scale(speed);
+        Vec2 relativeVelocity{enemyVelocity};
+        relativeVelocity.substract(velocity);
+        const double relativeSpeed = relativeVelocity.length();
+
+        if (relativeSpeed == 0) return 0;
+
+        relativeVelocity.normalize();
+
+        Vec2 relativePosition{position};
+        relativePosition.substract(enemy->position);
+        const double projection = relativeVelocity.dot(relativePosition);
+
+        return projection / relativeSpeed;
+    }
+
+    double
+    computeNearestApproachPosition(const Enemy *enemy, double time, Vec2 &myFinalPosition, Vec2 &otherFinalPosition) {
+        myFinalPosition = direction;
+        myFinalPosition.scale(speed * time);
+        myFinalPosition.add(position, 1);
+
+        otherFinalPosition = enemy->direction;
+        otherFinalPosition.scale(enemy->speed * time);
+        otherFinalPosition.add(enemy->position, 1);
+
+        Vec2 distance(myFinalPosition);
+        distance.substract(otherFinalPosition);
+
+        return distance.length();
+    }
+
+    Vec2 steerAvoidNeighbors(const double minTimeToCollision, const std::vector<Enemy *> &enemyList) {
+        const Vec2 closeNeighborsSteer = steerAvoidCloseNeighbors(0, enemyList);
+        if (closeNeighborsSteer.length() > 0) return closeNeighborsSteer;
+
+        const double collisionDangerThreshold = boundingRadius * 2;
+        double minTime = minTimeToCollision;
+        const Enemy *threat = nullptr;
+        Vec2 myNearestPosition{0, 0};
+        Vec2 threatNearestPosition{0, 0};
+
+        for (const Enemy *enemy: enemyList) {
+            const double time = predictNearestApproachTime(enemy);
+
+            if (time >= 0 && time < minTime) {
+                Vec2 tempMyNearestPosition{0, 0};
+                Vec2 tempThreatNearestPosition{0, 0};
+                if (computeNearestApproachPosition(enemy, time, tempMyNearestPosition, tempThreatNearestPosition) <
+                    collisionDangerThreshold) {
+                    threat = enemy;
+                    minTime = time;
+                    myNearestPosition = tempMyNearestPosition;
+                    threatNearestPosition = tempThreatNearestPosition;
+                }
+            }
+        }
+
+        Vec2 sideVector = direction;
+        sideVector.makePerpendicular();
+
+        double steer = 0;
+        if (threat != nullptr) {
+            double paralellness = direction.dot(threat->direction);
+            double angle = 0.707;
+
+            if (paralellness < -angle) {
+                Vec2 offset{threatNearestPosition};
+                offset.substract(position);
+                double sideDot = offset.dot(sideVector);
+                steer = sideDot > 0 ? -1 : 1;
+            } else if (paralellness > angle) {
+                Vec2 offset{threat->position};
+                offset.substract(position);
+                double sideDot = offset.dot(sideVector);
+                steer = sideDot > 0 ? -1 : 1;
+            } else {
+                if (threat->direction.length() < direction.length()) {
+                    double sideDot = sideVector.dot(threat->direction);
+                    steer = sideDot > 0 ? -1 : 1;
+                }
+            }
+        }
+
+        sideVector.scale(steer);
+        return sideVector;
     }
 
     void onTick(IGameStage *stage) override {
@@ -924,10 +1044,13 @@ public:
             directionLock.normalize();
         }
 
+        steeringList.clear();
+
         if (distance > 225 && distance < 250) {
             if (speed != 0) {
                 steering = direction;
                 steering.scale(-1 * std::clamp(speed, -0.1, 0.1));
+                steeringList.push_back(steering);
             }
         } else {
             Vec2 field = stage->getFlowDirection(position);
@@ -939,8 +1062,8 @@ public:
                 steering.normalize();
                 steering.scale(-0.1);
             }
+            steeringList.push_back(steering);
         }
-
 
         //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
 
@@ -953,11 +1076,20 @@ public:
             }
         }
 
-        steering.add(SteeringBehaviour::separation(this, othersEnemy, velocity, velocity, 165, 2, 0.1), 3);
+        Vec2 steering2 = steerAvoidNeighbors(100, othersEnemy);
+        if (steering2.length() > 0.1) {
+            steering2.normalize();
+            steering2.scale(0.1);
+        }
+        steeringList.push_back(steering2);
+        if (steering2.length() > 0)
+            steering = steering2;
+//        steering.add(steering2, 1.5);
 
-        steering.add(
-                SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1),
-                3);
+//        Vec2 steering3 = SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1);
+//        steeringList.push_back(steering3);
+//        steering.add(steering3,1.5);
+
 
         if (steering.length() != 0)
             acceleration = steering;
@@ -965,6 +1097,7 @@ public:
             acceleration = velocity;
             acceleration.normalize();
             acceleration.scale(0.1);
+            steeringList.push_back(acceleration);
         }
 
         Vec2 newVelocity{velocity};
@@ -996,9 +1129,9 @@ public:
 
         position.add(newVelocity, 1);
 
-        if (abs(direction.orientedAngleTo(newDirection) * 180 / M_PI) > 5.5)
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Delta rotation exceed limit %f",
-                        direction.orientedAngleTo(newDirection) * 180 / M_PI);
+//        if (abs(direction.orientedAngleTo(newDirection) * 180 / M_PI) > 5.5)
+//            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Delta rotation exceed limit %f",
+//                        direction.orientedAngleTo(newDirection) * 180 / M_PI);
 
         speed = newSpeed;
         direction = newDirection;
@@ -1019,6 +1152,21 @@ public:
 
     void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) override {
         GameEntity::onDraw(renderer, cameraPosition);
+
+        Vec2 lineStart{position};
+        lineStart.substract(cameraPosition);
+
+        SDL_SetRenderDrawColor(renderer, 0, 255,255, 255);
+
+        for (const Vec2& steering : steeringList) {
+            Vec2 lineEnd{steering};
+            lineEnd.normalize();
+            lineEnd.scale(40);
+            lineEnd.add(position, 1);
+            lineEnd.substract(cameraPosition);
+
+            SDL_RenderDrawLine(renderer, lineStart.x, lineStart.y, lineEnd.x, lineEnd.y);
+        }
 
 //        static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
 //        SDL_Color color;
@@ -1128,8 +1276,8 @@ public:
         mEntityList.push_back(std::move(playerShip));
 
         mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
-        //mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
-        //mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, 0))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, 0))));
 
         mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(100, 500), "Brown_big1")));
         mEntityList.push_back(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(300, 500), "Brown_big2")));
