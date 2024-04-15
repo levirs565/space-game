@@ -980,7 +980,7 @@ public:
             newDirection = directionLock;
         }
 
-        const double maxDeltaAngle = 15.0 / 180.0 * M_PI;
+        const double maxDeltaAngle = 5.0 / 180.0 * M_PI;
         const double deltaAngle = direction.orientedAngleTo(newDirection);
         const double absDeltaAngle = abs(deltaAngle);
 
@@ -996,7 +996,7 @@ public:
 
         position.add(newVelocity, 1);
 
-        if (abs(direction.orientedAngleTo(newDirection) * 180 / M_PI) > 15.5)
+        if (abs(direction.orientedAngleTo(newDirection) * 180 / M_PI) > 5.5)
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Delta rotation exceed limit %f",
                         direction.orientedAngleTo(newDirection) * 180 / M_PI);
 
