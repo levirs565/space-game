@@ -937,8 +937,10 @@ public:
     double predictNearestApproachTime(const Enemy *enemy) {
         Vec2 enemyVelocity{enemy->direction};
         enemyVelocity.scale(enemy->speed);
+
         Vec2 velocity{direction};
         velocity.scale(speed);
+
         Vec2 relativeVelocity{enemyVelocity};
         relativeVelocity.substract(velocity);
         const double relativeSpeed = relativeVelocity.length();
@@ -1015,8 +1017,10 @@ public:
                 double sideDot = offset.dot(sideVector);
                 steer = sideDot > 0 ? -1 : 1;
             } else {
-                if (threat->direction.length() < direction.length()) {
-                    double sideDot = sideVector.dot(threat->direction);
+                if (threat->speed <= speed) {
+                    Vec2 velocity{threat->direction};
+                    velocity.scale(threat->speed);
+                    double sideDot = sideVector.dot(velocity);
                     steer = sideDot > 0 ? -1 : 1;
                 }
             }
@@ -1076,14 +1080,16 @@ public:
             }
         }
 
-        Vec2 steering2 = steerAvoidNeighbors(100, othersEnemy);
-        if (steering2.length() > 0.1) {
+        Vec2 steering2 = steerAvoidNeighbors(120, othersEnemy);
+        if (steering2.length() > 0.5) {
             steering2.normalize();
-            steering2.scale(0.1);
+            steering2.scale(0.5);
         }
         steeringList.push_back(steering2);
-        if (steering2.length() > 0)
+        if (steering2.length() > 0) {
             steering = steering2;
+            directionLock = {0,0};
+        }
 //        steering.add(steering2, 1.5);
 
 //        Vec2 steering3 = SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1);
@@ -1108,10 +1114,12 @@ public:
         Vec2 newDirection = newSpeed != 0 ? newVelocity : direction;
         newDirection.normalize();
 
-        if (directionLock.length() > 0) {
-            newSpeed = directionLock.dot(newDirection) * abs(newSpeed);
-            newDirection = directionLock;
-        }
+//        if (directionLock.length() > 0) {
+//            const double oldNewSpeed = newSpeed;
+//            newSpeed = directionLock.dot(newDirection) * abs(newSpeed);
+//            newDirection = directionLock;
+////            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "New speed %f, old %f", newSpeed, oldNewSpeed);
+//        }
 
         const double maxDeltaAngle = 5.0 / 180.0 * M_PI;
         const double deltaAngle = direction.orientedAngleTo(newDirection);
