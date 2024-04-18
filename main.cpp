@@ -441,8 +441,8 @@ public:
 
         int left = floor(cameraPosition.x / mEntitySize);
         int top = floor(cameraPosition.y / mEntitySize);
-        int right = ceil((cameraPosition.x + cameraSize.x) / mEntitySize);
-        int bottom = ceil((cameraPosition.y + cameraSize.y) / mEntitySize);
+        int right = std::min(int(ceil((cameraPosition.x + cameraSize.x) / mEntitySize)), mColumnCount - 1);
+        int bottom = std::min(int(ceil((cameraPosition.y + cameraSize.y) / mEntitySize)), mRowCount - 1);
 
         int startX = -int(fmod(cameraPosition.x, mEntitySize));
         int startY = -int(fmod(cameraPosition.y, mEntitySize));
@@ -929,8 +929,6 @@ public:
 
             if (distance.length() < minCenterDistance) {
                 distance.scale(-1);
-                Vec2 dir{direction};
-                dir.scale(std::copysign(1, speed));
                 return distance.perpendicularComponent(direction);
             }
         }
@@ -1053,23 +1051,21 @@ public:
         bool cannotAvoidance = distance < 250;
         bool canFollowField = true;
 
-        if (lastThreat != nullptr) {
-            Vec2 threatDistance{lastThreat->position};
-            threatDistance.substract(position);
-
-            if (threatDistance.length() > lastThreat->boundingRadius + boundingRadius + 25) {
-                lastThreat = nullptr;
-            } else if (threatDistance.angleBetween(direction) < 3 * M_PI_4) {
-                canFollowField = false;
-            }
-        }
-
         if (distance < 250) {
             directionLock = distanceVector;
             directionLock.normalize();
         }
 
         steeringList.clear();
+
+        othersEnemy.clear();
+        for (const std::unique_ptr<GameEntity> &entity: stage->getEntities()) {
+            if (entity.get() == this) continue;
+
+            if (Enemy *otherEnemy = dynamic_cast<Enemy *>(entity.get()); otherEnemy != nullptr) {
+                othersEnemy.push_back(otherEnemy);
+            }
+        }
 
         if (distance > 225 && distance < 250) {
             if (speed != 0) {
@@ -1078,10 +1074,26 @@ public:
                 steeringList.push_back(steering);
             }
         } else {
+            Vec2 field = stage->getFlowDirection(position);
+            if (distance < 225)
+                field.scale(-1);
+
+            if (abs(field.dot(direction) / field.length()) != 1) {
+                const Vec2 lastDirection = direction;
+                const double lastSpeed = speed;
+
+                direction = field;
+                speed = 2;
+
+                Vec2 avoid = steerAvoidNeighbors(120, othersEnemy);
+
+                direction = lastDirection;
+                speed = lastSpeed;
+
+                if (avoid.length() > 0) canFollowField = false;
+            }
+
             if (canFollowField) {
-                Vec2 field = stage->getFlowDirection(position);
-                if (distance < 225)
-                    field.scale(-1);
 
                 steering = SteeringBehaviour::followField(field, velocity, 2, 0.1);
                 if (field.length() == 0) {
@@ -1094,15 +1106,6 @@ public:
         }
 
         //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
-
-        othersEnemy.clear();
-        for (const std::unique_ptr<GameEntity> &entity: stage->getEntities()) {
-            if (entity.get() == this) continue;
-
-            if (Enemy *otherEnemy = dynamic_cast<Enemy *>(entity.get()); otherEnemy != nullptr) {
-                othersEnemy.push_back(otherEnemy);
-            }
-        }
 
         if (!cannotAvoidance) {
             const Enemy *oldThreat = lastThreat;
