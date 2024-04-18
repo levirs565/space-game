@@ -436,7 +436,8 @@ public:
     }
 
     void drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition, Vec2 &cameraSize) {
-        static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
+        static TTF_Font *font = TTF_OpenFont(
+                "/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
 
         int left = floor(cameraPosition.x / mEntitySize);
         int top = floor(cameraPosition.y / mEntitySize);
@@ -459,7 +460,7 @@ public:
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         for (int row = top; row <= bottom; row++) {
             for (int column = left; column <= right; column++) {
-                const Node& node = mGrid[row][column];
+                const Node &node = mGrid[row][column];
                 r.x = startX + (column - left) * mEntitySize;
                 r.y = startY + (row - top) * mEntitySize;
                 if (node.isWalkable)
@@ -480,8 +481,8 @@ public:
                 SDL_RenderDrawLine(renderer, arrowFrom.x, arrowFrom.y, arrowTo.x, arrowTo.y);
 
                 std::string text = node.cost != std::numeric_limits<int>::max() ? std::to_string(node.cost) : "INFTY";
-                SDL_Surface* sf = TTF_RenderText_Solid(font, text.data(), color);
-                SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, sf);
+                SDL_Surface *sf = TTF_RenderText_Solid(font, text.data(), color);
+                SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, sf);
                 SDL_Rect textRect;
                 SDL_QueryTexture(texture, nullptr, nullptr, &textRect.w, &textRect.h);
                 textRect.x = r.x;
@@ -525,24 +526,25 @@ public:
     }
 
     std::vector<NodePosition> edgeOffsets = {
-            {0, -1},
+            {0,  -1},
             {-1, 0},
-            {1, 0},
-            {0, 1}
+            {1,  0},
+            {0,  1}
     };
-    std::vector<NodePosition> getEdges(const NodePosition& position) {
+
+    std::vector<NodePosition> getEdges(const NodePosition &position) {
         std::vector<NodePosition> neighbours;
 
-        for (auto [offsetFirst, offsetSecond] : edgeOffsets) {
-                NodePosition newPos{
-                        position.first + offsetFirst,
-                        position.second + offsetSecond
-                };
+        for (auto [offsetFirst, offsetSecond]: edgeOffsets) {
+            NodePosition newPos{
+                    position.first + offsetFirst,
+                    position.second + offsetSecond
+            };
 
-                if (newPos.first < 0 || newPos.first >= mRowCount) continue;
-                if (newPos.second < 0 || newPos.second >= mColumnCount) continue;
+            if (newPos.first < 0 || newPos.first >= mRowCount) continue;
+            if (newPos.second < 0 || newPos.second >= mColumnCount) continue;
 
-                neighbours.push_back(newPos);
+            neighbours.push_back(newPos);
         }
 
         return neighbours;
@@ -567,7 +569,7 @@ public:
         return obstacle;
     }
 
-    Vec2 getDirection(const Vec2& position) {
+    Vec2 getDirection(const Vec2 &position) {
         return getDirection(getNodePositionFromWorldPosition(position));
     }
 
@@ -910,6 +912,8 @@ public:
     Uint32 lastUpdatePath = 0;
     std::vector<Enemy *> othersEnemy;
     std::vector<Vec2> steeringList;
+    double lastSide = 0;
+    const Enemy *lastThreat = nullptr;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -1002,7 +1006,9 @@ public:
         sideVector.makePerpendicular();
 
         double steer = 0;
-        if (threat != nullptr) {
+        if (threat != nullptr && lastSide != 0) {
+            steer = lastSide;
+        } else if (threat != nullptr) {
             double paralellness = direction.dot(threat->direction);
             double angle = 0.707;
 
@@ -1025,6 +1031,8 @@ public:
                 }
             }
         }
+//        lastSide = steer;
+        lastThreat = threat;
 
         sideVector.scale(steer);
         return sideVector;
@@ -1042,6 +1050,19 @@ public:
 
         Vec2 steering{0, 0};
         Vec2 directionLock{0, 0};
+        bool cannotAvoidance = distance < 250;
+        bool canFollowField = true;
+
+        if (lastThreat != nullptr) {
+            Vec2 threatDistance{lastThreat->position};
+            threatDistance.substract(position);
+
+            if (threatDistance.length() > lastThreat->boundingRadius + boundingRadius + 25) {
+                lastThreat = nullptr;
+            } else if (threatDistance.angleBetween(direction) < 3 * M_PI_4) {
+                canFollowField = false;
+            }
+        }
 
         if (distance < 250) {
             directionLock = distanceVector;
@@ -1057,16 +1078,19 @@ public:
                 steeringList.push_back(steering);
             }
         } else {
-            Vec2 field = stage->getFlowDirection(position);
-            if (distance < 225)
-                field.scale(-1);
-            steering = SteeringBehaviour::followField(field, velocity, 2, 0.1);
-            if (field.length() == 0) {
-                steering = distanceVector;
-                steering.normalize();
-                steering.scale(-0.1);
+            if (canFollowField) {
+                Vec2 field = stage->getFlowDirection(position);
+                if (distance < 225)
+                    field.scale(-1);
+
+                steering = SteeringBehaviour::followField(field, velocity, 2, 0.1);
+                if (field.length() == 0) {
+                    steering = distanceVector;
+                    steering.normalize();
+                    steering.scale(-0.1);
+                }
+                steeringList.push_back(steering);
             }
-            steeringList.push_back(steering);
         }
 
         //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
@@ -1080,15 +1104,20 @@ public:
             }
         }
 
-        Vec2 steering2 = steerAvoidNeighbors(120, othersEnemy);
-        if (steering2.length() > 0.5) {
-            steering2.normalize();
-            steering2.scale(0.5);
-        }
-        steeringList.push_back(steering2);
-        if (steering2.length() > 0) {
-            steering = steering2;
-            directionLock = {0,0};
+        if (!cannotAvoidance) {
+            const Enemy *oldThreat = lastThreat;
+            Vec2 steering2 = steerAvoidNeighbors(120, othersEnemy);
+            if (steering2.length() > 0.5) {
+                steering2.normalize();
+                steering2.scale(0.5);
+            }
+            steeringList.push_back(steering2);
+            if (steering2.length() > 0) {
+                steering = steering2;
+                directionLock = {0, 0};
+            }
+
+            if (lastThreat == nullptr) lastThreat = oldThreat;
         }
 //        steering.add(steering2, 1.5);
 
@@ -1164,9 +1193,9 @@ public:
         Vec2 lineStart{position};
         lineStart.substract(cameraPosition);
 
-        SDL_SetRenderDrawColor(renderer, 0, 255,255, 255);
+        SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
 
-        for (const Vec2& steering : steeringList) {
+        for (const Vec2 &steering: steeringList) {
             Vec2 lineEnd{steering};
             lineEnd.normalize();
             lineEnd.scale(40);
