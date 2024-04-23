@@ -1164,14 +1164,7 @@ public:
 //        steering.add(steering3,1.5);
 
 
-        if (steering.length() != 0)
-            acceleration = steering;
-        else {
-            acceleration = velocity;
-            acceleration.normalize();
-            acceleration.scale(0.1);
-            steeringList.push_back(acceleration);
-        }
+        acceleration = steering;
 
         Vec2 newVelocity{velocity};
         newVelocity.add(acceleration, 1);
