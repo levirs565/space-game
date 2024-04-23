@@ -125,6 +125,30 @@ public:
     double orientedAngleTo(const Vec2 &other) const {
         return std::atan2(x * other.y - y * other.x, dot(other));
     }
+
+    /**
+     * basis must be vector with length 1
+    */
+    Vec2 limitMaxDeviationCos(const Vec2 &basis, const double maxCos) {
+        Vec2 currentDirection{*this};
+        currentDirection.normalize();
+
+        double currentCosAngle = currentDirection.dot(basis);
+
+        if (currentCosAngle >= maxCos) return *this;
+
+
+        Vec2 perpendicular = perpendicularComponent(basis);
+        perpendicular.normalize();
+        perpendicular.scale(std::sqrt(1 - maxCos*maxCos));
+
+        Vec2 result{basis};
+        result.scale(currentCosAngle);
+        result.add(perpendicular, 1);
+        result.scale(length());
+
+        return result;
+    }
 };
 
 std::pair<double, double> findPolygonProjectionMinMax(std::vector<Vec2> &polygon, Vec2 target) {
@@ -1078,31 +1102,42 @@ public:
             if (distance < 225)
                 field.scale(-1);
 
-            if (abs(field.dot(direction) / field.length()) != 1) {
-                const Vec2 lastDirection = direction;
-                const double lastSpeed = speed;
+            // if (abs(field.dot(direction) / field.length()) != 1) {
 
-                direction = field;
-                speed = 2;
+            //     direction = field;
+            //     speed = 2;
 
-                Vec2 avoid = steerAvoidNeighbors(120, othersEnemy);
+            //     Vec2 avoid = steerAvoidNeighbors(120, othersEnemy);
 
-                direction = lastDirection;
-                speed = lastSpeed;
 
-                if (avoid.length() > 0) canFollowField = false;
+            //     if (avoid.length() > 0) canFollowField = false;
+            // }
+
+
+            steering = SteeringBehaviour::followField(field, velocity, 2, 0.1);
+            if (field.length() == 0) {
+                steering = distanceVector;
+                steering.normalize();
+                steering.scale(-0.1);
             }
 
-            if (canFollowField) {
+            const Vec2 lastDirection = direction;
+            const double lastSpeed = speed;
 
-                steering = SteeringBehaviour::followField(field, velocity, 2, 0.1);
-                if (field.length() == 0) {
-                    steering = distanceVector;
-                    steering.normalize();
-                    steering.scale(-0.1);
-                }
+            direction.add(steering.limitMaxDeviationCos(direction, std::cos(5.0 * M_PI / 180.0)), 1);
+            direction.normalize();
+            speed = 2.0;
+
+            Vec2 avoid = steerAvoidNeighbors(120, othersEnemy);
+            if (avoid.length() > 0) canFollowField = false;
+
+
+            direction = lastDirection;
+            speed = lastSpeed;
+
+            if (canFollowField)
                 steeringList.push_back(steering);
-            }
+            else steering = {0, 0};
         }
 
         //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
