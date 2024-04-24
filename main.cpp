@@ -1102,17 +1102,6 @@ public:
             if (distance < 225)
                 field.scale(-1);
 
-            // if (abs(field.dot(direction) / field.length()) != 1) {
-
-            //     direction = field;
-            //     speed = 2;
-
-            //     Vec2 avoid = steerAvoidNeighbors(120, othersEnemy);
-
-
-            //     if (avoid.length() > 0) canFollowField = false;
-            // }
-
 
             steering = SteeringBehaviour::followField(field, velocity, 2, 0.1);
             if (field.length() == 0) {
@@ -1121,19 +1110,27 @@ public:
                 steering.scale(-0.1);
             }
 
-            const Vec2 lastDirection = direction;
-            const double lastSpeed = speed;
+            const double minNeighbourDistance = 10;
+            const double maxNeighbourDistance = 25;
+            const double maxNeigbourAngle = 135.0 * M_PI / 180.0;
+            const double maxRejectAngle = M_PI_2;
 
-            direction.add(steering.limitMaxDeviationCos(direction, std::cos(5.0 * M_PI / 180.0)), 1);
-            direction.normalize();
-            speed = 2.0;
+            for (const auto enemy : othersEnemy) {
+                Vec2 distanceVec = enemy->position;
+                distanceVec.substract(position);
+                const double distance = distanceVec.length();
 
-            Vec2 avoid = steerAvoidNeighbors(120, othersEnemy);
-            if (avoid.length() > 0) canFollowField = false;
+                if (distance > enemy->boundingRadius + boundingRadius + maxNeighbourDistance)
+                    continue;
 
+                if (distance > enemy->boundingRadius + boundingRadius + minNeighbourDistance
+                    && direction.angleBetween(distanceVec) > maxNeigbourAngle)
+                    continue;
 
-            direction = lastDirection;
-            speed = lastSpeed;
+                if (distanceVec.angleBetween(field) < maxRejectAngle)
+                    canFollowField = false; 
+            }
+
 
             if (canFollowField)
                 steeringList.push_back(steering);
