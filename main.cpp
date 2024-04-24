@@ -1047,12 +1047,15 @@ public:
             } else {
                 if (threat->speed <= speed) {
                     Vec2 velocity{threat->direction};
-                    velocity.scale(threat->speed);
+                    if (threat->speed > 0)
+                        velocity.scale(threat->speed);
                     double sideDot = sideVector.dot(velocity);
                     steer = sideDot > 0 ? -1 : 1;
                 }
             }
         }
+        if (steer != 0)
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Steer %f", steer);
 //        lastSide = steer;
         lastThreat = threat;
 
