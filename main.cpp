@@ -1113,8 +1113,8 @@ public:
                 steering.scale(-0.1);
             }
 
-            const double minNeighbourDistance = 10;
-            const double maxNeighbourDistance = 25;
+            const double minNeighbourDistance = boundingRadius + 10;
+            const double maxNeighbourDistance = 4 * boundingRadius;
             const double maxNeigbourAngle = 135.0 * M_PI / 180.0;
             const double maxRejectAngle = M_PI_2;
 
@@ -1123,11 +1123,11 @@ public:
                 distanceVec.substract(position);
                 const double distance = distanceVec.length();
 
-                if (distance > enemy->boundingRadius + boundingRadius + maxNeighbourDistance)
+                if (distance > maxNeighbourDistance)
                     continue;
 
-                if (distance > enemy->boundingRadius + boundingRadius + minNeighbourDistance
-                    && direction.angleBetween(distanceVec) > maxNeigbourAngle)
+                if (distance > minNeighbourDistance && 
+                    direction.angleBetween(distanceVec) > maxNeigbourAngle)
                     continue;
 
                 if (distanceVec.angleBetween(field) < maxRejectAngle)
@@ -1236,53 +1236,64 @@ public:
             SDL_RenderDrawLine(renderer, lineStart.x, lineStart.y, lineEnd.x, lineEnd.y);
         }
 
-//        static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
-//        SDL_Color color;
-//        color.r = 255;
-//        color.g = 255;
-//        color.b = 255;
-//        color.a = 255;
-//        Vec2 posInCamera{position};
-//        posInCamera.substract(cameraPosition);
-//        for (GameEntity * other : othersEnemy) {
-//            Vec2 distanceVec(other->position);
-//            distanceVec.substract(position);
-//            double distance = distanceVec.length();
-//            double angle = distanceVec.angleBetween(directionVector);
-//
-//            if (distance < 165) {
-//                Vec2 projection = distanceVec.projectInto(directionVector, false);
-//                projection.add(position, 1);
-//                projection.substract(cameraPosition);
-//
-//                distanceVec.scale(-1);
-//                distanceVec.normalize();
-//                distanceVec.scale(1 / distance);
-//
-//
-//                Vec2 otherInCamera{other->position};
-//                otherInCamera.substract(cameraPosition);
-//
-//                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-//                SDL_RenderDrawLine(renderer, posInCamera.x, posInCamera.y, otherInCamera.x, otherInCamera.y);
-//                SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-//                SDL_RenderDrawLine(renderer, posInCamera.x, posInCamera.y, projection.x, projection.y);
-//                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-//                SDL_RenderDrawLine(renderer, otherInCamera.x, otherInCamera.y, projection.x, projection.y);
-//
-//                std::string text = std::to_string(angle);
-//                SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
-//                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-//                SDL_Rect textRect;
-//                SDL_QueryTexture(texture, nullptr, nullptr, &textRect.w, &textRect.h);
-//                textRect.x = (otherInCamera.x + projection.x) / 2.0 - textRect.w;
-//                textRect.y = (otherInCamera.y + projection.y) / 2.0 - textRect.h;
-//                SDL_RenderCopy(renderer, texture, nullptr, &textRect);
-//
-//                SDL_DestroyTexture(texture);
-//                SDL_FreeSurface(surface);
-//            }
-//        }
+       static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
+       SDL_Color color;
+       color.r = 255;
+       color.g = 255;
+       color.b = 255;
+       color.a = 255;
+       Vec2 posInCamera{position};
+       posInCamera.substract(cameraPosition);
+
+
+        const double minNeighbourDistance = boundingRadius + 10;
+        const double maxNeighbourDistance = 4 * boundingRadius;
+        const double maxNeigbourAngle = 135.0 * M_PI / 180.0;
+
+       for (GameEntity * other : othersEnemy) {
+           Vec2 distanceVec(other->position);
+           distanceVec.substract(position);
+           double distance = distanceVec.length();
+           double angle = distanceVec.angleBetween(direction);
+
+            if (distance > maxNeighbourDistance)
+                continue;
+
+            if (distance > minNeighbourDistance && 
+               angle > maxNeigbourAngle)
+                continue;
+
+            Vec2 projection = distanceVec.projectInto(direction, false);
+            projection.add(position, 1);
+            projection.substract(cameraPosition);
+
+            distanceVec.scale(-1);
+            distanceVec.normalize();
+            distanceVec.scale(1 / distance);
+
+
+            Vec2 otherInCamera{other->position};
+            otherInCamera.substract(cameraPosition);
+
+            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+            SDL_RenderDrawLine(renderer, posInCamera.x, posInCamera.y, otherInCamera.x, otherInCamera.y);
+            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+            SDL_RenderDrawLine(renderer, posInCamera.x, posInCamera.y, projection.x, projection.y);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+            SDL_RenderDrawLine(renderer, otherInCamera.x, otherInCamera.y, projection.x, projection.y);
+
+            std::string text = std::to_string(angle);
+            SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
+            SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+            SDL_Rect textRect;
+            SDL_QueryTexture(texture, nullptr, nullptr, &textRect.w, &textRect.h);
+            textRect.x = (otherInCamera.x + projection.x) / 2.0 - textRect.w;
+            textRect.y = (otherInCamera.y + projection.y) / 2.0 - textRect.h;
+            SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+
+            SDL_DestroyTexture(texture);
+            SDL_FreeSurface(surface);
+       }
     }
 
     void onHit(GameEntity *other) override {
