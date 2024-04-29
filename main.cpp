@@ -240,6 +240,9 @@ public:
         return r;
     }
 
+    virtual void onPreTick() {
+
+    }
     virtual void onTick(IGameStage *stage) = 0;
 
     void drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition, SDL_Texture *texture) {
@@ -938,6 +941,7 @@ public:
     std::vector<Vec2> steeringList;
     double lastSide = 0;
     const Enemy *lastThreat = nullptr;
+    const Enemy *avoidedEnemy = nullptr;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -1063,6 +1067,10 @@ public:
         return sideVector;
     }
 
+    void onPreTick() override {
+        avoidedEnemy = nullptr;
+    }
+
     void onTick(IGameStage *stage) override {
         Vec2 velocity = direction;
         velocity.scale(speed);
@@ -1117,11 +1125,14 @@ public:
             const double maxNeighbourDistance = 4 * boundingRadius;
             const double maxNeigbourAngle = 135.0 * M_PI / 180.0;
             const double maxRejectAngle = M_PI_2;
+            double minDistance = std::numeric_limits<double>::max();
 
             for (const auto enemy : othersEnemy) {
                 Vec2 distanceVec = enemy->position;
                 distanceVec.substract(position);
                 const double distance = distanceVec.length();
+
+                if (enemy->avoidedEnemy == this) continue;
 
                 if (distance > maxNeighbourDistance)
                     continue;
@@ -1130,10 +1141,12 @@ public:
                     direction.angleBetween(distanceVec) > maxNeigbourAngle)
                     continue;
 
-                if (distanceVec.angleBetween(field) < maxRejectAngle)
-                    canFollowField = false; 
+                if (distanceVec.angleBetween(field) < maxRejectAngle) {
+                    minDistance = distance;
+                    avoidedEnemy = enemy;
+                    canFollowField = false;
+                }
             }
-
 
             if (canFollowField)
                 steeringList.push_back(steering);
@@ -1479,6 +1492,10 @@ public:
                     mIsLeft ? PlayerShip::ROTATION_LEFT
                             : mIsRight ? PlayerShip::ROTATION_RIGHT
                                        : PlayerShip::ROTATION_NONE);
+
+            for (auto& entity : mEntityList) {
+                entity->onPreTick();
+            }
 
             size_t entityCount = mEntityList.size();
             for (size_t i = 0; i < entityCount; i++) {
