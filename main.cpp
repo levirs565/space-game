@@ -949,6 +949,7 @@ public:
     double lastSide = 0;
     const Enemy *lastThreat = nullptr;
     const Enemy *avoidedEnemy = nullptr;
+    std::vector<Uint32> avoidanceTime;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -1128,32 +1129,7 @@ public:
                 steering.scale(-0.1);
             }
 
-            const double minNeighbourDistance = boundingRadius + 10;
-            const double maxNeighbourDistance = 4 * boundingRadius;
-            const double maxNeigbourAngle = 135.0 * M_PI / 180.0;
-            const double maxRejectAngle = M_PI_2;
-            double minDistance = std::numeric_limits<double>::max();
-
-            for (const auto enemy : othersEnemy) {
-                Vec2 distanceVec = enemy->position;
-                distanceVec.substract(position);
-                const double distance = distanceVec.length();
-
-                if (enemy->avoidedEnemy == this) continue;
-
-                if (distance > maxNeighbourDistance)
-                    continue;
-
-                if (distance > minNeighbourDistance && 
-                    direction.angleBetween(distanceVec) > maxNeigbourAngle)
-                    continue;
-
-                if (distanceVec.angleBetween(field) < maxRejectAngle) {
-                    minDistance = distance;
-                    avoidedEnemy = enemy;
-                    canFollowField = false;
-                }
-            }
+            canFollowField = avoidanceTime.size() == 0;
 
             if (canFollowField)
                 steeringList.push_back(steering);
@@ -1162,21 +1138,33 @@ public:
 
         //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
 
+        Uint32 currentTick = SDL_GetTicks();
         if (!cannotAvoidance) {
             const Enemy *oldThreat = lastThreat;
             Vec2 steering2 = steerAvoidNeighbors(120, othersEnemy);
-            if (steering2.length() > 0.5) {
+            if (steering2.length() > 0.2) {
                 steering2.normalize();
-                steering2.scale(0.5);
+                steering2.scale(0.2);
             }
             steeringList.push_back(steering2);
             if (steering2.length() > 0) {
-                steering = steering2;
+                avoidanceTime.push_back(currentTick);
+                steering.add(steering2, 1);
                 directionLock = {0, 0};
             }
 
             if (lastThreat == nullptr) lastThreat = oldThreat;
         }
+
+        size_t before = avoidanceTime.size();
+        avoidanceTime.erase(
+            avoidanceTime.begin(), 
+            std::find_if(
+                avoidanceTime.begin(), 
+                avoidanceTime.end(), 
+                [currentTick](auto time) {
+                    return currentTick - time <= 1000;
+                }));
 //        steering.add(steering2, 1.5);
 
 //        Vec2 steering3 = SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1);
