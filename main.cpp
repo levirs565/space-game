@@ -215,7 +215,7 @@ public:
 
     virtual std::vector<std::unique_ptr<GameEntity>> &getEntities() = 0;
 
-    virtual Vec2 getFlowDirection(const Vec2 &position) = 0;
+    virtual Vec2 getFlowDirection(const Vec2 &position, const Vec2 &direction) = 0;
 
     virtual std::vector<Vec2> findNeighbourObstacle(const Vec2 &position) = 0;
 };
@@ -498,7 +498,7 @@ public:
                 SDL_SetRenderDrawColor(renderer, 255, 255, 255, 192);
                 SDL_RenderDrawRect(renderer, &r);
 
-                Vec2 direction = getDirection(NodePosition{row, column});
+                Vec2 direction = getDirection(NodePosition{row, column}, {0,0});
                 Vec2 arrowFrom = {r.x + mEntitySize / 2.0, r.y + mEntitySize / 2.0};
                 direction.scale(mEntitySize / 3.0);
                 Vec2 arrowTo{arrowFrom};
@@ -596,41 +596,48 @@ public:
         return obstacle;
     }
 
-    Vec2 getDirection(const Vec2 &position) {
-        return getDirection(getNodePositionFromWorldPosition(position));
+    Vec2 getDirection(const Vec2 &position, const Vec2& direction) {
+        return getDirection(getNodePositionFromWorldPosition(position), direction);
     }
 
-    Vec2 getDirection(const NodePosition &nodePosition) {
+    Vec2 getDirection(const NodePosition &nodePosition, const Vec2& direction) {
         int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
-
+        bool considerDirection = direction.length() > 0;
         if (currentCost == 0) return {0, 0};
 
-        NodePosition min = nodePosition;
         int minCost = std::numeric_limits<int>::max();
+        Vec2 result{0, 0};
+        double maxDot = -1;
 
         for (const NodePosition &neighbour: getNeighbours(nodePosition)) {
             if (!canWalk(nodePosition, neighbour)) continue;
 
             const Node &neighbourNode = mGrid[neighbour.first][neighbour.second];
 
-            int cost = neighbourNode.cost - currentCost;
 
-            if (cost < minCost) {
-                min = neighbour;
+            int cost = neighbourNode.cost;
+
+            if (cost >= currentCost) continue;
+
+            Vec2 force{
+                    double(neighbour.second - nodePosition.second),
+                    double(neighbour.first - nodePosition.first)
+            };
+            force.normalize();
+            double dot = force.dot(direction);
+
+            if (
+                (!considerDirection && cost < minCost) ||
+                (considerDirection && (
+                    dot > maxDot || (dot == maxDot && cost < minCost)
+                ))) {
+                result = force;
                 minCost = cost;
+                maxDot = dot;
             }
         }
 
-        if (minCost != std::numeric_limits<int>::max()) {
-            Vec2 force{
-                    double(min.second - nodePosition.second),
-                    double(min.first - nodePosition.first)
-            };
-            force.normalize();
-            return force;
-        }
-
-        return {0, 0};
+        return result;
     }
 
     int getDistance(const NodePosition &from, const NodePosition &to) {
@@ -1109,7 +1116,7 @@ public:
                 steeringList.push_back(steering);
             }
         } else {
-            Vec2 field = stage->getFlowDirection(position);
+            Vec2 field = stage->getFlowDirection(position, direction);
             if (distance < 225)
                 field.scale(-1);
 
@@ -1575,8 +1582,8 @@ public:
         return mEntityList;
     }
 
-    Vec2 getFlowDirection(const Vec2 &position) override {
-        return mPathFinder.getDirection(position);
+    Vec2 getFlowDirection(const Vec2 &position, const Vec2 &direction) override {
+        return mPathFinder.getDirection(position, direction);
     }
 
     std::vector<Vec2> findNeighbourObstacle(const Vec2 &position) override {
