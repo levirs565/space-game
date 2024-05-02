@@ -11,6 +11,7 @@
 #include <set>
 #include <exception>
 #include <queue>
+#include <ranges>
 
 class TextureLoader {
 public:
@@ -203,6 +204,7 @@ bool lineIntersectCircle(const Vec2 &nonAhead, const Vec2 &ahead, const Vec2 &ah
            distanceAhead2.length() <= circleRadius + myRadius;
 }
 
+class APathFinder;
 class GameEntity;
 
 class IGameStage {
@@ -218,6 +220,8 @@ public:
     virtual Vec2 getFlowDirection(const Vec2 &position, const Vec2 &direction) = 0;
 
     virtual std::vector<Vec2> findNeighbourObstacle(const Vec2 &position) = 0;
+
+    virtual APathFinder* getPathFinder() = 0;
 };
 
 
@@ -411,6 +415,164 @@ public:
     }
 };
 
+
+struct ContextSteeringMap {
+    static constexpr int angleCount = 12;
+    static constexpr double deltaAngle = 2.0 * M_PI / angleCount;
+    double data[angleCount] = {};
+
+    static Vec2 directionBy(int index) {
+        Vec2 vector{1, 0};
+        vector.rotate(deltaAngle * index);
+        return vector;
+    }
+
+    static int shiftIndex(int index, int delta) {
+        return (index + delta + angleCount) % angleCount;
+    }
+
+    void addVector(Vec2 vector, double minCos = 0) {
+        if (vector.length() > 1)
+            vector.normalize(); 
+        for (double &value : *this) {
+            const double dot = directionBy(indexOf(&value)).dot(vector);
+            if (dot < minCos) {
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot rejected %f", dot);
+                continue;
+            }
+
+            if (dot != 0) {
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot %f", dot);
+            }
+            // if (dot < minCos) continue;
+            // value += dot;
+            value = std::max(directionBy(indexOf(&value)).dot(vector), value);
+        }
+    }
+
+    int indexOf(const double* ptr) {
+        return ptr - begin();
+    }
+
+    void clear() {
+        std::fill(begin(), end(), 0);
+    }
+
+    double* begin() {
+        return &data[0];
+    }
+
+    double* end() {
+        return &data[angleCount];
+    }
+
+    auto withIndex() {
+        return *this | std::views::transform([this](const double& value) {
+            return std::make_tuple(std::ref(value), indexOf(&value));
+        });
+    }
+
+    void draw(SDL_Renderer* renderer, const Vec2& position, double radius, double angleDeviation) {
+        double maxElement = *std::max_element(begin(), end());
+        for (const auto&[value, index] :withIndex()) {
+            if (value == 0) continue;
+            Vec2 end{directionBy(index)};
+            end.rotate(angleDeviation);
+            end.scale(value / maxElement * radius);
+            end.add(position, 1);
+
+            SDL_RenderDrawLine(renderer, position.x, position.y, end.x, end.y);
+        }
+    }
+};
+
+struct ContextSteering {
+    ContextSteeringMap interestMap, dangerMap;
+
+    void clear() {
+        interestMap.clear();
+        dangerMap.clear();
+    }
+
+
+    Vec2 getResult2(const Vec2& d) {
+        const double minDanger = *std::min_element(dangerMap.begin(), dangerMap.end());
+        Vec2 result{0, 0};
+
+        for (const auto [value, index] : dangerMap.withIndex()
+            | std::views::filter([=](const auto& v) { 
+                return std::get<0>(v) <= minDanger; 
+                })) {
+            Vec2 direction = ContextSteeringMap::directionBy(index);
+            // result.add(direction, interestMap.data[index]);
+            result.add(direction, (1.1 + direction.dot(d)) / 2.1 * interestMap.data[index]);
+        }
+
+        result.normalize();
+        return result;
+    }
+
+
+    Vec2 getResult3() {
+        const double minDanger = *std::min_element(dangerMap.begin(), dangerMap.end());
+
+        double maxValue = std::numeric_limits<double>::min();
+        Vec2 result{0, 0};
+
+        for (const auto [value, index] : dangerMap.withIndex()) {
+            Vec2 direction = ContextSteeringMap::directionBy(index);
+            double v = interestMap.data[index] - value;
+            if (v >= maxValue) {
+                result = direction;
+                maxValue = v;
+            }
+        }
+
+        result.normalize();
+        return result;
+    }
+
+    Vec2 getResult() {
+        const double minDanger = *std::min_element(dangerMap.begin(), dangerMap.end());
+        
+        double maxValue = std::numeric_limits<double>::min();
+        int maxIndex = 0;
+        Vec2 result{0, 0};
+
+        for (const auto [value, index] : dangerMap.withIndex()
+            | std::views::filter([=](const auto& v) { 
+                return std::get<0>(v) <= minDanger; 
+                })) {
+            Vec2 direction = ContextSteeringMap::directionBy(index);
+            if (interestMap.data[index] > maxValue) {
+                result = direction;
+                maxValue = interestMap.data[index];
+                maxIndex = index;
+            }
+        }
+
+        if (maxValue != std::numeric_limits<double>::min()) {
+            int leftIndex = ContextSteeringMap::shiftIndex(maxIndex, -1);
+            int rightIndex = ContextSteeringMap::shiftIndex(maxIndex, 1);
+            if (dangerMap.data[leftIndex] <= minDanger)
+                result.add(ContextSteeringMap::directionBy(leftIndex), interestMap.data[leftIndex] / 2.0);
+            if (dangerMap.data[rightIndex] <= minDanger)
+                result.add(ContextSteeringMap::directionBy(rightIndex), interestMap.data[rightIndex] / 2.0);
+        }
+        
+        result.normalize();
+        return result;
+    }
+
+    void draw(SDL_Renderer* renderer, const Vec2& position, double radius) {
+        static const double angleDeviation = 2.0 / 180.0 * M_PI;
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        interestMap.draw(renderer, position, radius, -angleDeviation);
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        dangerMap.draw(renderer, position, radius, angleDeviation);
+    }
+};
+
 class APathFinder {
 public:
     using NodePosition = std::pair<int, int>;
@@ -600,6 +762,7 @@ public:
         return getDirection(getNodePositionFromWorldPosition(position), direction);
     }
 
+
     Vec2 getDirection(const NodePosition &nodePosition, const Vec2& direction) {
         int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
         bool considerDirection = direction.length() > 0;
@@ -639,6 +802,43 @@ public:
 
         return result;
     }
+
+    void addDirectionToSteering(const Vec2 &position, const Vec2& direction, ContextSteeringMap& map) {
+        addDirectionToSteering(getNodePositionFromWorldPosition(position), direction, map);
+    }
+
+    void addDirectionToSteering(const NodePosition &nodePosition, const Vec2& direction, ContextSteeringMap& map) {
+        int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
+        if (currentCost == 0) return;
+
+        Vec2 result{0, 0};
+
+        for (const NodePosition &neighbour: getNeighbours(nodePosition)) {
+            if (!canWalk(nodePosition, neighbour)) continue;
+
+            const Node &neighbourNode = mGrid[neighbour.first][neighbour.second];
+
+
+            int cost = neighbourNode.cost;
+
+            if (cost >= currentCost) continue;
+
+            Vec2 force{
+                    double(neighbour.second - nodePosition.second),
+                    double(neighbour.first - nodePosition.first)
+            };
+            force.normalize();
+            if (cost < currentCost) {
+                double dot = (force.dot(direction) + 1.5) / 2.5; 
+                force.scale(dot);
+            } else {
+                double dot = (force.dot(direction) + 1.0) / 2.0;
+                force.scale(dot);
+            }
+            map.addVector(force);
+        }
+    }
+
 
     int getDistance(const NodePosition &from, const NodePosition &to) {
         int deltaRow = std::abs(from.first - to.first);
@@ -937,6 +1137,32 @@ namespace SteeringBehaviour {
     }
 }
 
+std::optional<Vec2> rayCircleIntersection(const Vec2& point, const Vec2& ray, const Vec2& circle, double radius) {
+    Vec2 u{circle};
+    u.substract(point);
+
+    double dot = u.dot(ray);
+
+    if (dot < 0) return std::nullopt;
+
+    Vec2 u1 = u.projectInto(ray, false);
+    
+    Vec2 u2{u};
+    u2.substract(u1);
+
+    double d = u2.length();
+
+    if (d > radius) return std::nullopt;
+    if (std::abs(d - radius) < 0.1) return std::nullopt;
+
+    double m = std::sqrt(radius * radius - d * d);
+
+    Vec2 p{u1};
+    p.add(ray, -m);
+
+    return std::optional(p);
+}
+
 class Enemy : public GameEntity {
 public:
     double speed;
@@ -950,6 +1176,9 @@ public:
     const Enemy *lastThreat = nullptr;
     const Enemy *avoidedEnemy = nullptr;
     std::vector<Uint32> avoidanceTime;
+    ContextSteering contextSteering;
+    Vec2 contextSteeringResult{0, 0};
+    Vec2 smoothedAcceleration{0,0};
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -1080,6 +1309,8 @@ public:
     }
 
     void onTick(IGameStage *stage) override {
+        contextSteering.clear();
+
         Vec2 velocity = direction;
         velocity.scale(speed);
 
@@ -1109,6 +1340,45 @@ public:
                 othersEnemy.push_back(otherEnemy);
             }
         }
+
+        const double minEnemyRadius = 3 * boundingRadius;
+        const double minCos = std::cos(45.0 / 2.0 * M_PI / 180.0);
+
+        for (const Enemy* entity : othersEnemy) {
+            Vec2 distanceVec{entity->position};
+            distanceVec.substract(position);
+
+            if (distanceVec.length() > minEnemyRadius) continue;
+
+            for (const auto& [_, index] : contextSteering.dangerMap.withIndex()) {
+                Vec2 ray = ContextSteeringMap::directionBy(index);
+                auto intersection = rayCircleIntersection(position, ray, entity->position, entity->boundingRadius);
+                if (intersection.has_value()) {
+                    double length = intersection.value().length();
+
+                    // if (length > 2.1 * boundingRadius) {
+                        contextSteering.dangerMap.data[index] = std::max(
+                            contextSteering.dangerMap.data[index],
+                            minEnemyRadius / intersection.value().length() 
+                        );
+                    // } else {
+                    //     intersection.value().normalize();
+                    //     intersection.value().scale(minEnemyRadius / length);
+                    //     contextSteering.dangerMap.addVector(intersection.value(), minCos);
+                    //     int index2 = ContextSteeringMap::shiftIndex(index, ContextSteeringMap::angleCount / 2);
+                    //     contextSteering.interestMap.data[index2] = std::max(
+                    //         contextSteering.interestMap.data[index2],
+                    //         (length - 1.5 * boundingRadius) / boundingRadius
+                    //     );
+                    // }
+                } 
+            }
+        }
+
+        if (distance > 250)
+            stage->getPathFinder()->addDirectionToSteering(position, direction, contextSteering.interestMap);
+        
+        contextSteeringResult =  contextSteering.getResult3();
 
         if (distance > 225 && distance < 250) {
             if (speed != 0) {
@@ -1172,7 +1442,25 @@ public:
 //        steering.add(steering3,1.5);
 
 
-        acceleration = steering;
+
+        Vec2 desiredVelocity{contextSteeringResult};
+        desiredVelocity.normalize();
+        desiredVelocity.scale(2);
+        desiredVelocity.substract(velocity);
+        if (desiredVelocity.length() > 0.1) {
+            desiredVelocity.normalize();
+            desiredVelocity.scale(0.1);
+        }
+
+        // Vec2 deltaAcceleration{desiredVelocity};
+        // deltaAcceleration.substract(smoothedAcceleration);
+        // smoothedAcceleration.add(deltaAcceleration, 0.4);
+
+        // if (contextSteeringResult.length() > 0) {
+        //     acceleration = smoothedAcceleration;
+        // } else {
+            acceleration = desiredVelocity;
+        // }
 
         Vec2 newVelocity{velocity};
         newVelocity.add(acceleration, 1);
@@ -1229,84 +1517,95 @@ public:
     void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) override {
         GameEntity::onDraw(renderer, cameraPosition);
 
-        Vec2 lineStart{position};
-        lineStart.substract(cameraPosition);
+        Vec2 onCameraPosition{position};
+        onCameraPosition.substract(cameraPosition);
+        contextSteering.draw(renderer, onCameraPosition, boundingRadius);
+        
+        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Steer %f", contextSteeringResult.length());
+        Vec2 steeringLine{contextSteeringResult};
+        steeringLine.normalize();
+        steeringLine.scale(boundingRadius * 1.5);
+        steeringLine.add(onCameraPosition, 1); 
+        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+        SDL_RenderDrawLine(renderer, onCameraPosition.x, onCameraPosition.y, steeringLine.x, steeringLine.y);
+    //     Vec2 lineStart{position};
+    //     lineStart.substract(cameraPosition);
 
-        SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+    //     SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
 
-        for (const Vec2 &steering: steeringList) {
-            Vec2 lineEnd{steering};
-            lineEnd.normalize();
-            lineEnd.scale(40);
-            lineEnd.add(position, 1);
-            lineEnd.substract(cameraPosition);
+    //     for (const Vec2 &steering: steeringList) {
+    //         Vec2 lineEnd{steering};
+    //         lineEnd.normalize();
+    //         lineEnd.scale(40);
+    //         lineEnd.add(position, 1);
+    //         lineEnd.substract(cameraPosition);
 
-            SDL_RenderDrawLine(renderer, lineStart.x, lineStart.y, lineEnd.x, lineEnd.y);
-        }
+    //         SDL_RenderDrawLine(renderer, lineStart.x, lineStart.y, lineEnd.x, lineEnd.y);
+    //     }
 
-       static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
-       SDL_Color color;
-       color.r = 255;
-       color.g = 255;
-       color.b = 255;
-       color.a = 255;
-       Vec2 posInCamera{position};
-       posInCamera.substract(cameraPosition);
-
-
-        const double minNeighbourDistance = boundingRadius + 10;
-        const double maxNeighbourDistance = 4 * boundingRadius;
-        const double maxNeigbourAngle = 135.0 * M_PI / 180.0;
-
-       for (GameEntity * other : othersEnemy) {
-           Vec2 distanceVec(other->position);
-           distanceVec.substract(position);
-           double distance = distanceVec.length();
-           double angle = distanceVec.angleBetween(direction);
-
-            if (distance > maxNeighbourDistance)
-                continue;
-
-            if (distance > minNeighbourDistance && 
-               angle > maxNeigbourAngle)
-                continue;
-
-            Vec2 projection = distanceVec.projectInto(direction, false);
-            projection.add(position, 1);
-            projection.substract(cameraPosition);
-
-            distanceVec.scale(-1);
-            distanceVec.normalize();
-            distanceVec.scale(1 / distance);
+    //    static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
+    //    SDL_Color color;
+    //    color.r = 255;
+    //    color.g = 255;
+    //    color.b = 255;
+    //    color.a = 255;
+    //    Vec2 posInCamera{position};
+    //    posInCamera.substract(cameraPosition);
 
 
-            Vec2 otherInCamera{other->position};
-            otherInCamera.substract(cameraPosition);
+    //     const double minNeighbourDistance = boundingRadius + 10;
+    //     const double maxNeighbourDistance = 4 * boundingRadius;
+    //     const double maxNeigbourAngle = 135.0 * M_PI / 180.0;
 
-            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-            SDL_RenderDrawLine(renderer, posInCamera.x, posInCamera.y, otherInCamera.x, otherInCamera.y);
-            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-            SDL_RenderDrawLine(renderer, posInCamera.x, posInCamera.y, projection.x, projection.y);
-            SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-            SDL_RenderDrawLine(renderer, otherInCamera.x, otherInCamera.y, projection.x, projection.y);
+    //    for (GameEntity * other : othersEnemy) {
+    //        Vec2 distanceVec(other->position);
+    //        distanceVec.substract(position);
+    //        double distance = distanceVec.length();
+    //        double angle = distanceVec.angleBetween(direction);
 
-            std::string text = std::to_string(angle);
-            SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
-            SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-            SDL_Rect textRect;
-            SDL_QueryTexture(texture, nullptr, nullptr, &textRect.w, &textRect.h);
-            textRect.x = (otherInCamera.x + projection.x) / 2.0 - textRect.w;
-            textRect.y = (otherInCamera.y + projection.y) / 2.0 - textRect.h;
-            SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+    //         if (distance > maxNeighbourDistance)
+    //             continue;
 
-            SDL_DestroyTexture(texture);
-            SDL_FreeSurface(surface);
-       }
+    //         if (distance > minNeighbourDistance && 
+    //            angle > maxNeigbourAngle)
+    //             continue;
+
+    //         Vec2 projection = distanceVec.projectInto(direction, false);
+    //         projection.add(position, 1);
+    //         projection.substract(cameraPosition);
+
+    //         distanceVec.scale(-1);
+    //         distanceVec.normalize();
+    //         distanceVec.scale(1 / distance);
+
+
+    //         Vec2 otherInCamera{other->position};
+    //         otherInCamera.substract(cameraPosition);
+
+    //         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    //         SDL_RenderDrawLine(renderer, posInCamera.x, posInCamera.y, otherInCamera.x, otherInCamera.y);
+    //         SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    //         SDL_RenderDrawLine(renderer, posInCamera.x, posInCamera.y, projection.x, projection.y);
+    //         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+    //         SDL_RenderDrawLine(renderer, otherInCamera.x, otherInCamera.y, projection.x, projection.y);
+
+    //         std::string text = std::to_string(angle);
+    //         SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
+    //         SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    //         SDL_Rect textRect;
+    //         SDL_QueryTexture(texture, nullptr, nullptr, &textRect.w, &textRect.h);
+    //         textRect.x = (otherInCamera.x + projection.x) / 2.0 - textRect.w;
+    //         textRect.y = (otherInCamera.y + projection.y) / 2.0 - textRect.h;
+    //         SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+
+    //         SDL_DestroyTexture(texture);
+    //         SDL_FreeSurface(surface);
+    //    }
     }
 
     void onHit(GameEntity *other) override {
         if (Laser *laser = dynamic_cast<Laser *>(other); laser != nullptr) {
-            mustGone = true;
+            // mustGone = true;
         } else if (dynamic_cast<Meteor *>(other) != nullptr) {
             //mustGone = true;
         }
@@ -1362,7 +1661,7 @@ public:
         mPlayerShip = playerShip.get();
         mEntityList.push_back(std::move(playerShip));
 
-        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
+        // mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
         mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
         mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, 0))));
 
@@ -1576,6 +1875,10 @@ public:
 
     std::vector<Vec2> findNeighbourObstacle(const Vec2 &position) override {
         return mPathFinder.getNeighbourObstacle(position);
+    }
+
+    APathFinder* getPathFinder() {
+        return &mPathFinder;
     }
 
 private:
