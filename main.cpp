@@ -444,8 +444,6 @@ struct ContextSteeringMap {
             if (dot != 0) {
                 SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot %f", dot);
             }
-            // if (dot < minCos) continue;
-            // value += dot;
             value = std::max(directionBy(indexOf(&value)).dot(vector), value);
         }
     }
@@ -1342,7 +1340,7 @@ public:
         }
 
         const double minEnemyRadius = 3 * boundingRadius;
-        const double minCos = std::cos(45.0 / 2.0 * M_PI / 180.0);
+        const double minCos = std::cos(45.0 * M_PI / 180.0);
 
         for (const Enemy* entity : othersEnemy) {
             Vec2 distanceVec{entity->position};
@@ -1356,21 +1354,9 @@ public:
                 if (intersection.has_value()) {
                     double length = intersection.value().length();
 
-                    // if (length > 2.1 * boundingRadius) {
-                        contextSteering.dangerMap.data[index] = std::max(
-                            contextSteering.dangerMap.data[index],
-                            minEnemyRadius / intersection.value().length() 
-                        );
-                    // } else {
-                    //     intersection.value().normalize();
-                    //     intersection.value().scale(minEnemyRadius / length);
-                    //     contextSteering.dangerMap.addVector(intersection.value(), minCos);
-                    //     int index2 = ContextSteeringMap::shiftIndex(index, ContextSteeringMap::angleCount / 2);
-                    //     contextSteering.interestMap.data[index2] = std::max(
-                    //         contextSteering.interestMap.data[index2],
-                    //         (length - 1.5 * boundingRadius) / boundingRadius
-                    //     );
-                    // }
+                    intersection.value().normalize();
+                    intersection.value().scale(minEnemyRadius / length);
+                    contextSteering.dangerMap.addVector(intersection.value(), minCos);
                 } 
             }
         }
@@ -1378,7 +1364,7 @@ public:
         if (distance > 250)
             stage->getPathFinder()->addDirectionToSteering(position, direction, contextSteering.interestMap);
         
-        contextSteeringResult =  contextSteering.getResult3();
+        contextSteeringResult =  contextSteering.getResult();
 
         if (distance > 225 && distance < 250) {
             if (speed != 0) {
@@ -1661,7 +1647,7 @@ public:
         mPlayerShip = playerShip.get();
         mEntityList.push_back(std::move(playerShip));
 
-        // mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
+        mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
         mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
         mEntityList.push_back(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, 0))));
 
