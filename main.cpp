@@ -801,11 +801,17 @@ public:
         return result;
     }
 
-    bool addDirectionToSteering(const Vec2 &position, const Vec2& direction, ContextSteeringMap& map, bool isSeek) {
-        return addDirectionToSteering(getNodePositionFromWorldPosition(position), direction, map, isSeek);
+    enum SteeringType {
+        STEERING_SEEK,
+        STEERING_START_FLEE,
+        STEERING_FLEE
+    };
+
+    bool addDirectionToSteering(const Vec2 &position, const Vec2& direction, ContextSteeringMap& map, SteeringType type) {
+        return addDirectionToSteering(getNodePositionFromWorldPosition(position), direction, map, type);
     }
 
-    bool addDirectionToSteering(const NodePosition &nodePosition, const Vec2& direction, ContextSteeringMap& map, bool isSeek) {
+    bool addDirectionToSteering(const NodePosition &nodePosition, const Vec2& direction, ContextSteeringMap& map, SteeringType type) {
         int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
         Vec2 result{0, 0};
         bool success = false;
@@ -819,9 +825,9 @@ public:
 
             if (currentCost != std::numeric_limits<int>::max() && 
             (
-                (isSeek && cost >= currentCost) || 
-                (!isSeek && cost <= currentCost) ||
-                (!isSeek && cost == std::numeric_limits<int>::max())
+                (type == STEERING_SEEK && cost >= currentCost) || 
+                (type == STEERING_FLEE && cost <= currentCost) ||
+                (type != STEERING_SEEK && cost == std::numeric_limits<int>::max())
             )) continue;
             
             success = true;
@@ -832,8 +838,13 @@ public:
             };
             force.normalize();
             // if ((isSeek && cost < currentCost) || (!isSeek && cost > currentCost)) {
-                double dot = (force.dot(direction) + 1.5) / 2.5; 
-                force.scale(dot);
+            double dot = force.dot(direction);
+            // if (type == STEERING_START_FLEE) {
+            //     dot = std::max(dot, 0.001);
+            // } else {
+                dot = (dot + 1.5) / 2.5; 
+            // }
+            force.scale(dot);
             // } else {
             //     double dot = (force.dot(direction) + 1.0) / 2.0;
             //     force.scale(dot);
@@ -1391,7 +1402,7 @@ public:
             regenerateFlowPreferedDirection();
         }
 
-        if (!stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, isSeek)) {
+        if (!stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, isSeek ? APathFinder::STEERING_SEEK : distance < 250 ? APathFinder::STEERING_START_FLEE : APathFinder::STEERING_FLEE)) {
             isSeek = !isSeek;
             regenerateFlowPreferedDirection();
         }
