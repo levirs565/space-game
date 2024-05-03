@@ -431,18 +431,18 @@ struct ContextSteeringMap {
         return (index + delta + angleCount) % angleCount;
     }
 
-    void addVector(Vec2 vector, double minCos = 0) {
-        if (vector.length() > 1)
-            vector.normalize(); 
+    void addVector(const Vec2& vector, double minCos = 0) {
+        Vec2 normalizedVector{vector};
+        normalizedVector.normalize();
         for (double &value : *this) {
-            const double dot = directionBy(indexOf(&value)).dot(vector);
-            if (dot < minCos) {
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot rejected %f", dot);
+            const double cos = directionBy(indexOf(&value)).dot(normalizedVector);
+            if (cos < minCos) {
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot rejected %f", cos);
                 continue;
             }
 
-            if (dot != 0) {
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot %f", dot);
+            if (cos != 0) {
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot %f", cos);
             }
             value = std::max(directionBy(indexOf(&value)).dot(vector), value);
         }
@@ -801,40 +801,47 @@ public:
         return result;
     }
 
-    void addDirectionToSteering(const Vec2 &position, const Vec2& direction, ContextSteeringMap& map) {
-        addDirectionToSteering(getNodePositionFromWorldPosition(position), direction, map);
+    bool addDirectionToSteering(const Vec2 &position, const Vec2& direction, ContextSteeringMap& map, bool isSeek) {
+        return addDirectionToSteering(getNodePositionFromWorldPosition(position), direction, map, isSeek);
     }
 
-    void addDirectionToSteering(const NodePosition &nodePosition, const Vec2& direction, ContextSteeringMap& map) {
+    bool addDirectionToSteering(const NodePosition &nodePosition, const Vec2& direction, ContextSteeringMap& map, bool isSeek) {
         int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
-        if (currentCost == 0) return;
-
         Vec2 result{0, 0};
+        bool success = false;
 
         for (const NodePosition &neighbour: getNeighbours(nodePosition)) {
             if (!canWalk(nodePosition, neighbour)) continue;
 
             const Node &neighbourNode = mGrid[neighbour.first][neighbour.second];
 
-
             int cost = neighbourNode.cost;
 
-            if (cost >= currentCost) continue;
+            if (currentCost != std::numeric_limits<int>::max() && 
+            (
+                (isSeek && cost >= currentCost) || 
+                (!isSeek && cost <= currentCost) ||
+                (!isSeek && cost == std::numeric_limits<int>::max())
+            )) continue;
+            
+            success = true;
 
             Vec2 force{
                     double(neighbour.second - nodePosition.second),
                     double(neighbour.first - nodePosition.first)
             };
             force.normalize();
-            if (cost < currentCost) {
+            // if ((isSeek && cost < currentCost) || (!isSeek && cost > currentCost)) {
                 double dot = (force.dot(direction) + 1.5) / 2.5; 
                 force.scale(dot);
-            } else {
-                double dot = (force.dot(direction) + 1.0) / 2.0;
-                force.scale(dot);
-            }
+            // } else {
+            //     double dot = (force.dot(direction) + 1.0) / 2.0;
+            //     force.scale(dot);
+            // }
             map.addVector(force);
         }
+
+        return success;
     }
 
 
@@ -1177,9 +1184,23 @@ public:
     ContextSteering contextSteering;
     Vec2 contextSteeringResult{0, 0};
     Vec2 smoothedAcceleration{0,0};
+    bool isSeek = true;
+    Vec2 flowPreferedDirection{1, 0};
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
+        regenerateFlowPreferedDirection();
+    }
+
+    void regenerateFlowPreferedDirection() {
+        flowPreferedDirection = {1, 0};
+        const double rotation = double(std::rand()) / RAND_MAX * M_PI_2 - M_PI_2 / 2.0;
+        if (!isSeek) {
+            flowPreferedDirection = direction;
+            flowPreferedDirection.rotate(rotation);
+        } else {
+            flowPreferedDirection.rotate(rotation);
+        }
     }
 
     Vec2 steerAvoidCloseNeighbors(const double minSeparationDistance, const std::vector<Enemy *> &enemyList) {
@@ -1361,73 +1382,21 @@ public:
             }
         }
 
-        if (distance > 250)
-            stage->getPathFinder()->addDirectionToSteering(position, direction, contextSteering.interestMap);
+
+        if (distance < 200 && isSeek) {
+            isSeek = false;
+            regenerateFlowPreferedDirection();
+        } else if (distance > 400 && !isSeek) {
+            isSeek = true;
+            regenerateFlowPreferedDirection();
+        }
+
+        if (!stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, isSeek)) {
+            isSeek = !isSeek;
+            regenerateFlowPreferedDirection();
+        }
         
         contextSteeringResult =  contextSteering.getResult();
-
-        if (distance > 225 && distance < 250) {
-            if (speed != 0) {
-                steering = direction;
-                steering.scale(-1 * std::clamp(speed, -0.1, 0.1));
-                steeringList.push_back(steering);
-            }
-        } else {
-            Vec2 field = stage->getFlowDirection(position, direction);
-            if (distance < 225)
-                field.scale(-1);
-
-
-            steering = SteeringBehaviour::followField(field, velocity, 2, 0.1);
-            if (field.length() == 0) {
-                steering = distanceVector;
-                steering.normalize();
-                steering.scale(-0.1);
-            }
-
-            canFollowField = avoidanceTime.size() == 0;
-
-            if (canFollowField)
-                steeringList.push_back(steering);
-            else steering = {0, 0};
-        }
-
-        //steering = SteeringBehaviour::makeArrival(position, stage->getPlayerPosition(), steering, velocity, 100, 200);
-
-        Uint32 currentTick = SDL_GetTicks();
-        if (!cannotAvoidance) {
-            const Enemy *oldThreat = lastThreat;
-            Vec2 steering2 = steerAvoidNeighbors(120, othersEnemy);
-            if (steering2.length() > 0.2) {
-                steering2.normalize();
-                steering2.scale(0.2);
-            }
-            steeringList.push_back(steering2);
-            if (steering2.length() > 0) {
-                avoidanceTime.push_back(currentTick);
-                steering.add(steering2, 1);
-                directionLock = {0, 0};
-            }
-
-            if (lastThreat == nullptr) lastThreat = oldThreat;
-        }
-
-        size_t before = avoidanceTime.size();
-        avoidanceTime.erase(
-            avoidanceTime.begin(), 
-            std::find_if(
-                avoidanceTime.begin(), 
-                avoidanceTime.end(), 
-                [currentTick](auto time) {
-                    return currentTick - time <= 1000;
-                }));
-//        steering.add(steering2, 1.5);
-
-//        Vec2 steering3 = SteeringBehaviour::separation(position, stage->findNeighbourObstacle(position), velocity, 55, 2, 0.1);
-//        steeringList.push_back(steering3);
-//        steering.add(steering3,1.5);
-
-
 
         Vec2 desiredVelocity{contextSteeringResult};
         desiredVelocity.normalize();
@@ -1456,13 +1425,6 @@ public:
         Vec2 newDirection = newSpeed != 0 ? newVelocity : direction;
         newDirection.normalize();
 
-//        if (directionLock.length() > 0) {
-//            const double oldNewSpeed = newSpeed;
-//            newSpeed = directionLock.dot(newDirection) * abs(newSpeed);
-//            newDirection = directionLock;
-////            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "New speed %f, old %f", newSpeed, oldNewSpeed);
-//        }
-
         const double maxDeltaAngle = 5.0 / 180.0 * M_PI;
         const double deltaAngle = direction.orientedAngleTo(newDirection);
         const double absDeltaAngle = abs(deltaAngle);
@@ -1479,9 +1441,6 @@ public:
 
         position.add(newVelocity, 1);
 
-//        if (abs(direction.orientedAngleTo(newDirection) * 180 / M_PI) > 5.5)
-//            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Delta rotation exceed limit %f",
-//                        direction.orientedAngleTo(newDirection) * 180 / M_PI);
 
         speed = newSpeed;
         direction = newDirection;
@@ -1514,6 +1473,13 @@ public:
         steeringLine.add(onCameraPosition, 1); 
         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
         SDL_RenderDrawLine(renderer, onCameraPosition.x, onCameraPosition.y, steeringLine.x, steeringLine.y);
+
+        Vec2 flowLine{flowPreferedDirection};
+        flowLine.scale(boundingRadius * 2.0);
+        flowLine.add(onCameraPosition, 1);
+
+        SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+        SDL_RenderDrawLine(renderer, onCameraPosition.x, onCameraPosition.y, flowLine.x, flowLine.y);
     //     Vec2 lineStart{position};
     //     lineStart.substract(cameraPosition);
 
