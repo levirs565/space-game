@@ -304,9 +304,10 @@ public:
     }
 };
 
+using SAPCollisionMap = std::unordered_map<GameEntity*, std::set<GameEntity*>>;
+
 class SAPDimension {
 public:
-    using CollisionMap = std::unordered_map<GameEntity*, std::set<GameEntity*>>;
 
     struct Item {
         double value;
@@ -330,7 +331,7 @@ public:
     bool isY;
     std::vector<std::shared_ptr<Item>> intervalList;
     std::vector<std::shared_ptr<Item>> bufferList;
-    CollisionMap* mCollisionMap;
+    SAPCollisionMap* mCollisionMap;
 
     void swapCallback(std::shared_ptr<Item>& item2, std::shared_ptr<Item>& item1) {
         GameEntity* entity1 = item1->entity;
@@ -435,7 +436,7 @@ public:
                     continue;
                 }
 
-                if (newItem < item) {
+                if (*(newItem.get()) < *(item.get())) {
                     if (isY) {
                         processSets(newItem, setInsert, {&setInsert, &setInterval});
                     }
@@ -561,7 +562,7 @@ public:
 
 public:
 
-    SAPDimension(bool isY, CollisionMap* collisionMap): isY{isY}, mCollisionMap{collisionMap} {
+    SAPDimension(bool isY, SAPCollisionMap* collisionMap): isY{isY}, mCollisionMap{collisionMap} {
 
     }
 };
@@ -572,7 +573,7 @@ class SAP {
     };
 
     std::unordered_map<GameEntity*, Item> entities;
-    SAPDimension::CollisionMap mCollisionList;
+    SAPCollisionMap mCollisionList;
     std::vector<GameEntity*> mPendingRemove;
 
     SAPDimension dimensionX{false, &mCollisionList};
@@ -679,6 +680,10 @@ public:
         }
 
         return result;
+    }
+
+    SAPCollisionMap& getCollisionMap() {
+        return mCollisionList;
     }
 };
 
@@ -2143,6 +2148,17 @@ public:
                             : mIsRight ? PlayerShip::ROTATION_RIGHT
                                        : PlayerShip::ROTATION_NONE);
 
+            for (std::vector<std::unique_ptr<GameEntity>>::iterator it = mEntityList.begin();
+                 it != mEntityList.end(); it++) {
+                std::unique_ptr<GameEntity> &entity = *it;
+
+                if (entity->mustGone) {
+                    mSAP.remove(entity.get());
+                    it = mEntityList.erase(it) - 1;
+                    continue;
+                }
+            }
+
             for (auto& entity : mEntityList) {
                 entity->onPreTick();
             }
@@ -2164,31 +2180,15 @@ public:
             if (mIsFire)
                 mPlayerShip->doFire(this);
 
-            for (std::vector<std::unique_ptr<GameEntity>>::iterator it = mEntityList.begin();
-                 it != mEntityList.end(); it++) {
-                std::unique_ptr<GameEntity> &entity = *it;
-
-                for (std::vector<std::unique_ptr<GameEntity>>::iterator otherIt = it + 1;
-                     otherIt != mEntityList.end(); otherIt++) {
-                    std::unique_ptr<GameEntity> &otherEntity = *otherIt;
-
+            for (auto& [entity, collisionSet] : mSAP.getCollisionMap()) {
+                for (auto otherEntity : collisionSet) {
                     if (isPolygonCollide(entity->boundingBox, otherEntity->boundingBox)) {
-                        entity->onHit(otherEntity.get());
-                        otherEntity->onHit(entity.get());
+                        entity->onHit(otherEntity);
                     }
                 }
             }
 
             SDL_SetRenderDrawColor(mRenderer, 0, 255, 0, 255);
-            for (std::vector<std::unique_ptr<GameEntity>>::iterator it = mEntityList.begin();
-                 it != mEntityList.end(); it++) {
-                std::unique_ptr<GameEntity> &entity = *it;
-
-                if (entity->mustGone) {
-                    it = mEntityList.erase(it) - 1;
-                    continue;
-                }
-            }
 
             for (GameEntity* entity : mSAP.queryArea(mCameraPosition.x, mCameraPosition.y, mCameraPosition.x + mCameraSize.x, mCameraPosition.y + mCameraSize.y, false)) {
                 entity->onDraw(mRenderer, mCameraPosition);
