@@ -207,6 +207,7 @@ bool lineIntersectCircle(const Vec2 &nonAhead, const Vec2 &ahead, const Vec2 &ah
 
 class APathFinder;
 class GameEntity;
+class SAP;
 
 class IGameStage {
 public:
@@ -223,6 +224,8 @@ public:
     virtual std::vector<Vec2> findNeighbourObstacle(const Vec2 &position) = 0;
 
     virtual APathFinder* getPathFinder() = 0;
+
+    virtual SAP* getSAP() = 0;
 };
 
 
@@ -1578,7 +1581,6 @@ public:
     Vec2 acceleration{0, 0};
     Uint32 lastFire = 0;
     Uint32 lastUpdatePath = 0;
-    std::vector<Enemy *> othersEnemy;
     std::vector<Vec2> steeringList;
     double lastSide = 0;
     const Enemy *lastThreat = nullptr;
@@ -1589,6 +1591,7 @@ public:
     Vec2 smoothedAcceleration{0,0};
     bool isSeek = true;
     Vec2 flowPreferedDirection{1, 0};
+    std::vector<GameEntity*> nearEntity;
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -1731,6 +1734,14 @@ public:
     }
 
     void onTick(IGameStage *stage) override {
+        nearEntity = stage->getSAP()->queryArea(
+            position.x - 3 * boundingRadius,
+            position.y - 3 * boundingRadius,
+            position.x + 3 * boundingRadius,
+            position.y + 3 * boundingRadius,
+            false
+        );
+
         contextSteering.clear();
 
         Vec2 velocity = direction;
@@ -1754,19 +1765,13 @@ public:
 
         steeringList.clear();
 
-        othersEnemy.clear();
-        for (const std::unique_ptr<GameEntity> &entity: stage->getEntities()) {
-            if (entity.get() == this) continue;
-
-            if (Enemy *otherEnemy = dynamic_cast<Enemy *>(entity.get()); otherEnemy != nullptr) {
-                othersEnemy.push_back(otherEnemy);
-            }
-        }
-
         const double minEnemyRadius = 3 * boundingRadius;
+        const double clampedRadius = 2 * boundingRadius + 25;
         const double minCos = std::cos(45.0 * M_PI / 180.0);
 
-        for (const Enemy* entity : othersEnemy) {
+        for (const GameEntity* entity : nearEntity) {
+            if (entity == this) continue;
+
             Vec2 distanceVec{entity->position};
             distanceVec.substract(position);
 
@@ -1779,7 +1784,7 @@ public:
                     double length = intersection.value().length();
 
                     intersection.value().normalize();
-                    intersection.value().scale(minEnemyRadius / length);
+                    intersection.value().scale(length < clampedRadius ? 1 : (minEnemyRadius - length) / minEnemyRadius);
                     contextSteering.dangerMap.addVector(intersection.value(), minCos);
                 } 
             }
@@ -2165,11 +2170,14 @@ public:
 
             size_t entityCount = mEntityList.size();
             for (size_t i = 0; i < entityCount; i++) {
-                GameEntity* entity = mEntityList[i].get();
+                std::unique_ptr<GameEntity>& entity = mEntityList[i];
                 entity->onTick(this);
-                mSAP.move(entity);
                 // setelah onTick, jangan gunakan entity kembali karena ada kemungkinan penambahan elemen ke mEntityList
                 // yang menyebabkan operasi std::move terhadap entity sehingga entity berada dalam keadaan invalid
+            }
+
+            for (std::unique_ptr<GameEntity>& entity : mEntityList) {
+                mSAP.move(entity.get());
             }
 
             mSAP.update();
@@ -2240,6 +2248,10 @@ public:
 
     APathFinder* getPathFinder() {
         return &mPathFinder;
+    }
+
+    SAP* getSAP() {
+        return &mSAP;
     }
 
 private:
