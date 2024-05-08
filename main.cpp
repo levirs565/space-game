@@ -977,6 +977,7 @@ private:
         bool isWalkable = true;
         int cost;
         Vec2 direction{0, 0};
+        bool lineOfSight;
     };
 
     std::vector<std::vector<Node>> mGrid;
@@ -1046,7 +1047,9 @@ public:
                 const Node &node = mGrid[row][column];
                 r.x = startX + (column - left) * mEntitySize;
                 r.y = startY + (row - top) * mEntitySize;
-                if (node.isWalkable)
+                if (node.lineOfSight)
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 64);
+                else if (node.isWalkable)
                     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 64);
                 else
                     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 64);
@@ -1203,11 +1206,11 @@ public:
         STEERING_FLEE
     };
 
-    bool addDirectionToSteering(const Vec2 &position, const Vec2& direction, ContextSteeringMap& map, SteeringType type) {
-        return addDirectionToSteering(getNodePositionFromWorldPosition(position), direction, map, type);
+    bool addDirectionToSteering(const Vec2 &position, const Vec2& direction, ContextSteeringMap& map, SteeringType type, double scale) {
+        return addDirectionToSteering(getNodePositionFromWorldPosition(position), direction, map, type, scale);
     }
 
-    bool addDirectionToSteering(const NodePosition &nodePosition, const Vec2& direction, ContextSteeringMap& map, SteeringType type) {
+    bool addDirectionToSteering(const NodePosition &nodePosition, const Vec2& direction, ContextSteeringMap& map, SteeringType type, double scale) {
         int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
         Vec2 result{0, 0};
         bool success = false;
@@ -1240,7 +1243,7 @@ public:
             // } else {
                 dot = (dot + 1.5) / 2.5; 
             // }
-            force.scale(dot);
+            force.scale(dot * scale);
             // } else {
             //     double dot = (force.dot(direction) + 1.0) / 2.0;
             //     force.scale(dot);
@@ -1277,6 +1280,46 @@ public:
                mGrid[to.first][from.second].isWalkable;
     }
 
+    void calculateLineOfSight(const NodePosition& from, const NodePosition& to) {
+        const double deltaFirst = to.first - from.first;
+        const double deltaSecond = to.second - from.second;
+
+        const double deltaFirstAbs = std::abs(deltaFirst);
+        const double deltaSecondAbs = std::abs(deltaSecond);
+
+        const double deltaFirstSign = std::copysign(1, deltaFirst);
+        const double deltaSecondSign = std::copysign(1, deltaSecond);
+
+        bool hasLineOfSight = false;
+
+        if (deltaFirstAbs >= deltaSecondAbs) {
+            if (mGrid[from.first + deltaFirstSign][from.second].lineOfSight) 
+                hasLineOfSight = true;
+        }
+
+        if (deltaSecondAbs >= deltaFirstAbs) {
+            if (mGrid[from.first][from.second + deltaSecondSign].lineOfSight)
+                hasLineOfSight = true;
+        }
+
+        if (deltaFirstAbs > 0 && deltaSecondAbs > 0) {
+            if (!mGrid[from.first + deltaFirstSign][from.second  + deltaSecondSign].lineOfSight)
+                hasLineOfSight = false;
+            else if (deltaFirstAbs == deltaSecondAbs) {
+                if (!mGrid[from.first + deltaFirstSign][from.second].isWalkable||
+                    !mGrid[from.first][from.second + deltaSecondSign].isWalkable == std::numeric_limits<int>::max()
+                ) {
+                    hasLineOfSight = false;
+                }
+            }
+        }
+
+        mGrid[from.first][from.second].lineOfSight = hasLineOfSight;
+        if (!mGrid[to.first][to.second].lineOfSight) {
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Aneh");
+        }
+    }
+
     void generateHeatmap(const Vec2 &target) {
         const NodePosition targetNodePos = getNodePositionFromWorldPosition(target);
 
@@ -1285,6 +1328,7 @@ public:
         for (std::vector<Node> &row: mGrid) {
             for (Node &cell: row) {
                 cell.cost = std::numeric_limits<int>::max();
+                cell.lineOfSight = false;
             }
         }
 
@@ -1292,6 +1336,7 @@ public:
         std::set<NodePosition> closedSet;
 
         mGrid[targetNodePos.first][targetNodePos.second].cost = 0;
+        mGrid[targetNodePos.first][targetNodePos.second].lineOfSight = true;
         openSet.push_back(targetNodePos);
 
         while (!openSet.empty()) {
@@ -1300,6 +1345,10 @@ public:
             closedSet.insert(currentPos);
 
             Node &currentNode = mGrid[currentPos.first][currentPos.second];
+
+            if (currentPos != targetNodePos) {
+                calculateLineOfSight(currentPos, targetNodePos);
+            }
 
             if (currentNode.cost >= 10) continue;
 
@@ -1320,6 +1369,12 @@ public:
                 }
             }
         }
+    }
+
+    bool hasLineOfSigh(const Vec2& position) {
+        const NodePosition node = getNodePositionFromWorldPosition(position);
+
+        return mGrid[node.first][node.second].lineOfSight;
     }
 };
 
@@ -1805,7 +1860,14 @@ public:
         }
 
         if (isSeek) {
-            if (!stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, APathFinder::STEERING_SEEK)) {
+            bool hasLineOfSight = stage->getPathFinder()->hasLineOfSigh(position);
+            if (hasLineOfSight) {
+                Vec2 seekDirection{distanceVector};
+                seekDirection.normalize();
+
+                contextSteering.interestMap.addVector(seekDirection);
+            }
+            if (!stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, APathFinder::STEERING_SEEK, hasLineOfSight ? 0.75 : 1)) {
                 regenerateFlowPreferedDirection();
             }
         } else {
