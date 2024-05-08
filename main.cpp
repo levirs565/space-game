@@ -13,6 +13,7 @@
 #include <queue>
 #include <ranges>
 #include <map>
+#include <random>
 
 class TextureLoader {
 public:
@@ -832,12 +833,12 @@ struct ContextSteeringMap {
         for (double &value : *this) {
             const double cos = directionBy(indexOf(&value)).dot(normalizedVector);
             if (cos < minCos) {
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot rejected %f", cos);
+                // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot rejected %f", cos);
                 continue;
             }
 
             if (cos != 0) {
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot %f", cos);
+                // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot %f", cos);
             }
             value = std::max(directionBy(indexOf(&value)).dot(vector), value);
         }
@@ -1581,7 +1582,6 @@ public:
     Vec2 acceleration{0, 0};
     Uint32 lastFire = 0;
     Uint32 lastUpdatePath = 0;
-    std::vector<Vec2> steeringList;
     double lastSide = 0;
     const Enemy *lastThreat = nullptr;
     const Enemy *avoidedEnemy = nullptr;
@@ -1592,6 +1592,10 @@ public:
     bool isSeek = true;
     Vec2 flowPreferedDirection{1, 0};
     std::vector<GameEntity*> nearEntity;
+    double wanderAngle = 0;
+    std::random_device rd;
+    std::mt19937 e2{rd()};
+    std::uniform_real_distribution<> dist{0.0, 1.0};
 
     Enemy(TextureLoader *textureLoader, const Vec2 &position) : GameEntity(position, 0) {
         texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/Enemies/enemyBlack1.png");
@@ -1753,18 +1757,6 @@ public:
         distanceVector.substract(position);
         const double distance = distanceVector.length();
 
-        Vec2 steering{0, 0};
-        Vec2 directionLock{0, 0};
-        bool cannotAvoidance = distance < 250;
-        bool canFollowField = true;
-
-        if (distance < 250) {
-            directionLock = distanceVector;
-            directionLock.normalize();
-        }
-
-        steeringList.clear();
-
         const double minEnemyRadius = 3 * boundingRadius;
         const double clampedRadius = 2 * boundingRadius + 25;
         const double minCos = std::cos(45.0 * M_PI / 180.0);
@@ -1776,6 +1768,12 @@ public:
             distanceVec.substract(position);
 
             if (distanceVec.length() > minEnemyRadius) continue;
+
+            if (distanceVec.length() < clampedRadius) {
+                Vec2 avoid{distanceVec};
+                avoid.normalize();
+                contextSteering.dangerMap.addVector(avoid);
+            }
 
             for (const auto& [_, index] : contextSteering.dangerMap.withIndex()) {
                 Vec2 ray = ContextSteeringMap::directionBy(index);
@@ -1791,19 +1789,36 @@ public:
         }
 
 
-        if (distance < 200 && isSeek) {
+        if (distance < 300 && isSeek) {
             isSeek = false;
             regenerateFlowPreferedDirection();
-        } else if (distance > 400 && !isSeek) {
+            wanderAngle = M_PI_2/2;
+        } else if (distance > 500 && !isSeek) {
             isSeek = true;
             regenerateFlowPreferedDirection();
         }
 
-        if (!stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, isSeek ? APathFinder::STEERING_SEEK : distance < 250 ? APathFinder::STEERING_START_FLEE : APathFinder::STEERING_FLEE)) {
-            isSeek = !isSeek;
-            regenerateFlowPreferedDirection();
+        if (!isSeek) {
+            Vec2 avoidPlayer{distanceVector};
+            avoidPlayer.normalize();
+            contextSteering.dangerMap.addVector(avoidPlayer, 0.707);
         }
-        
+
+        if (isSeek) {
+            if (!stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, APathFinder::STEERING_SEEK)) {
+                regenerateFlowPreferedDirection();
+            }
+        } else {
+            std::fill(contextSteering.interestMap.begin(), contextSteering.interestMap.end(), 0.1);
+
+            Vec2 fleeDirection{position};
+            fleeDirection.substract(stage->getPlayerPosition());
+            fleeDirection.normalize();
+            fleeDirection.scale(0.5);
+            contextSteering.interestMap.addVector(fleeDirection);
+
+            contextSteering.interestMap.addVector(direction);
+        } 
         contextSteeringResult =  contextSteering.getResult();
 
         Vec2 desiredVelocity{contextSteeringResult};
@@ -1886,22 +1901,12 @@ public:
         flowLine.scale(boundingRadius * 2.0);
         flowLine.add(onCameraPosition, 1);
 
-        SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+        if (isSeek)
+            SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+        else 
+            SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
         SDL_RenderDrawLine(renderer, onCameraPosition.x, onCameraPosition.y, flowLine.x, flowLine.y);
-    //     Vec2 lineStart{position};
-    //     lineStart.substract(cameraPosition);
 
-    //     SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
-
-    //     for (const Vec2 &steering: steeringList) {
-    //         Vec2 lineEnd{steering};
-    //         lineEnd.normalize();
-    //         lineEnd.scale(40);
-    //         lineEnd.add(position, 1);
-    //         lineEnd.substract(cameraPosition);
-
-    //         SDL_RenderDrawLine(renderer, lineStart.x, lineStart.y, lineEnd.x, lineEnd.y);
-    //     }
 
     //    static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
     //    SDL_Color color;
