@@ -1965,26 +1965,9 @@ public:
                 } 
             }
         }
-
-
-        if (distance < 300 && isSeek) {
-            isSeek = false;
-            regenerateFlowPreferedDirection();
-            wanderAngle = M_PI_2/2;
-        } else if (distance > 500 && !isSeek) {
-            isSeek = true;
-            regenerateFlowPreferedDirection();
-        }
-
-        if (!isSeek) {
-            Vec2 avoidPlayer{distanceVector};
-            avoidPlayer.normalize();
-            contextSteering.dangerMap.addVector(avoidPlayer, 0.707);
-        }
-
         
-        if (isSeek) {
-            bool hasLineOfSight = stage->getPathFinder()->hasLineOfSigh(position);
+        bool hasLineOfSight = stage->getPathFinder()->hasLineOfSigh(position);
+        if (distance > 400 || !hasLineOfSight) {
             if (hasLineOfSight) {
                 Vec2 seekDirection{distanceVector};
                 seekDirection.normalize();
@@ -1992,10 +1975,8 @@ public:
                 contextSteering.interestMap.addVector(seekDirection);
             }
 
-            if (!stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, APathFinder::STEERING_SEEK, hasLineOfSight ? 0.75 : 1)) {
-                regenerateFlowPreferedDirection();
-            }
-
+            stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, APathFinder::STEERING_SEEK, hasLineOfSight ? 0.75 : 1);
+        } else if (hasLineOfSight) {
             Vec2 distanceNormalized{distanceVector};
             distanceNormalized.normalize();
             if (distance < 400 && direction.dot(distanceNormalized) > 0.996) {
@@ -2012,18 +1993,8 @@ public:
                     break;
                 }
             }
+        }
 
-        } else {
-            std::fill(contextSteering.interestMap.begin(), contextSteering.interestMap.end(), 0.1);
-
-            Vec2 fleeDirection{position};
-            fleeDirection.substract(stage->getPlayerPosition());
-            fleeDirection.normalize();
-            fleeDirection.scale(0.5);
-            contextSteering.interestMap.addVector(fleeDirection);
-
-            contextSteering.interestMap.addVector(direction);
-        } 
         contextSteeringResult =  contextSteering.getResult();
 
         Vec2 desiredVelocity{contextSteeringResult};
