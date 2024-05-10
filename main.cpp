@@ -497,7 +497,7 @@ public:
     }
 
     std::vector<size_t> iterateStabs(size_t index) {
-        if (index <= intervalList.size()) return {};
+        if (index >= intervalList.size()) return {};
 
         std::set<GameEntity*> skip;
         int stabs = intervalList[index]->stabs;
@@ -568,6 +568,125 @@ public:
 
     SAPDimension(bool isY, SAPCollisionMap* collisionMap): isY{isY}, mCollisionMap{collisionMap} {
 
+    }
+};
+
+struct SAPRayDimension {
+    double startValue;
+    double deltaValue;
+    int step;
+    int sideCheck;
+    double dRatio;
+    int startIndex;
+    int currentIndex;
+    SAPDimension* currentDimension;
+    std::unordered_map<GameEntity*, int>* hitMap;
+
+    SAPRayDimension(SAPDimension* dimension, double from, double to, std::unordered_map<GameEntity*, int>* hitMap): startValue{from}, currentDimension{dimension}, hitMap{hitMap} {
+        deltaValue = to - from;
+        auto [lower, upper] = dimension->binarySearch(from);
+
+        if (deltaValue >= 0) {
+            step = 1;
+            sideCheck = 0;
+            startIndex = upper;
+        } else {
+            step = -1;
+            sideCheck = 1;
+            startIndex = lower;
+        }
+
+        currentIndex = startIndex;
+        recalculateDRatio();
+    }
+
+    void recalculateDRatio() {
+        double value = currentIndex >= 0 && currentIndex < currentDimension->intervalList.size() ? currentDimension->intervalList[currentIndex]->value : std::copysign(std::numeric_limits<double>::infinity(), step);
+        dRatio = (value - startValue) / deltaValue;
+        if (dRatio < 0)
+            dRatio = std::numeric_limits<double>::infinity();
+    }
+
+    inline void addHit(GameEntity* entity) {
+        (*hitMap)[entity] = hitMap->contains(entity) ? (*hitMap)[entity] + 1 : 1;
+    }
+
+    GameEntity* getCurrentEntity() {
+        return currentDimension->intervalList[currentIndex]->entity;
+    }
+
+    void incrementRay() {
+        std::shared_ptr<SAPDimension::Item>& item = currentDimension->intervalList[currentIndex];
+        GameEntity* entity = item->entity;
+
+        if (item->interval == sideCheck) {
+            addHit(item->entity);
+        } else {
+            (*hitMap)[item->entity] = 0;
+        }
+
+        currentIndex += step;
+        recalculateDRatio();
+    }
+
+    GameEntity* iterateInternalHit() {
+        for (size_t index : currentDimension->iterateStabs(currentIndex + sideCheck)) {
+            GameEntity* entity = currentDimension->intervalList[index]->entity;
+            addHit(entity);
+
+            if (currentDimension->isY && (*hitMap)[entity] > 1) {
+                return entity;
+            }
+        }
+
+        return nullptr;
+    } 
+};
+
+
+class SAPRay {
+    SAPRayDimension mXRay;
+    SAPRayDimension mYRay;
+    std::unordered_map<GameEntity*, int> mHitMap;
+    bool mCheckInternalHit = true;
+public:
+    SAPRay(SAPDimension* dimensionX, double x0, double x1, SAPDimension* dimensionY, double y0, double y1) : mXRay{dimensionX, x0, x1, &mHitMap},
+        mYRay{dimensionY, y0, y1, &mHitMap} 
+         {
+    }
+
+    GameEntity* currentEntity = nullptr;
+
+    bool next() {
+        if (mCheckInternalHit) {
+            mCheckInternalHit = false;
+            mXRay.iterateInternalHit();
+            currentEntity = mYRay.iterateInternalHit();
+            if (currentEntity != nullptr) {
+                return true;
+            }
+        }
+
+        double minRatio = std::min(mXRay.dRatio, mYRay.dRatio);
+        while (minRatio <= 1) {
+            GameEntity* entity = nullptr;
+            if (minRatio == mXRay.dRatio) {
+                entity = mXRay.getCurrentEntity();
+                mXRay.incrementRay();
+            } else {
+                entity = mYRay.getCurrentEntity();
+                mYRay.incrementRay();
+            }
+            if (mHitMap[entity] > 1) {
+                currentEntity = entity;
+                return true;
+            }
+
+            minRatio = std::min(mXRay.dRatio, mYRay.dRatio);
+        }
+
+        currentEntity = nullptr;
+        return false;
     }
 };
 
@@ -684,6 +803,10 @@ public:
         }
 
         return result;
+    }
+
+    SAPRay queryRay(double x0, double y0, double x1, double y1) {
+        return SAPRay(&dimensionX, x0, x1, &dimensionY, y0, y1);
     }
 
     SAPCollisionMap& getCollisionMap() {
@@ -1859,6 +1982,7 @@ public:
             contextSteering.dangerMap.addVector(avoidPlayer, 0.707);
         }
 
+        
         if (isSeek) {
             bool hasLineOfSight = stage->getPathFinder()->hasLineOfSigh(position);
             if (hasLineOfSight) {
@@ -1867,9 +1991,28 @@ public:
 
                 contextSteering.interestMap.addVector(seekDirection);
             }
+
             if (!stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, APathFinder::STEERING_SEEK, hasLineOfSight ? 0.75 : 1)) {
                 regenerateFlowPreferedDirection();
             }
+
+            Vec2 distanceNormalized{distanceVector};
+            distanceNormalized.normalize();
+            if (distance < 400 && direction.dot(distanceNormalized) > 0.996) {
+                Vec2 playerPosition = stage->getPlayerPosition();
+                canAttack = true;
+                for (SAPRay ray = stage->getSAP()->queryRay(position.x, position.y, playerPosition.x, playerPosition.y); ray.next(); ) {
+                    if (ray.currentEntity == this) {
+                        continue;
+                    }
+                    if (dynamic_cast<PlayerShip*>(ray.currentEntity) != nullptr) {
+                        break;
+                    }
+                    canAttack = false;
+                    break;
+                }
+            }
+
         } else {
             std::fill(contextSteering.interestMap.begin(), contextSteering.interestMap.end(), 0.1);
 
@@ -2220,17 +2363,6 @@ public:
                             : mIsRight ? PlayerShip::ROTATION_RIGHT
                                        : PlayerShip::ROTATION_NONE);
 
-            for (std::vector<std::unique_ptr<GameEntity>>::iterator it = mEntityList.begin();
-                 it != mEntityList.end(); it++) {
-                std::unique_ptr<GameEntity> &entity = *it;
-
-                if (entity->mustGone) {
-                    mSAP.remove(entity.get());
-                    it = mEntityList.erase(it) - 1;
-                    continue;
-                }
-            }
-
             for (auto& entity : mEntityList) {
                 entity->onPreTick();
             }
@@ -2245,6 +2377,17 @@ public:
 
             for (std::unique_ptr<GameEntity>& entity : mEntityList) {
                 mSAP.move(entity.get());
+            }
+
+            for (std::vector<std::unique_ptr<GameEntity>>::iterator it = mEntityList.begin();
+                 it != mEntityList.end(); it++) {
+                std::unique_ptr<GameEntity> &entity = *it;
+
+                if (entity->mustGone) {
+                    mSAP.remove(entity.get());
+                    it = mEntityList.erase(it) - 1;
+                    continue;
+                }
             }
 
             mSAP.update();
