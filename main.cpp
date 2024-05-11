@@ -1270,18 +1270,16 @@ public:
         return result;
     }
 
-    enum SteeringType {
-        STEERING_SEEK,
-        STEERING_START_FLEE,
-        STEERING_FLEE
-    };
-
-    bool addDirectionToSteering(const Vec2 &position, const Vec2& direction, ContextSteeringMap& map, SteeringType type, double scale) {
-        return addDirectionToSteering(getNodePositionFromWorldPosition(position), direction, map, type, scale);
+    bool addDirectionToSteering(const Vec2 &position, const Vec2& direction, ContextSteeringMap& map, double scale) {
+        return addDirectionToSteering(getNodePositionFromWorldPosition(position), direction, map, scale);
     }
 
-    bool addDirectionToSteering(const NodePosition &nodePosition, const Vec2& direction, ContextSteeringMap& map, SteeringType type, double scale) {
+    bool addDirectionToSteering(const NodePosition &nodePosition, const Vec2& direction, ContextSteeringMap& map, double scale) {
         int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
+
+        if (currentCost == std::numeric_limits<int>::max())
+            return false;
+
         Vec2 result{0, 0};
         bool success = false;
 
@@ -1292,12 +1290,7 @@ public:
 
             int cost = neighbourNode.cost;
 
-            if (currentCost != std::numeric_limits<int>::max() && 
-            (
-                (type == STEERING_SEEK && cost >= currentCost) || 
-                (type == STEERING_FLEE && cost <= currentCost) ||
-                (type != STEERING_SEEK && cost == std::numeric_limits<int>::max())
-            )) continue;
+            if (cost >= currentCost) continue;
             
             success = true;
 
@@ -1306,18 +1299,9 @@ public:
                     double(neighbour.first - nodePosition.first)
             };
             force.normalize();
-            // if ((isSeek && cost < currentCost) || (!isSeek && cost > currentCost)) {
             double dot = force.dot(direction);
-            // if (type == STEERING_START_FLEE) {
-            //     dot = std::max(dot, 0.001);
-            // } else {
-                dot = (dot + 1.5) / 2.5; 
-            // }
+            dot = (dot + 1.5) / 2.5; 
             force.scale(dot * scale);
-            // } else {
-            //     double dot = (force.dot(direction) + 1.0) / 2.0;
-            //     force.scale(dot);
-            // }
             map.addVector(force);
         }
 
@@ -1931,7 +1915,7 @@ public:
                 contextSteering.interestMap.addVector(seekDirection);
             }
 
-            stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, APathFinder::STEERING_SEEK, hasLineOfSight ? 0.5 : 1);
+            stage->getPathFinder()->addDirectionToSteering(position, direction, contextSteering.interestMap, hasLineOfSight ? 0.5 : 1);
         } else if (hasLineOfSight) {
             Vec2 distanceNormalized{distanceVector};
             distanceNormalized.normalize();
@@ -2158,7 +2142,7 @@ public:
 
         addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
         addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
-        addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(600, 0))));
+        addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(800, 0))));
 
         addEntity(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(100, 500), "Brown_big1")));
         addEntity(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(300, 500), "Brown_big2")));
