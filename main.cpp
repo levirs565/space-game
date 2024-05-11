@@ -1012,33 +1012,13 @@ struct ContextSteering {
     }
 
     Vec2 getResult() {
-        double maxValue = 0;
-        int maxIndex = 0;
         for (auto [value, index] : resultMap.withIndex()) {
             value = std::clamp(interestMap.data[index] - dangerMap.data[index], 0.0, 1.0);
-            if (value > maxValue) {
-                maxValue = value;
-                maxIndex = index;
-            }
         }
-        selectedIndex = maxIndex;
 
         Vec2 result{0, 0};
-        if (maxValue != 0) {
-            int leftIndex = ContextSteeringMap::shiftIndex(maxIndex, -1);
-            int rightIndex = ContextSteeringMap::shiftIndex(maxIndex, 1);
-
-            Vec2 currentDirection = ContextSteeringMap::directionBy(maxIndex);
-            Vec2 leftDirection = ContextSteeringMap::directionBy(leftIndex);
-            Vec2 rightDirection = ContextSteeringMap::directionBy(rightIndex);
-
-            double currentValue = resultMap.data[maxIndex];
-            double leftValue = resultMap.data[leftIndex];
-            double rightValue = resultMap.data[rightIndex];
-
-            result.add(currentDirection, currentValue);
-            result.add(leftDirection, leftValue);
-            result.add(rightDirection, rightValue);
+        for (auto [value, index] : resultMap.withIndex()) {
+            result.add(ContextSteeringMap::directionBy(index), value);
         }
         
         result.normalize();
@@ -1048,10 +1028,7 @@ struct ContextSteering {
     void draw(SDL_Renderer* renderer, const Vec2& position, double radius) {
         static const double angleDeviation = 2.0 / 180.0 * M_PI;
         for (const auto [_, index] : interestMap.withIndex()) {
-            if (index == selectedIndex)
-                SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-            else
-                SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+            SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
             resultMap.draw(renderer, position, radius, -angleDeviation, index);
         }
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
