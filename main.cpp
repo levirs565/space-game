@@ -954,7 +954,8 @@ struct ContextSteeringMap {
         Vec2 normalizedVector{vector};
         normalizedVector.normalize();
         for (double &value : *this) {
-            const double cos = directionBy(indexOf(&value)).dot(normalizedVector);
+            Vec2 currentDirection = directionBy(indexOf(&value));
+            const double cos = currentDirection.dot(normalizedVector);
             if (cos < minCos) {
                 // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot rejected %f", cos);
                 continue;
@@ -963,7 +964,7 @@ struct ContextSteeringMap {
             if (cos != 0) {
                 // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Dot %f", cos);
             }
-            value = std::max(directionBy(indexOf(&value)).dot(vector), value);
+            value = std::max(currentDirection.dot(vector), value);
         }
     }
 
@@ -984,97 +985,71 @@ struct ContextSteeringMap {
     }
 
     auto withIndex() {
-        return *this | std::views::transform([this](const double& value) {
+        return *this | std::views::transform([this](double& value) {
             return std::make_tuple(std::ref(value), indexOf(&value));
         });
     }
 
-    void draw(SDL_Renderer* renderer, const Vec2& position, double radius, double angleDeviation) {
-        double maxElement = *std::max_element(begin(), end());
-        for (const auto&[value, index] :withIndex()) {
-            if (value == 0) continue;
-            Vec2 end{directionBy(index)};
-            end.rotate(angleDeviation);
-            end.scale(value / maxElement * radius);
-            end.add(position, 1);
+    void draw(SDL_Renderer* renderer, const Vec2& position, double radius, double angleDeviation, int index) {
+        double value = data[index];
+        if (value == 0) return;
+        Vec2 end{directionBy(index)};
+        end.rotate(angleDeviation);
+        end.scale(value * radius);
+        end.add(position, 1);
 
-            SDL_RenderDrawLine(renderer, position.x, position.y, end.x, end.y);
-        }
+        SDL_RenderDrawLine(renderer, position.x, position.y, end.x, end.y);
     }
 };
 
 struct ContextSteering {
-    ContextSteeringMap interestMap, dangerMap;
+    ContextSteeringMap interestMap, dangerMap, resultMap;
+    int selectedIndex = 0;
 
     void clear() {
         interestMap.clear();
         dangerMap.clear();
     }
 
-
-    Vec2 getResult2(const Vec2& d) {
-        const double minDanger = *std::min_element(dangerMap.begin(), dangerMap.end());
-        Vec2 result{0, 0};
-
-        for (const auto [value, index] : dangerMap.withIndex()
-            | std::views::filter([=](const auto& v) { 
-                return std::get<0>(v) <= minDanger; 
-                })) {
-            Vec2 direction = ContextSteeringMap::directionBy(index);
-            // result.add(direction, interestMap.data[index]);
-            result.add(direction, (1.1 + direction.dot(d)) / 2.1 * interestMap.data[index]);
-        }
-
-        result.normalize();
-        return result;
-    }
-
-
-    Vec2 getResult3() {
-        const double minDanger = *std::min_element(dangerMap.begin(), dangerMap.end());
-
-        double maxValue = std::numeric_limits<double>::min();
-        Vec2 result{0, 0};
-
-        for (const auto [value, index] : dangerMap.withIndex()) {
-            Vec2 direction = ContextSteeringMap::directionBy(index);
-            double v = interestMap.data[index] - value;
-            if (v >= maxValue) {
-                result = direction;
-                maxValue = v;
-            }
-        }
-
-        result.normalize();
-        return result;
-    }
-
     Vec2 getResult() {
-        const double minDanger = *std::min_element(dangerMap.begin(), dangerMap.end());
-        
-        double maxValue = std::numeric_limits<double>::min();
+        double maxValue = 0;
         int maxIndex = 0;
-        Vec2 result{0, 0};
-
-        for (const auto [value, index] : dangerMap.withIndex()
-            | std::views::filter([=](const auto& v) { 
-                return std::get<0>(v) <= minDanger; 
-                })) {
-            Vec2 direction = ContextSteeringMap::directionBy(index);
-            if (interestMap.data[index] > maxValue) {
-                result = direction;
-                maxValue = interestMap.data[index];
+        for (auto [value, index] : resultMap.withIndex()) {
+            value = std::clamp(interestMap.data[index] - dangerMap.data[index], 0.0, 1.0);
+            if (value > maxValue) {
+                maxValue = value;
                 maxIndex = index;
             }
         }
+        selectedIndex = maxIndex;
 
-        if (maxValue != std::numeric_limits<double>::min()) {
+        Vec2 result{0, 0};
+        if (maxValue != 0) {
             int leftIndex = ContextSteeringMap::shiftIndex(maxIndex, -1);
             int rightIndex = ContextSteeringMap::shiftIndex(maxIndex, 1);
-            if (dangerMap.data[leftIndex] <= minDanger)
-                result.add(ContextSteeringMap::directionBy(leftIndex), interestMap.data[leftIndex] / 2.0);
-            if (dangerMap.data[rightIndex] <= minDanger)
-                result.add(ContextSteeringMap::directionBy(rightIndex), interestMap.data[rightIndex] / 2.0);
+
+            Vec2 currentDirection = ContextSteeringMap::directionBy(maxIndex);
+            Vec2 leftDirection = ContextSteeringMap::directionBy(leftIndex);
+            Vec2 rightDirection = ContextSteeringMap::directionBy(rightIndex);
+
+            double currentValue = resultMap.data[maxIndex];
+            double leftValue = resultMap.data[leftIndex];
+            double rightValue = resultMap.data[rightIndex];
+
+            constexpr double minDelta = 0.2;
+            if (std::abs(leftValue - currentValue) < minDelta) {
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Mirip kiri");
+                result.add(currentDirection, currentValue);
+                result.add(leftDirection, leftValue);
+            } else if (std::abs(rightValue - currentValue) < minDelta) {
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Mirip kanan");
+                result.add(currentDirection, currentValue);
+                result.add(rightDirection, rightValue);
+            } else {
+                result.add(currentDirection, currentValue);
+                result.add(leftDirection, leftValue);
+                result.add(rightDirection, rightValue);
+            }
         }
         
         result.normalize();
@@ -1083,10 +1058,16 @@ struct ContextSteering {
 
     void draw(SDL_Renderer* renderer, const Vec2& position, double radius) {
         static const double angleDeviation = 2.0 / 180.0 * M_PI;
-        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-        interestMap.draw(renderer, position, radius, -angleDeviation);
+        for (const auto [_, index] : interestMap.withIndex()) {
+            if (index == selectedIndex)
+                SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+            else
+                SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+            resultMap.draw(renderer, position, radius, -angleDeviation, index);
+        }
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-        dangerMap.draw(renderer, position, radius, angleDeviation);
+        for (const auto [_, index] : dangerMap.withIndex())
+            dangerMap.draw(renderer, position, radius, angleDeviation, index);
     }
 };
 
@@ -1753,6 +1734,10 @@ std::optional<Vec2> rayCircleIntersection(const Vec2& point, const Vec2& ray, co
     return std::optional(p);
 }
 
+double mapValue(double value, double minValue, double maxValue, double minOutput, double maxOutput) {
+    return minOutput + (maxOutput - minOutput) * ((value - minValue) / (maxValue - minValue));
+}
+
 class Enemy : public GameEntity {
 public:
     double speed;
@@ -1935,17 +1920,17 @@ public:
         distanceVector.substract(position);
         const double distance = distanceVector.length();
 
-        const double minEnemyRadius = 3 * boundingRadius;
         const double clampedRadius = 2 * boundingRadius + 25;
+        const double minRayLength = 1 * boundingRadius + 25;
+        const double maxRayLength = 2 * boundingRadius;
         const double minCos = std::cos(45.0 * M_PI / 180.0);
 
-        for (const GameEntity* entity : nearEntity) {
+        for (GameEntity* entity : nearEntity) {
             if (entity == this) continue;
+            if (dynamic_cast<Laser*>(entity) != nullptr) continue;
 
             Vec2 distanceVec{entity->position};
             distanceVec.substract(position);
-
-            if (distanceVec.length() > minEnemyRadius) continue;
 
             if (distanceVec.length() < clampedRadius) {
                 Vec2 avoid{distanceVec};
@@ -1957,11 +1942,16 @@ public:
                 Vec2 ray = ContextSteeringMap::directionBy(index);
                 auto intersection = rayCircleIntersection(position, ray, entity->position, entity->boundingRadius);
                 if (intersection.has_value()) {
-                    double length = intersection.value().length();
+                    Vec2 avoid = intersection.value();
+                    double length = avoid.length();
 
-                    intersection.value().normalize();
-                    intersection.value().scale(length < clampedRadius ? 1 : (minEnemyRadius - length) / minEnemyRadius);
-                    contextSteering.dangerMap.addVector(intersection.value(), minCos);
+                    avoid.normalize();
+                    avoid.scale(
+                        mapValue(
+                            std::clamp(length, minRayLength, maxRayLength),
+                            minRayLength, maxRayLength, 1.0, 0.0)
+                    );
+                    contextSteering.dangerMap.addVector(avoid, 0);
                 } 
             }
         }
@@ -1975,7 +1965,7 @@ public:
                 contextSteering.interestMap.addVector(seekDirection);
             }
 
-            stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, APathFinder::STEERING_SEEK, hasLineOfSight ? 0.75 : 1);
+            stage->getPathFinder()->addDirectionToSteering(position, flowPreferedDirection, contextSteering.interestMap, APathFinder::STEERING_SEEK, hasLineOfSight ? 0.5 : 1);
         } else if (hasLineOfSight) {
             Vec2 distanceNormalized{distanceVector};
             distanceNormalized.normalize();
@@ -2073,15 +2063,15 @@ public:
         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
         SDL_RenderDrawLine(renderer, onCameraPosition.x, onCameraPosition.y, steeringLine.x, steeringLine.y);
 
-        Vec2 flowLine{flowPreferedDirection};
-        flowLine.scale(boundingRadius * 2.0);
-        flowLine.add(onCameraPosition, 1);
+        // Vec2 flowLine{flowPreferedDirection};
+        // flowLine.scale(boundingRadius * 2.0);
+        // flowLine.add(onCameraPosition, 1);
 
-        if (isSeek)
-            SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
-        else 
-            SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
-        SDL_RenderDrawLine(renderer, onCameraPosition.x, onCameraPosition.y, flowLine.x, flowLine.y);
+        // if (isSeek)
+        //     SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+        // else 
+        //     SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+        // SDL_RenderDrawLine(renderer, onCameraPosition.x, onCameraPosition.y, flowLine.x, flowLine.y);
 
 
     //    static TTF_Font * font = TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/kenvector_future.ttf", 16);
