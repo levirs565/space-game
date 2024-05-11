@@ -1036,20 +1036,9 @@ struct ContextSteering {
             double leftValue = resultMap.data[leftIndex];
             double rightValue = resultMap.data[rightIndex];
 
-            constexpr double minDelta = 0.2;
-            if (std::abs(leftValue - currentValue) < minDelta) {
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Mirip kiri");
-                result.add(currentDirection, currentValue);
-                result.add(leftDirection, leftValue);
-            } else if (std::abs(rightValue - currentValue) < minDelta) {
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Mirip kanan");
-                result.add(currentDirection, currentValue);
-                result.add(rightDirection, rightValue);
-            } else {
-                result.add(currentDirection, currentValue);
-                result.add(leftDirection, leftValue);
-                result.add(rightDirection, rightValue);
-            }
+            result.add(currentDirection, currentValue);
+            result.add(leftDirection, leftValue);
+            result.add(rightDirection, rightValue);
         }
         
         result.normalize();
@@ -1742,6 +1731,7 @@ class Enemy : public GameEntity {
 public:
     double speed;
     Vec2 direction{0, 0};
+    Vec2 smoothedDirection{0,0};
     Vec2 acceleration{0, 0};
     Uint32 lastFire = 0;
     Uint32 lastUpdatePath = 0;
@@ -1751,7 +1741,6 @@ public:
     std::vector<Uint32> avoidanceTime;
     ContextSteering contextSteering;
     Vec2 contextSteeringResult{0, 0};
-    Vec2 smoothedAcceleration{0,0};
     bool isSeek = true;
     Vec2 flowPreferedDirection{1, 0};
     std::vector<GameEntity*> nearEntity;
@@ -1996,15 +1985,7 @@ public:
             desiredVelocity.scale(0.1);
         }
 
-        // Vec2 deltaAcceleration{desiredVelocity};
-        // deltaAcceleration.substract(smoothedAcceleration);
-        // smoothedAcceleration.add(deltaAcceleration, 0.4);
-
-        // if (contextSteeringResult.length() > 0) {
-        //     acceleration = smoothedAcceleration;
-        // } else {
-            acceleration = desiredVelocity;
-        // }
+        acceleration = desiredVelocity;
 
         Vec2 newVelocity{velocity};
         newVelocity.add(acceleration, 1);
@@ -2034,7 +2015,13 @@ public:
         speed = newSpeed;
         direction = newDirection;
 
-        angle = direction.getRotation() * 180.0 / M_PI - 90;
+
+        Vec2 last = smoothedDirection;
+        Vec2 deltaDirection{direction};
+        deltaDirection.substract(smoothedDirection);
+        smoothedDirection.add(deltaDirection, 0.15);
+
+        angle = smoothedDirection.getRotation() * 180.0 / M_PI - 90;
 
         if (SDL_GetTicks() - lastFire >= 1000 && canAttack) {
             SDL_Rect enemyRect = getRect();
