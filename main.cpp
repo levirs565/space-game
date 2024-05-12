@@ -1916,7 +1916,9 @@ public:
 
                 contextSteering.interestMap.addVector(seekDirection);
             }
-        } else if (hasLineOfSight) {
+        } 
+        
+        if (hasLineOfSight || distance < 400) {
             Vec2 distanceNormalized{distanceVector};
             distanceNormalized.normalize();
             if (distance < 400 && direction.dot(distanceNormalized) > 0.996) {
@@ -2141,8 +2143,8 @@ public:
         addEntity(std::move(playerShip));
 
         addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
-        addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
-        addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(800, 0))));
+        // addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
+        // addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(800, 0))));
 
         addEntity(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(100, 500), "Brown_big1")));
         addEntity(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(300, 500), "Brown_big2")));
