@@ -1919,10 +1919,12 @@ public:
             }
         } 
         
-        if (hasLineOfSight || distance < 400) {
+        if (distance < 600) {
             Vec2 distanceNormalized{distanceVector};
             distanceNormalized.normalize();
-            if (distance < 400 && direction.dot(distanceNormalized) > 0.996) {
+
+            auto intersection = rayCircleIntersection(position, direction, stage->getPlayerPosition(), boundingRadius);
+            if (intersection.has_value()) {
                 Vec2 playerPosition = stage->getPlayerPosition();
                 canAttack = true;
                 for (SAPRay ray = stage->getSAP()->queryRay(position.x, position.y, playerPosition.x, playerPosition.y); ray.next(); ) {
