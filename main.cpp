@@ -629,17 +629,15 @@ struct SAPRayDimension {
         recalculateDRatio();
     }
 
-    GameEntity* iterateInternalHit() {
+    void findInternalHit(std::vector<GameEntity*>* list ) {
         for (size_t index : currentDimension->iterateStabs(currentIndex + sideCheck)) {
             GameEntity* entity = currentDimension->intervalList[index]->entity;
             addHit(entity);
 
-            if (currentDimension->isY && (*hitMap)[entity] > 1) {
-                return entity;
+            if (list != nullptr && (*hitMap)[entity] > 1) {
+                list->push_back(entity);
             }
         }
-
-        return nullptr;
     } 
 };
 
@@ -649,6 +647,7 @@ class SAPRay {
     SAPRayDimension mYRay;
     std::unordered_map<GameEntity*, int> mHitMap;
     bool mCheckInternalHit = true;
+    std::vector<GameEntity*> mInternalHit;
 public:
     SAPRay(SAPDimension* dimensionX, double x0, double x1, SAPDimension* dimensionY, double y0, double y1) : mXRay{dimensionX, x0, x1, &mHitMap},
         mYRay{dimensionY, y0, y1, &mHitMap} 
@@ -660,11 +659,15 @@ public:
     bool next() {
         if (mCheckInternalHit) {
             mCheckInternalHit = false;
-            mXRay.iterateInternalHit();
-            currentEntity = mYRay.iterateInternalHit();
-            if (currentEntity != nullptr) {
-                return true;
-            }
+            mXRay.findInternalHit(nullptr);
+            mYRay.findInternalHit(&mInternalHit);
+        }
+
+
+        if (mInternalHit.size() > 0) {
+            currentEntity = mInternalHit[0];
+            mInternalHit.erase(mInternalHit.begin());
+            return true;
         }
 
         double minRatio = std::min(mXRay.dRatio, mYRay.dRatio);
@@ -1927,15 +1930,32 @@ public:
             if (intersection.has_value()) {
                 Vec2 playerPosition = stage->getPlayerPosition();
                 canAttack = true;
-                for (SAPRay ray = stage->getSAP()->queryRay(position.x, position.y, playerPosition.x, playerPosition.y); ray.next(); ) {
-                    if (ray.currentEntity == this) {
-                        continue;
-                    }
-                    if (dynamic_cast<PlayerShip*>(ray.currentEntity) != nullptr) {
+
+                Vec2 perpendicularDistance{distanceNormalized};
+                perpendicularDistance.makePerpendicular();
+
+                for (int perpendicularShift : {-5, 0, 5}) {
+                    Vec2 from{position};
+                    from.add(perpendicularDistance, perpendicularShift);
+
+                    Vec2 to{playerPosition};
+                    to.add(perpendicularDistance, perpendicularShift);
+
+                    for (SAPRay ray = stage->getSAP()->queryRay(from.x, from.y, to.x, to.y); ray.next(); ) {
+                        if (ray.currentEntity == this) {
+                            continue;
+                        }
+                        if (dynamic_cast<PlayerShip*>(ray.currentEntity) != nullptr) {
+                            break;
+                        }
+                        if (dynamic_cast<Laser*>(ray.currentEntity) != nullptr) {
+                            break;
+                        }
+                        canAttack = false;
                         break;
                     }
-                    canAttack = false;
-                    break;
+
+                    if (!canAttack) break;
                 }
             }
 
@@ -2153,8 +2173,8 @@ public:
         addEntity(std::move(playerShip));
 
         addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
-        // addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
-        // addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(800, 0))));
+        addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
+        addEntity(std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(800, 0))));
 
         addEntity(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(100, 500), "Brown_big1")));
         addEntity(std::move(std::make_unique<Meteor>(mTextureLoader.get(), Vec2(300, 500), "Brown_big2")));
