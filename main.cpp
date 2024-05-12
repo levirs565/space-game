@@ -1377,14 +1377,14 @@ public:
     void generateHeatmap(const Vec2 &target) {
         const NodePosition targetNodePos = getNodePositionFromWorldPosition(target);
 
-        if (!mGrid[targetNodePos.first][targetNodePos.second].isWalkable) return;
-
         for (std::vector<Node> &row: mGrid) {
             for (Node &cell: row) {
                 cell.cost = std::numeric_limits<int>::max();
                 cell.lineOfSight = false;
             }
         }
+
+        if (!mGrid[targetNodePos.first][targetNodePos.second].isWalkable) return;
 
         std::vector<NodePosition> openSet;
         std::set<NodePosition> closedSet;
@@ -1908,14 +1908,14 @@ public:
         
         bool hasLineOfSight = stage->getPathFinder()->hasLineOfSigh(position);
         if (distance > 400 || !hasLineOfSight) {
-            if (hasLineOfSight) {
+            bool pathFindSuccess = stage->getPathFinder()->addDirectionToSteering(position, direction, contextSteering.interestMap, hasLineOfSight ? 0.5 : 1);
+
+            if (hasLineOfSight || !pathFindSuccess) {
                 Vec2 seekDirection{distanceVector};
                 seekDirection.normalize();
 
                 contextSteering.interestMap.addVector(seekDirection);
             }
-
-            stage->getPathFinder()->addDirectionToSteering(position, direction, contextSteering.interestMap, hasLineOfSight ? 0.5 : 1);
         } else if (hasLineOfSight) {
             Vec2 distanceNormalized{distanceVector};
             distanceNormalized.normalize();
