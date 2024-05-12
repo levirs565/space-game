@@ -1865,6 +1865,7 @@ public:
         velocity.scale(speed);
 
         bool canAttack = false;
+        Vec2 extraRotation{0, 0};
 
         Vec2 distanceVector{stage->getPlayerPosition()};
         distanceVector.substract(position);
@@ -1935,9 +1936,11 @@ public:
                     break;
                 }
             }
+
+            extraRotation = distanceNormalized;
         }
 
-        contextSteeringResult =  contextSteering.getResult();
+        contextSteeringResult = contextSteering.getResult();
 
         Vec2 desiredVelocity{contextSteeringResult};
         desiredVelocity.normalize();
@@ -1956,6 +1959,11 @@ public:
         double newSpeed = std::min(newVelocity.length(), 2.0);
 
         Vec2 newDirection = newSpeed != 0 ? newVelocity : direction;
+
+        if (extraRotation.length() > 0 && contextSteeringResult.length() == 0) {
+            newDirection.rotate(newDirection.orientedAngleTo(extraRotation)); 
+        }
+
         newDirection.normalize();
 
         const double maxDeltaAngle = 5.0 / 180.0 * M_PI;
