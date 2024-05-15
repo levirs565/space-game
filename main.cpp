@@ -836,6 +836,7 @@ public:
     }
 
     void onHit(GameEntity *other) override {
+        if (dynamic_cast<Laser*>(other) != nullptr) return;
         mustGone = true;
     }
 };
