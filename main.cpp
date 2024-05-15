@@ -227,6 +227,8 @@ public:
     virtual APathFinder* getPathFinder() = 0;
 
     virtual SAP* getSAP() = 0;
+
+    virtual GameEntity* getPlayerEntity() = 0;
 };
 
 
@@ -1926,7 +1928,7 @@ public:
             Vec2 distanceNormalized{distanceVector};
             distanceNormalized.normalize();
 
-            auto intersection = rayCircleIntersection(position, direction, stage->getPlayerPosition(), boundingRadius);
+            auto intersection = rayCircleIntersection(position, direction, stage->getPlayerPosition(), stage->getPlayerEntity()->boundingRadius);
             if (intersection.has_value()) {
                 Vec2 playerPosition = stage->getPlayerPosition();
                 canAttack = true;
@@ -2019,9 +2021,10 @@ public:
         if (SDL_GetTicks() - lastFire >= 1000 && canAttack) {
             SDL_Rect enemyRect = getRect();
             Vec2 laserPos(0, enemyRect.h);
-            laserPos.rotate((angle) * M_PI / 180.0);
+            double laserAngle = direction.getRotation() * 180.0 / M_PI - 90;
+            laserPos.rotate((laserAngle) * M_PI / 180.0);
             laserPos.add(position, 1);
-            stage->addLaser(laserPos, angle - 180);
+            stage->addLaser(laserPos, laserAngle - 180);
             lastFire = SDL_GetTicks();
         }
 
@@ -2372,6 +2375,10 @@ public:
 
     const Vec2 &getPlayerPosition() override {
         return mPlayerShip->position;
+    }
+
+    GameEntity* getPlayerEntity() override {
+        return mPlayerShip;
     }
 
     void addLaser(const Vec2 &position, double angle) override {
