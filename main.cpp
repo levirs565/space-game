@@ -190,22 +190,6 @@ bool isPolygonCollide(std::vector<Vec2> &polygonA, std::vector<Vec2> &polygonB) 
     return isPolygonCollideInternal(polygonA, polygonB) && isPolygonCollideInternal(polygonB, polygonA);
 }
 
-bool lineIntersectCircle(const Vec2 &nonAhead, const Vec2 &ahead, const Vec2 &ahead2, double myRadius,
-                         const Vec2 &circlePosition,
-                         double circleRadius) {
-    Vec2 pureDistance(circlePosition);
-    pureDistance.substract(nonAhead);
-
-    Vec2 distanceAhead(circlePosition);
-    distanceAhead.substract(ahead);
-
-    Vec2 distanceAhead2(circlePosition);
-    distanceAhead2.substract(ahead2);
-
-    return pureDistance.length() <= circleRadius + myRadius || distanceAhead.length() <= circleRadius + myRadius ||
-           distanceAhead2.length() <= circleRadius + myRadius;
-}
-
 class APathFinder;
 class GameEntity;
 class SAP;
