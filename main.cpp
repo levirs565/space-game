@@ -1671,8 +1671,6 @@ public:
     onCameraPosition.substract(cameraPosition);
     contextSteering.draw(renderer, onCameraPosition, boundingRadius);
 
-    // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Steer %f",
-    // contextSteeringResult.length());
     Vec2 steeringLine{contextSteeringResult};
     steeringLine.normalize();
     steeringLine.scale(boundingRadius * 1.5);
@@ -1684,7 +1682,7 @@ public:
 
   void onHit(GameEntity *other) override {
     if (Laser *laser = dynamic_cast<Laser *>(other); laser != nullptr) {
-      // mustGone = true;
+      mustGone = true;
     } else if (dynamic_cast<Meteor *>(other) != nullptr) {
       // mustGone = true;
     }
