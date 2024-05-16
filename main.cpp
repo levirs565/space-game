@@ -1230,7 +1230,7 @@ public:
         }
       }
 
-      mPathFinder.drawGrid(mRenderer, mCameraPosition, mCameraSize);
+      //mPathFinder.drawGrid(mRenderer, mCameraPosition, mCameraSize);
       mPathFinder.generateHeatmap(mPlayerShip->position);
 
       presentScene();
