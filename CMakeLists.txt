@@ -17,5 +17,7 @@ add_executable(space
         SAP.hpp
         DataFormat.hpp
         DataFormat.cpp
-        SAP.cpp)
+        SAP.cpp
+        Polygon.hpp
+        Polygon.cpp)
 target_link_libraries(space PRIVATE SDL2::SDL2 SDL2_image::SDL2_image SDL2_mixer::SDL2_mixer SDL2_ttf::SDL2_ttf)
