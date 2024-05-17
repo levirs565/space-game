@@ -27,8 +27,8 @@ Object parseObjectInternal(std::istream &stream, int &lineNumber) {
       trimString(value);
 
       if (value == "{") {
-        result.field[key] = std::make_unique<Object>(
-            parseObjectInternal(stream, lineNumber));
+        result.field[key] =
+            std::make_unique<Object>(parseObjectInternal(stream, lineNumber));
         continue;
       }
 
@@ -38,8 +38,7 @@ Object parseObjectInternal(std::istream &stream, int &lineNumber) {
 
     if (line.ends_with("{")) {
       if (line.size() == 1) {
-        throw ParseError(lineNumber,
-                             "Object must bind to builder or field");
+        throw ParseError(lineNumber, "Object must bind to builder or field");
       }
 
       std::string name = line.substr(0, line.size() - 1);

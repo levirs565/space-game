@@ -1,8 +1,8 @@
 #ifndef IGAMESTAGE_HPP_
 #define IGAMESTAGE_HPP_
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "Vec2.hpp"
 
@@ -31,6 +31,5 @@ public:
 
   virtual GameEntity *getPlayerEntity() = 0;
 };
-
 
 #endif // IGAMESTAGE_HPP_

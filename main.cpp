@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "DataFormat.hpp"
 #include "GameEntity.hpp"
 #include "IGameStage.hpp"
 #include "SAP.hpp"
@@ -40,7 +41,6 @@ private:
   SDL_Renderer *mRenderer;
   std::unordered_map<std::string, SDL_Texture *> mCache;
 };
-
 
 std::pair<double, double>
 findPolygonProjectionMinMax(std::vector<Vec2> &polygon, Vec2 target) {
@@ -84,7 +84,6 @@ bool isPolygonCollide(std::vector<Vec2> &polygonA,
   return isPolygonCollideInternal(polygonA, polygonB) &&
          isPolygonCollideInternal(polygonB, polygonA);
 }
-
 
 class Laser : public GameEntity {
 public:
@@ -1230,7 +1229,7 @@ public:
         }
       }
 
-      //mPathFinder.drawGrid(mRenderer, mCameraPosition, mCameraSize);
+      // mPathFinder.drawGrid(mRenderer, mCameraPosition, mCameraSize);
       mPathFinder.generateHeatmap(mPlayerShip->position);
 
       presentScene();

@@ -1,11 +1,11 @@
 #ifndef GAMEENTITY_HPP_
 #define GAMEENTITY_HPP_
 
-#include <vector>
 #include <SDL.h>
+#include <vector>
 
-#include "Vec2.hpp"
 #include "IGameStage.hpp"
+#include "Vec2.hpp"
 
 class GameEntity {
 public:

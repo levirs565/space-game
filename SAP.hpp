@@ -1,13 +1,12 @@
 #ifndef SAP_HPP_
 #define SAP_HPP_
 
-#include <unordered_map>
-#include <set>
 #include "GameEntity.hpp"
+#include <set>
+#include <unordered_map>
 
 using SAPCollisionMap =
     std::unordered_map<GameEntity *, std::set<GameEntity *>>;
-
 
 class SAPDimension {
 public:
@@ -506,6 +505,5 @@ public:
 
   SAPCollisionMap &getCollisionMap() { return mCollisionList; }
 };
-
 
 #endif // SAP_HPP_
