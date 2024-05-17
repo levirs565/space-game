@@ -11,13 +11,29 @@ find_package(SDL2_ttf REQUIRED)
 add_executable(space
         main.cpp
         Vec2.hpp
-        GameEntity.hpp
-        GameEntity.cpp
+        Entity/GameEntity.hpp
+        Entity/GameEntity.cpp
         IGameStage.hpp
         SAP.hpp
         DataFormat.hpp
         DataFormat.cpp
         SAP.cpp
         Polygon.hpp
-        Polygon.cpp)
+        Polygon.cpp
+        Entity/Laser.hpp
+        AssetManager.cpp
+        AssetManager.hpp
+        Entity/PlayerShip.hpp
+        AI/ContextSteering.hpp
+        AI/FlowField.hpp
+        MathUtils.hpp
+        Entity/Enemy.hpp
+        MathUtils.cpp
+        Entity/Meteor.hpp
+        Entity/PlayerShip.cpp
+        Entity/Enemy.cpp
+        Entity/Meteor.cpp
+        Entity/Laser.cpp
+        AI/ContextSteering.cpp
+        AI/FlowField.cpp)
 target_link_libraries(space PRIVATE SDL2::SDL2 SDL2_image::SDL2_image SDL2_mixer::SDL2_mixer SDL2_ttf::SDL2_ttf)

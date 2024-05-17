@@ -1,7 +1,7 @@
 #ifndef SAP_HPP_
 #define SAP_HPP_
 
-#include "GameEntity.hpp"
+#include "Entity/GameEntity.hpp"
 #include <set>
 #include <unordered_map>
 

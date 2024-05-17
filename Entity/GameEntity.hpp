@@ -4,8 +4,8 @@
 #include <SDL.h>
 #include <vector>
 
-#include "IGameStage.hpp"
-#include "Vec2.hpp"
+#include "../IGameStage.hpp"
+#include "../Vec2.hpp"
 
 class GameEntity {
 public:
@@ -24,14 +24,10 @@ public:
 
   virtual void onPreTick() {}
   virtual void onTick(IGameStage *stage) = 0;
-
   void drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition,
                    SDL_Texture *texture);
-
   virtual void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition);
-
   virtual void onHit(GameEntity *other) {}
-
   void updateBoundingBox();
 };
 
