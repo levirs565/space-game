@@ -35,5 +35,8 @@ add_executable(space
         Entity/Meteor.cpp
         Entity/Laser.cpp
         AI/ContextSteering.cpp
-        AI/FlowField.cpp)
+        AI/FlowField.cpp
+        Screen/IScreen.hpp
+        Screen/GameScreen.cpp
+        Screen/GameScreen.hpp)
 target_link_libraries(space PRIVATE SDL2::SDL2 SDL2_image::SDL2_image SDL2_mixer::SDL2_mixer SDL2_ttf::SDL2_ttf)

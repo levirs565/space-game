@@ -1,0 +1,225 @@
+#include "GameScreen.hpp"
+#include "../Entity/Enemy.hpp"
+#include "../Entity/Meteor.hpp"
+#include "../Math/Polygon.hpp"
+
+void GameScreen::processKeyDown(const SDL_KeyboardEvent &key) {
+  if (key.repeat != 0)
+    return;
+
+  if (key.keysym.scancode == SDL_SCANCODE_UP)
+    mIsUp = true;
+
+  if (key.keysym.scancode == SDL_SCANCODE_DOWN)
+    mIsDown = true;
+
+  if (key.keysym.scancode == SDL_SCANCODE_LEFT)
+    mIsLeft = true;
+
+  if (key.keysym.scancode == SDL_SCANCODE_RIGHT)
+    mIsRight = true;
+
+  if (key.keysym.scancode == SDL_SCANCODE_LCTRL)
+    mIsFire = true;
+}
+
+void GameScreen::processKeyUp(const SDL_KeyboardEvent &key) {
+  if (key.repeat != 0)
+    return;
+
+  if (key.keysym.scancode == SDL_SCANCODE_UP)
+    mIsUp = false;
+
+  if (key.keysym.scancode == SDL_SCANCODE_DOWN)
+    mIsDown = false;
+
+  if (key.keysym.scancode == SDL_SCANCODE_LEFT)
+    mIsLeft = false;
+
+  if (key.keysym.scancode == SDL_SCANCODE_RIGHT)
+    mIsRight = false;
+
+  if (key.keysym.scancode == SDL_SCANCODE_LCTRL)
+    mIsFire = false;
+}
+void GameScreen::addLaser(const Vec2 &position, double angle) {
+  std::unique_ptr<Laser> laser = std::make_unique<Laser>(position, angle);
+  addEntity(std::move(laser));
+  Mix_PlayChannel(1, mLaserSound, 0);
+}
+void GameScreen::addEntity(std::unique_ptr<GameEntity> &&entity) {
+  GameEntity *ptr = entity.get();
+  mEntityList.push_back(std::move(entity));
+  mSAP.add(ptr);
+}
+
+void GameScreen::onSDLEvent(const SDL_Event &event) {
+  switch (event.type) {
+  case SDL_QUIT:
+    exit(0);
+    break;
+  case SDL_KEYDOWN:
+    processKeyDown(event.key);
+    break;
+  case SDL_KEYUP:
+    processKeyUp(event.key);
+    break;
+  default:
+    break;
+  }
+}
+void GameScreen::drawBackground(SDL_Renderer *renderer) {
+  SDL_Rect rect;
+  SDL_QueryTexture(mBackgroundTexture, nullptr, nullptr, &rect.w, &rect.h);
+
+  double backgroundStartY = -fmod(mCameraPosition.y, double(rect.h));
+  double backgroundStartX = -fmod(mCameraPosition.x, double(rect.w));
+  int backgroundCountY =
+      int(ceil((mCameraSize.y - backgroundStartY) / double(rect.h)));
+  int backgroundCountX =
+      int(ceil((mCameraSize.x - backgroundStartX) / double(rect.w)));
+
+  for (int backgroundRow = 0; backgroundRow < backgroundCountY;
+       backgroundRow++) {
+    for (int backgroundColumn = 0; backgroundColumn < backgroundCountX;
+         backgroundColumn++) {
+      rect.x = int(backgroundStartX + backgroundColumn * rect.w);
+      rect.y = int(backgroundStartY + backgroundRow * rect.h);
+      SDL_RenderCopy(renderer, mBackgroundTexture, nullptr, &rect);
+    }
+  }
+}
+void GameScreen::calculateCamera() {
+  mCameraPosition.x = SDL_clamp(mPlayerShip->position.x - mCameraSize.x / 2,
+                                0, mWordSize.x - mCameraSize.x);
+  mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2,
+                                0, mWordSize.y - mCameraSize.y);
+}
+GameScreen::GameScreen() {
+  mBackgroundTexture = TextureManager::getInstance()->load(
+      "Backgrounds/black.png");
+
+  std::filesystem::path laserSoundPath = AssetManager::getInstance()->getAsset("Bonus/sfx_laser1.ogg");
+  mLaserSound = Mix_LoadWAV(laserSoundPath.c_str());
+
+  std::unique_ptr<PlayerShip> playerShip =
+      std::make_unique<PlayerShip>(Vec2(400, 700));
+  mPlayerShip = playerShip.get();
+  addEntity(std::move(playerShip));
+
+  addEntity(
+      std::move(std::make_unique<Enemy>(Vec2(100, 0))));
+  addEntity(
+      std::move(std::make_unique<Enemy>(Vec2(300, 0))));
+  addEntity(
+      std::move(std::make_unique<Enemy>(Vec2(800, 0))));
+
+  addEntity(std::move(std::make_unique<Meteor>(
+      Vec2(100, 500), "Brown_big1")));
+  addEntity(std::move(std::make_unique<Meteor>(
+      Vec2(300, 500), "Brown_big2")));
+  addEntity(std::move(std::make_unique<Meteor>(
+      Vec2(600, 500), "Brown_big3")));
+  addEntity(std::move(std::make_unique<Meteor>(
+      Vec2(615, 1000), "Brown_big3")));
+  mPathFinder.init(mWordSize, 110);
+
+  mPathFinder.clearState();
+  for (std::vector<std::unique_ptr<GameEntity>>::iterator it =
+           mEntityList.begin();
+       it != mEntityList.end(); it++) {
+    std::unique_ptr<GameEntity> &entity = *it;
+    if (dynamic_cast<Meteor *>(entity.get()) == nullptr)
+      continue;
+    mPathFinder.addObstacle(entity->position, entity->boundingRadius);
+  }
+
+  mPathFinder.generateHeatmap(mPlayerShip->position);
+}
+
+void GameScreen::onUpdate() {
+  mPlayerShip->setDirection(mIsUp     ? PlayerShip::DIRECTION_UP
+                            : mIsDown ? PlayerShip::DIRECTION_DOWN
+                                      : PlayerShip::DIRECTION_NONE,
+                            mIsLeft    ? PlayerShip::ROTATION_LEFT
+                            : mIsRight ? PlayerShip::ROTATION_RIGHT
+                                       : PlayerShip::ROTATION_NONE);
+
+  for (auto &entity : mEntityList) {
+    entity->onPreTick();
+  }
+
+  size_t entityCount = mEntityList.size();
+  for (size_t i = 0; i < entityCount; i++) {
+    std::unique_ptr<GameEntity> &entity = mEntityList[i];
+    entity->onTick(this);
+    // setelah onTick, jangan gunakan entity kembali karena ada kemungkinan
+    // penambahan elemen ke mEntityList yang menyebabkan operasi std::move
+    // terhadap entity sehingga entity berada dalam keadaan invalid
+  }
+
+  for (std::unique_ptr<GameEntity> &entity : mEntityList) {
+    mSAP.move(entity.get());
+  }
+
+  for (std::vector<std::unique_ptr<GameEntity>>::iterator it =
+           mEntityList.begin();
+       it != mEntityList.end(); it++) {
+    std::unique_ptr<GameEntity> &entity = *it;
+
+    if (entity->mustGone) {
+      mSAP.remove(entity.get());
+      it = mEntityList.erase(it) - 1;
+      continue;
+    }
+  }
+
+  mSAP.update();
+
+  calculateCamera();
+
+  if (mIsFire)
+    mPlayerShip->doFire(this);
+
+  for (auto &[entity, collisionSet] : mSAP.getCollisionMap()) {
+    for (auto otherEntity : collisionSet) {
+      if (isPolygonCollide(entity->boundingBox, otherEntity->boundingBox)) {
+        entity->onHit(otherEntity);
+      }
+    }
+  }
+}
+
+void GameScreen::onDraw(SDL_Renderer *renderer) {
+
+  drawBackground(renderer);
+
+  for (GameEntity *entity :
+       mSAP.queryArea(mCameraPosition.x, mCameraPosition.y,
+                      mCameraPosition.x + mCameraSize.x,
+                      mCameraPosition.y + mCameraSize.y, false)) {
+    entity->onDraw(renderer, mCameraPosition);
+
+    for (size_t i = 0; i < entity->boundingBox.size(); i++) {
+      Vec2 current = entity->boundingBox[i];
+      Vec2 next = entity->boundingBox[(i + 1) % entity->boundingBox.size()];
+
+      current.substract(mCameraPosition);
+      next.substract(mCameraPosition);
+
+      SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+      SDL_RenderDrawLine(renderer, int(current.x), int(current.y),
+                         int(next.x), int(next.y));
+    }
+  }
+
+  // mPathFinder.drawGrid(mRenderer, mCameraPosition, mCameraSize);
+}
+
+void GameScreen::onPostDraw() {
+  mPathFinder.generateHeatmap(mPlayerShip->position);
+}
+
+void GameScreen::onSizeChanged(const Vec2 &size) {
+  mCameraSize = size;
+}
