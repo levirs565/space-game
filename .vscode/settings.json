@@ -5,5 +5,6 @@
     "C/C++ Include Guard.Macro Type": "Filename",
     "C/C++ Include Guard.Prefix": "SPACE_",
     "C/C++ Include Guard.Remove Extension": false,
-    "C/C++ Include Guard.Comment Style": "Line"
+    "C/C++ Include Guard.Comment Style": "Line",
+    "C_Cpp.autoAddFileAssociations": false
 }
