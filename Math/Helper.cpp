@@ -1,4 +1,4 @@
-#include "MathUtils.hpp"
+#include "Helper.hpp"
 
 std::optional<Vec2> rayCircleIntersection(const Vec2 &point, const Vec2 &ray,
                                           const Vec2 &circle, double radius) {

@@ -1,12 +1,12 @@
 #ifndef SPACE_FLOWFIELD_HPP
 #define SPACE_FLOWFIELD_HPP
 
-#include <vector>
-#include <set>
+#include "../Math/Vec2.hpp"
+#include "ContextSteering.hpp"
 #include <SDL.h>
 #include <SDL_ttf.h>
-#include "../Vec2.hpp"
-#include "ContextSteering.hpp"
+#include <set>
+#include <vector>
 
 class APathFinder {
 public:

@@ -1,10 +1,10 @@
 #ifndef SPACE_CONTEXTSTEERING_HPP
 #define SPACE_CONTEXTSTEERING_HPP
 
+#include "../Math/Vec2.hpp"
+#include <SDL.h>
 #include <cmath>
 #include <ranges>
-#include <SDL.h>
-#include "../Vec2.hpp"
 
 struct ContextSteeringMap {
   static constexpr int angleCount = 12;

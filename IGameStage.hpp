@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "Vec2.hpp"
+#include "Math/Vec2.hpp"
 
 class APathFinder;
 class GameEntity;

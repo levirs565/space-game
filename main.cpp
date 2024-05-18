@@ -12,17 +12,16 @@
 #include <set>
 #include <vector>
 
+#include "AI/FlowField.hpp"
 #include "DataFormat.hpp"
-#include "Entity/GameEntity.hpp"
-#include "Entity/PlayerShip.hpp"
 #include "Entity/Enemy.hpp"
+#include "Entity/GameEntity.hpp"
 #include "Entity/Laser.hpp"
 #include "Entity/Meteor.hpp"
-#include "Polygon.hpp"
+#include "Entity/PlayerShip.hpp"
 #include "IGameStage.hpp"
-#include "AI/FlowField.hpp"
+#include "Math/Polygon.hpp"
 #include "SAP.hpp"
-
 
 class App : public IGameStage {
 public:

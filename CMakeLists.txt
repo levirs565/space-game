@@ -10,7 +10,7 @@ find_package(SDL2_ttf REQUIRED)
 
 add_executable(space
         main.cpp
-        Vec2.hpp
+        Math/Vec2.hpp
         Entity/GameEntity.hpp
         Entity/GameEntity.cpp
         IGameStage.hpp
@@ -18,17 +18,17 @@ add_executable(space
         DataFormat.hpp
         DataFormat.cpp
         SAP.cpp
-        Polygon.hpp
-        Polygon.cpp
+        Math/Polygon.hpp
+        Math/Polygon.cpp
         Entity/Laser.hpp
         AssetManager.cpp
         AssetManager.hpp
         Entity/PlayerShip.hpp
         AI/ContextSteering.hpp
         AI/FlowField.hpp
-        MathUtils.hpp
+        Math/Helper.hpp
         Entity/Enemy.hpp
-        MathUtils.cpp
+        Math/Helper.cpp
         Entity/Meteor.hpp
         Entity/PlayerShip.cpp
         Entity/Enemy.cpp

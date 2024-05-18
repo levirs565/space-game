@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "../IGameStage.hpp"
-#include "../Vec2.hpp"
+#include "../Math/Vec2.hpp"
 
 class GameEntity {
 public:

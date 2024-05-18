@@ -1,12 +1,12 @@
 #include "Enemy.hpp"
 
 #include "../AI/FlowField.hpp"
-#include "../SAP.hpp"
-#include "../MathUtils.hpp"
-#include "Laser.hpp"
-#include "PlayerShip.hpp"
-#include "Meteor.hpp"
 #include "../AssetManager.hpp"
+#include "../Math/Helper.hpp"
+#include "../SAP.hpp"
+#include "Laser.hpp"
+#include "Meteor.hpp"
+#include "PlayerShip.hpp"
 
 Enemy::Enemy(const Vec2 &position)
     : GameEntity(position, 0) {
