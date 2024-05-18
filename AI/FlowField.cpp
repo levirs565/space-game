@@ -1,6 +1,6 @@
 #include "FlowField.hpp"
 
-void APathFinder::init(const Vec2 &worldSize, int entitySize) {
+void FlowField::init(const Vec2 &worldSize, int entitySize) {
   mRowCount = ceil(worldSize.y / entitySize);
   mColumnCount = ceil(worldSize.x / entitySize);
   mEntitySize = entitySize;
@@ -8,7 +8,7 @@ void APathFinder::init(const Vec2 &worldSize, int entitySize) {
   mGrid.resize(mRowCount, std::vector<Node>(mColumnCount));
 }
 
-void APathFinder::clearState() {
+void FlowField::clearState() {
   for (std::vector<Node> &row : mGrid) {
     for (Node &cell : row) {
       cell.isWalkable = true;
@@ -16,7 +16,7 @@ void APathFinder::clearState() {
   }
 }
 
-void APathFinder::addObstacle(const Vec2 &centerPosition, int radius) {
+void FlowField::addObstacle(const Vec2 &centerPosition, int radius) {
   int left =
       floor(std::max((centerPosition.x - radius) / mEntitySize - 0.5, 0.0));
   int top =
@@ -38,7 +38,7 @@ void APathFinder::addObstacle(const Vec2 &centerPosition, int radius) {
   }
 }
 
-void APathFinder::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
+void FlowField::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
               Vec2 &cameraSize) {
   static TTF_Font *font =
       TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/"
@@ -111,7 +111,8 @@ void APathFinder::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
   }
 }
 
-std::vector<APathFinder::NodePosition> APathFinder::getNeighbours(const NodePosition &position) {
+std::vector<FlowField::NodePosition>
+FlowField::getNeighbours(const NodePosition &position) {
   std::vector<NodePosition> neighbours;
 
   for (int rowShift = -1; rowShift <= 1; rowShift++) {
@@ -134,7 +135,8 @@ std::vector<APathFinder::NodePosition> APathFinder::getNeighbours(const NodePosi
   return neighbours;
 }
 
-std::vector<APathFinder::NodePosition> APathFinder::getEdges(const NodePosition &position) {
+std::vector<FlowField::NodePosition>
+FlowField::getEdges(const NodePosition &position) {
   static std::vector<NodePosition> edgeOffsets = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
 
   std::vector<NodePosition> neighbours;
@@ -154,27 +156,7 @@ std::vector<APathFinder::NodePosition> APathFinder::getEdges(const NodePosition 
   return neighbours;
 }
 
-std::vector<Vec2> APathFinder::getNeighbourObstacle(const Vec2 &position) {
-  NodePosition nodePosition = getNodePositionFromWorldPosition(position);
-
-  std::vector<Vec2> obstacle;
-
-  if (!mGrid[nodePosition.first][nodePosition.second].isWalkable)
-    obstacle.emplace_back(nodePosition.second * mEntitySize + mEntitySize / 2,
-                          nodePosition.first * mEntitySize + mEntitySize / 2);
-
-  for (const NodePosition &neighbour : getNeighbours(nodePosition)) {
-    if (mGrid[neighbour.first][neighbour.second].isWalkable)
-      continue;
-
-    obstacle.emplace_back(neighbour.second * mEntitySize + mEntitySize / 2,
-                          neighbour.first * mEntitySize + mEntitySize / 2);
-  }
-
-  return obstacle;
-}
-
-Vec2 APathFinder::getDirection(const NodePosition &nodePosition, const Vec2 &direction) {
+Vec2 FlowField::getDirection(const NodePosition &nodePosition, const Vec2 &direction) {
   int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
   bool considerDirection = direction.length() > 0;
   if (currentCost == 0)
@@ -212,7 +194,7 @@ Vec2 APathFinder::getDirection(const NodePosition &nodePosition, const Vec2 &dir
   return result;
 }
 
-bool APathFinder::addDirectionToSteering(const NodePosition &nodePosition,
+bool FlowField::addDirectionToSteering(const NodePosition &nodePosition,
                             const Vec2 &direction, ContextSteeringMap &map,
                             double scale) {
   int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
@@ -220,7 +202,6 @@ bool APathFinder::addDirectionToSteering(const NodePosition &nodePosition,
   if (currentCost == std::numeric_limits<int>::max())
     return false;
 
-  Vec2 result{0, 0};
   bool success = false;
 
   for (const NodePosition &neighbour : getNeighbours(nodePosition)) {
@@ -248,17 +229,7 @@ bool APathFinder::addDirectionToSteering(const NodePosition &nodePosition,
   return success;
 }
 
-int APathFinder::getDistance(const NodePosition &from, const NodePosition &to) {
-  int deltaRow = std::abs(from.first - to.first);
-  int deltaColumn = std::abs(from.second - to.second);
-
-  if (deltaColumn > deltaRow)
-    return 14 * deltaRow + 10 * (deltaColumn - deltaRow);
-
-  return 14 * deltaColumn + 10 * (deltaRow - deltaColumn);
-}
-
-bool APathFinder::canWalk(const NodePosition &from, const NodePosition &to) {
+bool FlowField::canWalk(const NodePosition &from, const NodePosition &to) {
   if (!mGrid[to.first][to.second].isWalkable)
     return false;
 
@@ -275,7 +246,7 @@ bool APathFinder::canWalk(const NodePosition &from, const NodePosition &to) {
          mGrid[to.first][from.second].isWalkable;
 }
 
-void APathFinder::calculateLineOfSight(const NodePosition &from, const NodePosition &to) {
+void FlowField::calculateLineOfSight(const NodePosition &from, const NodePosition &to) {
   const double deltaFirst = to.first - from.first;
   const double deltaSecond = to.second - from.second;
 
@@ -316,7 +287,7 @@ void APathFinder::calculateLineOfSight(const NodePosition &from, const NodePosit
   }
 }
 
-void APathFinder::generateHeatmap(const Vec2 &target) {
+void FlowField::generateHeatmap(const Vec2 &target) {
   const NodePosition targetNodePos = getNodePositionFromWorldPosition(target);
 
   for (std::vector<Node> &row : mGrid) {

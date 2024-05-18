@@ -287,8 +287,6 @@ public:
     }
   }
 
-  const Vec2 &getPlayerPosition() override { return mPlayerShip->position; }
-
   GameEntity *getPlayerEntity() override { return mPlayerShip; }
 
   void addLaser(const Vec2 &position, double angle) override {
@@ -300,21 +298,8 @@ public:
 
   const Vec2 &getWorldSize() override { return mWordSize; }
 
-  std::vector<std::unique_ptr<GameEntity>> &getEntities() override {
-    return mEntityList;
-  }
-
-  Vec2 getFlowDirection(const Vec2 &position, const Vec2 &direction) override {
-    return mPathFinder.getDirection(position, direction);
-  }
-
-  std::vector<Vec2> findNeighbourObstacle(const Vec2 &position) override {
-    return mPathFinder.getNeighbourObstacle(position);
-  }
-
-  APathFinder *getPathFinder() { return &mPathFinder; }
-
-  SAP *getSAP() { return &mSAP; }
+  FlowField *getFlowField() override { return &mPathFinder; }
+  SAP *getSAP() override { return &mSAP; }
 
 private:
   SDL_Renderer *mRenderer;
@@ -322,7 +307,7 @@ private:
   SDL_Texture *mBackgroundTexture;
   PlayerShip *mPlayerShip;
   std::vector<std::unique_ptr<GameEntity>> mEntityList;
-  APathFinder mPathFinder;
+  FlowField mPathFinder;
   Vec2 mCameraSize{800, 600};
   Vec2 mCameraPosition{0, 0};
   Vec2 mWordSize{5000, 5000};

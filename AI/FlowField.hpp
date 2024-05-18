@@ -8,7 +8,7 @@
 #include <set>
 #include <vector>
 
-class APathFinder {
+class FlowField {
 public:
   using NodePosition = std::pair<int, int>;
 
@@ -43,8 +43,6 @@ public:
 
   std::vector<NodePosition> getEdges(const NodePosition &position);
 
-  std::vector<Vec2> getNeighbourObstacle(const Vec2 &position);
-
   inline Vec2 getDirection(const Vec2 &position, const Vec2 &direction) {
     return getDirection(getNodePositionFromWorldPosition(position), direction);
   }
@@ -61,7 +59,6 @@ public:
                                            const Vec2 &direction, ContextSteeringMap &map,
                                            double scale);
 
-  int getDistance(const NodePosition &from, const NodePosition &to);
   bool canWalk(const NodePosition &from, const NodePosition &to);
   void calculateLineOfSight(const NodePosition &from, const NodePosition &to);
   void generateHeatmap(const Vec2 &target);

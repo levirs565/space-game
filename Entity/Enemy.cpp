@@ -27,7 +27,7 @@ void Enemy::onTick(IGameStage *stage) {
   bool canAttack = false;
   Vec2 extraRotation{0, 0};
 
-  Vec2 distanceVector{stage->getPlayerPosition()};
+  Vec2 distanceVector{stage->getPlayerEntity()->position};
   distanceVector.substract(position);
   const double distance = distanceVector.length();
 
@@ -67,9 +67,9 @@ void Enemy::onTick(IGameStage *stage) {
     }
   }
 
-  bool hasLineOfSight = stage->getPathFinder()->hasLineOfSigh(position);
+  bool hasLineOfSight = stage->getFlowField()->hasLineOfSigh(position);
   if (distance > 400 || !hasLineOfSight) {
-    bool pathFindSuccess = stage->getPathFinder()->addDirectionToSteering(
+    bool pathFindSuccess = stage->getFlowField()->addDirectionToSteering(
         position, direction, contextSteering.interestMap,
         hasLineOfSight ? 0.5 : 1);
 
@@ -86,10 +86,10 @@ void Enemy::onTick(IGameStage *stage) {
     distanceNormalized.normalize();
 
     auto intersection =
-        rayCircleIntersection(position, direction, stage->getPlayerPosition(),
+        rayCircleIntersection(position, direction, stage->getPlayerEntity()->position,
                               stage->getPlayerEntity()->boundingRadius);
     if (intersection.has_value()) {
-      Vec2 playerPosition = stage->getPlayerPosition();
+      Vec2 playerPosition = stage->getPlayerEntity()->position;
       canAttack = true;
 
       Vec2 perpendicularDistance{distanceNormalized};
