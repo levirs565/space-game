@@ -6,29 +6,57 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
+#include <filesystem>
+#include <utility>
 
-class AssetManager {};
-
-class TextureLoader {
+class AssetNotFoundException : public std::runtime_error {
 public:
-  explicit TextureLoader(SDL_Renderer *renderer) : mRenderer(renderer) {}
-
-  TextureLoader(const TextureLoader &other) = delete;
-
-  SDL_Texture *load(const std::string &name) {
-    if (mCache.count(name) > 0)
-      return mCache[name];
-
-    SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO,
-                   "Loading texture %s", name.c_str());
-    SDL_Texture *texture = IMG_LoadTexture(mRenderer, name.c_str());
-    mCache[name] = texture;
-    return texture;
+  AssetNotFoundException(const std::filesystem::path &rootPath,
+                         const std::filesystem::path &name)
+    : std::runtime_error("Asset " + name.string() + " not found in " + rootPath.string()) {
   }
+};
 
-private:
+class AssetManager {
+  std::filesystem::path mRootPath;
+  bool mIsInitialized = false;
+
+  AssetManager() = default;
+
+public:
+  AssetManager(AssetManager const &) = delete;
+  AssetManager(AssetManager const &&) = delete;
+  void operator=(AssetManager const &) = delete;
+
+  static AssetManager *getInstance();
+
+  void setRootPath(std::filesystem::path path);
+  std::filesystem::path getAsset(const std::filesystem::path &name);
+};
+
+class TextureManager {
+  struct TextureDeleter {
+    void operator()(SDL_Texture* texture) const {
+      SDL_DestroyTexture(texture);
+    }
+  };
+
+  bool mIsInitialized = false;
   SDL_Renderer *mRenderer;
-  std::unordered_map<std::string, SDL_Texture *> mCache;
+  std::unordered_map<std::string, std::unique_ptr<SDL_Texture, TextureDeleter>> mCache;
+
+  TextureManager() = default;
+public:
+  TextureManager(TextureManager const &) = delete;
+  TextureManager(TextureManager const &&) = delete;
+  void operator=(TextureManager const &) = delete;
+
+  static TextureManager* getInstance();
+
+  void init(SDL_Renderer* renderer);
+  void clear();
+
+  SDL_Texture *load(const std::string &name);
 };
 
 #endif // SPACE_ASSETMANAGER_HPP

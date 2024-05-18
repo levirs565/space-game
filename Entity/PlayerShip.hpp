@@ -18,7 +18,7 @@ public:
   int healthCount = 4;
   std::vector<SDL_Texture *> damagedTexture;
 
-  explicit PlayerShip(TextureLoader *textureLoader, const Vec2 &position);
+  explicit PlayerShip(const Vec2 &position);
   void setDirection(Direction direction, Rotation rotation);
   void onTick(IGameStage *stage) override;
   void onHit(GameEntity *other) override;

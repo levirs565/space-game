@@ -9,10 +9,7 @@
 #include <map>
 #include <memory>
 #include <queue>
-#include <random>
-#include <ranges>
 #include <set>
-#include <unordered_map>
 #include <vector>
 
 #include "DataFormat.hpp"
@@ -62,33 +59,34 @@ public:
       exit(1);
     }
 
-    mTextureLoader = std::make_unique<TextureLoader>(mRenderer);
-    mBackgroundTexture = mTextureLoader->load(
-        "/home/levirs565/Unduhan/SpaceShooterRedux/Backgrounds/black.png");
 
-    mLaserSound = Mix_LoadWAV(
-        "/home/levirs565/Unduhan/SpaceShooterRedux/Bonus/sfx_laser1.ogg");
+    TextureManager::getInstance()->init(mRenderer);
+    mBackgroundTexture = TextureManager::getInstance()->load(
+        "Backgrounds/black.png");
+
+    std::filesystem::path laserSoundPath = AssetManager::getInstance()->getAsset("Bonus/sfx_laser1.ogg");
+    mLaserSound = Mix_LoadWAV(laserSoundPath.c_str());
 
     std::unique_ptr<PlayerShip> playerShip =
-        std::make_unique<PlayerShip>(mTextureLoader.get(), Vec2(400, 700));
+        std::make_unique<PlayerShip>(Vec2(400, 700));
     mPlayerShip = playerShip.get();
     addEntity(std::move(playerShip));
 
     addEntity(
-        std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(100, 0))));
+        std::move(std::make_unique<Enemy>(Vec2(100, 0))));
     addEntity(
-        std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(300, 0))));
+        std::move(std::make_unique<Enemy>(Vec2(300, 0))));
     addEntity(
-        std::move(std::make_unique<Enemy>(mTextureLoader.get(), Vec2(800, 0))));
+        std::move(std::make_unique<Enemy>(Vec2(800, 0))));
 
     addEntity(std::move(std::make_unique<Meteor>(
-        mTextureLoader.get(), Vec2(100, 500), "Brown_big1")));
+        Vec2(100, 500), "Brown_big1")));
     addEntity(std::move(std::make_unique<Meteor>(
-        mTextureLoader.get(), Vec2(300, 500), "Brown_big2")));
+        Vec2(300, 500), "Brown_big2")));
     addEntity(std::move(std::make_unique<Meteor>(
-        mTextureLoader.get(), Vec2(600, 500), "Brown_big3")));
+        Vec2(600, 500), "Brown_big3")));
     addEntity(std::move(std::make_unique<Meteor>(
-        mTextureLoader.get(), Vec2(615, 1000), "Brown_big3")));
+        Vec2(615, 1000), "Brown_big3")));
     mPathFinder.init(mWordSize, 110);
 
     mPathFinder.clearState();
@@ -296,7 +294,7 @@ public:
 
   void addLaser(const Vec2 &position, double angle) override {
     std::unique_ptr<Laser> laser =
-        std::make_unique<Laser>(mTextureLoader.get(), position, angle);
+        std::make_unique<Laser>(position, angle);
     addEntity(std::move(laser));
     Mix_PlayChannel(1, mLaserSound, 0);
   }
@@ -324,7 +322,6 @@ private:
   SDL_Window *mWindow;
   SDL_Texture *mBackgroundTexture;
   PlayerShip *mPlayerShip;
-  std::unique_ptr<TextureLoader> mTextureLoader;
   std::vector<std::unique_ptr<GameEntity>> mEntityList;
   APathFinder mPathFinder;
   Vec2 mCameraSize{800, 600};
@@ -339,7 +336,19 @@ private:
   SAP mSAP;
 };
 
-int main() {
+int main(int argc, char** argv) {
+  std::string relativeAssetPath = "Data";
+
+  for (int argIndex = 0; argIndex < argc; argIndex++) {
+    if (strcmp(*(argv + argIndex), "--data-dir") == 0 && argIndex + 1 < argc) {
+      relativeAssetPath = *(argv + argIndex + 1);
+    }
+  }
+
+  std::filesystem::path assetPath = std::filesystem::current_path();
+  assetPath /= relativeAssetPath;
+  AssetManager::getInstance()->setRootPath(assetPath);
+
   App app;
   app.run();
   return 0;

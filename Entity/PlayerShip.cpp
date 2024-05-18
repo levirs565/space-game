@@ -1,18 +1,15 @@
 #include "PlayerShip.hpp"
+#include "../AssetManager.hpp"
 
-PlayerShip::PlayerShip(TextureLoader *textureLoader, const Vec2 &position)
-    : GameEntity(position, 25) {
-  texture = textureLoader->load(
-      "/home/levirs565/Unduhan/SpaceShooterRedux/PNG/playerShip3_blue.png");
-  damagedTexture.push_back(
-      textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/"
-                          "Damage/playerShip3_damage1.png"));
-  damagedTexture.push_back(
-      textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/"
-                          "Damage/playerShip3_damage2.png"));
-  damagedTexture.push_back(
-      textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/PNG/"
-                          "Damage/playerShip3_damage3.png"));
+PlayerShip::PlayerShip(const Vec2 &position) : GameEntity(position, 25) {
+  TextureManager *manager = TextureManager::getInstance();
+  texture = manager->load("PNG/playerShip3_blue.png");
+  damagedTexture.push_back(manager->load("PNG/"
+                                         "Damage/playerShip3_damage1.png"));
+  damagedTexture.push_back(manager->load("PNG/"
+                                         "Damage/playerShip3_damage2.png"));
+  damagedTexture.push_back(manager->load("PNG/"
+                                         "Damage/playerShip3_damage3.png"));
 }
 
 void PlayerShip::setDirection(Direction direction, Rotation rotation) {

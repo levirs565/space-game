@@ -16,7 +16,7 @@ public:
   Vec2 contextSteeringResult{0, 0};
   std::vector<GameEntity *> nearEntity;
 
-  Enemy(TextureLoader *textureLoader, const Vec2 &position);
+  Enemy(const Vec2 &position);
 
   void onTick(IGameStage *stage) override;
   void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) override;

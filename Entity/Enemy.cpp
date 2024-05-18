@@ -6,11 +6,11 @@
 #include "Laser.hpp"
 #include "PlayerShip.hpp"
 #include "Meteor.hpp"
+#include "../AssetManager.hpp"
 
-Enemy::Enemy(TextureLoader *textureLoader, const Vec2 &position)
+Enemy::Enemy(const Vec2 &position)
     : GameEntity(position, 0) {
-  texture = textureLoader->load("/home/levirs565/Unduhan/SpaceShooterRedux/"
-                                "PNG/Enemies/enemyBlack1.png");
+  texture = TextureManager::getInstance()->load("PNG/Enemies/enemyBlack1.png");
 }
 
 void Enemy::onTick(IGameStage *stage) {

@@ -6,7 +6,7 @@
 
 class Meteor : public GameEntity {
 public:
-  Meteor(TextureLoader *textureLoader, const Vec2 &position,
+  Meteor(const Vec2 &position,
          const std::string &type);
 
   void onTick(IGameStage *stage) override {}
