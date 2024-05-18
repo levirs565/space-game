@@ -1,0 +1,9 @@
+{
+    "cmake.debugConfig": {
+        "args": ["--data-dir", "../Data"]
+    },
+    "C/C++ Include Guard.Macro Type": "Filename",
+    "C/C++ Include Guard.Prefix": "SPACE_",
+    "C/C++ Include Guard.Remove Extension": false,
+    "C/C++ Include Guard.Comment Style": "Line"
+}

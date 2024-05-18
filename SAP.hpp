@@ -1,5 +1,5 @@
-#ifndef SAP_HPP_
-#define SAP_HPP_
+#ifndef SPACE_SAP_HPP
+#define SPACE_SAP_HPP
 
 #include "Entity/GameEntity.hpp"
 #include <set>
@@ -128,4 +128,4 @@ public:
   inline SAPCollisionMap &getCollisionMap() { return mCollisionList; }
 };
 
-#endif // SAP_HPP_
+#endif // SPACE_SAP_HPP

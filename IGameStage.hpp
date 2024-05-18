@@ -1,5 +1,5 @@
-#ifndef IGAMESTAGE_HPP_
-#define IGAMESTAGE_HPP_
+#ifndef SPACE_IGAMESTAGE_HPP
+#define SPACE_IGAMESTAGE_HPP
 
 #include <memory>
 #include <vector>
@@ -23,4 +23,4 @@ public:
   virtual GameEntity *getPlayerEntity() = 0;
 };
 
-#endif // IGAMESTAGE_HPP_
+#endif // SPACE_IGAMESTAGE_HPP

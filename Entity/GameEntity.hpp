@@ -1,5 +1,5 @@
-#ifndef GAMEENTITY_HPP_
-#define GAMEENTITY_HPP_
+#ifndef SPACE_GAMEENTITY_HPP
+#define SPACE_GAMEENTITY_HPP
 
 #include <SDL.h>
 #include <vector>
@@ -31,4 +31,4 @@ public:
   void updateBoundingBox();
 };
 
-#endif // GAMEENTITY_HPP_`
+#endif // SPACE_GAMEENTITY_HPP

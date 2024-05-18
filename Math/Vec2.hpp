@@ -1,5 +1,5 @@
-#ifndef VEC2_HPP_
-#define VEC2_HPP_
+#ifndef SPACE_VEC2_HPP
+#define SPACE_VEC2_HPP
 
 #include <cmath>
 
@@ -115,4 +115,4 @@ struct Vec2 {
   }
 };
 
-#endif // VEC2_HPP_
+#endif // SPACE_VEC2_HPP

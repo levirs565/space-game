@@ -1,5 +1,5 @@
-#ifndef DATAFORMAT_HPP_
-#define DATAFORMAT_HPP_
+#ifndef SPACE_DATAFORMAT_HPP
+#define SPACE_DATAFORMAT_HPP
 
 #include <map>
 #include <memory>
@@ -36,4 +36,4 @@ void serializeObject(Object &object, std::ostream &stream, int depth = 0);
 Object parseObject(std::istream &stream, int initialLineNumber = 1);
 } // namespace DF
 
-#endif // DATAFORMAT_HPP_
+#endif /* SPACE_DATAFORMAT_HPP */
