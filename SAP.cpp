@@ -384,7 +384,7 @@ std::vector<GameEntity *> SAP::queryArea(double x0, double y0, double x1,
 
   if (!enclosed) {
     dimensionX.addStabsToSet(xi, xSet);
-    dimensionX.addStabsToSet(yi, ySet);
+    dimensionY.addStabsToSet(yi, ySet);
   }
 
   while (xi < dimensionX.intervalList.size() &&
