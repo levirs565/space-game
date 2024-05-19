@@ -53,3 +53,18 @@ TextureManager *TextureManager::getInstance() {
   static TextureManager instance;
   return &instance;
 }
+FontManager *FontManager::getInstance() {
+  static FontManager instance;
+  return &instance;
+}
+TTF_Font *FontManager::load(const std::string &name, int size) {
+  std::string key = name + ";" + std::to_string(size);
+
+  if (mCache.count(key) > 0)
+    return mCache[key].get();
+
+  std::filesystem::path path = AssetManager::getInstance()->getAsset(name);
+  TTF_Font* font = TTF_OpenFont(path.c_str(), size);
+  mCache[key] = std::unique_ptr<TTF_Font, FontDeleter>(font);
+  return font;
+}

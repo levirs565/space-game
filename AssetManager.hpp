@@ -6,6 +6,7 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 #include <filesystem>
 #include <utility>
 
@@ -57,6 +58,26 @@ public:
   void clear();
 
   SDL_Texture *load(const std::string &name);
+};
+
+class FontManager {
+  struct FontDeleter {
+    void operator()(TTF_Font *font) const {
+      TTF_CloseFont(font);
+    }
+  };
+
+  std::unordered_map<std::string, std::unique_ptr<TTF_Font, FontDeleter>> mCache;
+
+  FontManager() = default;
+public:
+  FontManager(FontManager const&) = delete;
+  FontManager(FontManager const&&) = delete;
+  void operator=(FontManager const&) = delete;
+
+  static FontManager* getInstance();
+
+  TTF_Font* load(const std::string &name, int size);
 };
 
 #endif // SPACE_ASSETMANAGER_HPP

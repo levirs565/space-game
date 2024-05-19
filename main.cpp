@@ -22,7 +22,7 @@
 #include "IGameStage.hpp"
 #include "Math/Polygon.hpp"
 #include "SAP.hpp"
-#include "Screen/GameScreen.hpp"
+#include "Screen/MainScreen.hpp"
 
 class App {
 public:
@@ -62,12 +62,18 @@ public:
 
     TextureManager::getInstance()->init(mRenderer);
 
-    mScreen = std::make_unique<GameScreen>();
+    mScreen = std::make_unique<MainScreen>([this] (auto event) {
+      if (event == MainScreen::Event::Exit) {
+        this->mIsExit = true;
+      } else if (event == MainScreen::Event::Start) {
+
+      }
+    });
     mScreen->onSizeChanged(mWindowSize);
   }
 
   void prepareScene() {
-    SDL_SetRenderDrawColor(mRenderer, 96, 128, 255, 255);
+    SDL_SetRenderDrawColor(mRenderer, 7, 6, 7, 255);
     SDL_RenderClear(mRenderer);
   }
 
