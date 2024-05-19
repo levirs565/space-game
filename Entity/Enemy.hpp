@@ -8,8 +8,8 @@
 class Enemy : public GameEntity {
 public:
   double speed;
-  Vec2 direction{0, 0};
-  Vec2 smoothedDirection{0, 0};
+  Vec2 direction{1, 0};
+  Vec2 smoothedDirection{1, 0};
   Vec2 acceleration{0, 0};
   Uint32 lastFire = 0;
   ContextSteering contextSteering;
