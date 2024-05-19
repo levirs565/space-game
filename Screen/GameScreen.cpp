@@ -7,19 +7,19 @@ void GameScreen::processKeyDown(const SDL_KeyboardEvent &key) {
   if (key.repeat != 0)
     return;
 
-  if (key.keysym.scancode == SDL_SCANCODE_UP)
+  if (key.keysym.scancode == SDL_SCANCODE_UP || key.keysym.scancode== SDL_SCANCODE_W)
     mIsUp = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_DOWN)
+  if (key.keysym.scancode == SDL_SCANCODE_DOWN || key.keysym.scancode== SDL_SCANCODE_S)
     mIsDown = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LEFT)
+  if (key.keysym.scancode == SDL_SCANCODE_LEFT || key.keysym.scancode== SDL_SCANCODE_A)
     mIsLeft = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_RIGHT)
+  if (key.keysym.scancode == SDL_SCANCODE_RIGHT || key.keysym.scancode== SDL_SCANCODE_D)
     mIsRight = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LCTRL)
+  if (key.keysym.scancode == SDL_SCANCODE_LCTRL || key.keysym.scancode== SDL_SCANCODE_SPACE)
     mIsFire = true;
 }
 
@@ -27,23 +27,23 @@ void GameScreen::processKeyUp(const SDL_KeyboardEvent &key) {
   if (key.repeat != 0)
     return;
 
-  if (key.keysym.scancode == SDL_SCANCODE_UP)
+  if (key.keysym.scancode == SDL_SCANCODE_UP|| key.keysym.scancode== SDL_SCANCODE_W)
     mIsUp = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_DOWN)
+  if (key.keysym.scancode == SDL_SCANCODE_DOWN || key.keysym.scancode== SDL_SCANCODE_S)
     mIsDown = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LEFT)
+  if (key.keysym.scancode == SDL_SCANCODE_LEFT || key.keysym.scancode== SDL_SCANCODE_A)
     mIsLeft = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_RIGHT)
+  if (key.keysym.scancode == SDL_SCANCODE_RIGHT || key.keysym.scancode== SDL_SCANCODE_D)
     mIsRight = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LCTRL)
+  if (key.keysym.scancode == SDL_SCANCODE_LCTRL || key.keysym.scancode== SDL_SCANCODE_SPACE)
     mIsFire = false;
 }
-void GameScreen::addLaser(const Vec2 &position, double angle) {
-  std::unique_ptr<Laser> laser = std::make_unique<Laser>(position, angle);
+void GameScreen::addLaser(const Vec2 &position, double angle, const std::string & textureName) {
+  std::unique_ptr<Laser> laser = std::make_unique<Laser>(position, angle, textureName);
   addEntity(std::move(laser));
   Mix_PlayChannel(1, mLaserSound, 0);
 }
@@ -90,16 +90,17 @@ void GameScreen::drawBackground(SDL_Renderer *renderer) {
   }
 }
 void GameScreen::calculateCamera() {
-  mCameraPosition.x = SDL_clamp(mPlayerShip->position.x - mCameraSize.x / 2,
-                                0, mWordSize.x - mCameraSize.x);
-  mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2,
-                                0, mWordSize.y - mCameraSize.y);
+  mCameraPosition.x = SDL_clamp(mPlayerShip->position.x - mCameraSize.x / 2, 0,
+                                mWordSize.x - mCameraSize.x);
+  mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2, 0,
+                                mWordSize.y - mCameraSize.y);
 }
-GameScreen::GameScreen() {
-  mBackgroundTexture = TextureManager::getInstance()->load(
-      "Backgrounds/black.png");
+GameScreen::GameScreen() : mRandomEngine(mRandomDevice()) {
+  mBackgroundTexture =
+      TextureManager::getInstance()->load("Backgrounds/black.png");
 
-  std::string laserSoundPath = AssetManager::getInstance()->getAsset("Bonus/sfx_laser1.ogg").string();
+  std::string laserSoundPath =
+      AssetManager::getInstance()->getAsset("Bonus/sfx_laser1.ogg").string();
   mLaserSound = Mix_LoadWAV(laserSoundPath.c_str());
 
   std::unique_ptr<PlayerShip> playerShip =
@@ -107,21 +108,10 @@ GameScreen::GameScreen() {
   mPlayerShip = playerShip.get();
   addEntity(std::move(playerShip));
 
-  addEntity(
-      std::move(std::make_unique<Enemy>(Vec2(100, 0))));
-  addEntity(
-      std::move(std::make_unique<Enemy>(Vec2(300, 0))));
-  addEntity(
-      std::move(std::make_unique<Enemy>(Vec2(800, 0))));
-
-  addEntity(std::move(std::make_unique<Meteor>(
-      Vec2(100, 500), "Brown_big1")));
-  addEntity(std::move(std::make_unique<Meteor>(
-      Vec2(300, 500), "Brown_big2")));
-  addEntity(std::move(std::make_unique<Meteor>(
-      Vec2(600, 500), "Brown_big3")));
-  addEntity(std::move(std::make_unique<Meteor>(
-      Vec2(615, 1000), "Brown_big3")));
+  addEntity(std::move(std::make_unique<Meteor>(Vec2(100, 500), "Brown_big1")));
+  addEntity(std::move(std::make_unique<Meteor>(Vec2(300, 500), "Brown_big2")));
+  addEntity(std::move(std::make_unique<Meteor>(Vec2(600, 500), "Brown_big3")));
+  addEntity(std::move(std::make_unique<Meteor>(Vec2(615, 1000), "Brown_big3")));
   mPathFinder.init(mWordSize, 110);
 
   mPathFinder.clearState();
@@ -135,6 +125,16 @@ GameScreen::GameScreen() {
   }
 
   mPathFinder.generateHeatmap(mPlayerShip->position);
+}
+
+void GameScreen::spawnEntity() {
+  int Angle = mRandomAngle(mRandomEngine);
+  Vec2 direction(1, 0);
+  direction.rotate(double(Angle) * M_PI / 180);
+  direction.scale(1000);
+  Vec2 EnemyPosisition(mPlayerShip->position);
+  EnemyPosisition.add(direction, 1);
+  addEntity(std::move(std::make_unique<Enemy>(EnemyPosisition)));
 }
 
 void GameScreen::onUpdate() {
@@ -157,7 +157,16 @@ void GameScreen::onUpdate() {
     // penambahan elemen ke mEntityList yang menyebabkan operasi std::move
     // terhadap entity sehingga entity berada dalam keadaan invalid
   }
+  if (SDL_GetTicks() - mLastSpawn >= mSpawnDelay) {
+    spawnEntity();
+    mLastSpawn = SDL_GetTicks();
+    mspawnedCount++;
+  }
 
+  if (SDL_GetTicks() - mLastSpawnMultiplier >= 10000 && mSpawnDelay >= 1000) {
+    mSpawnDelay -= 200;
+    mLastSpawnMultiplier = SDL_GetTicks();
+  }
   for (std::unique_ptr<GameEntity> &entity : mEntityList) {
     mSAP.move(entity.get());
   }
@@ -208,8 +217,8 @@ void GameScreen::onDraw(SDL_Renderer *renderer) {
       next.substract(mCameraPosition);
 
       SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-      SDL_RenderDrawLine(renderer, int(current.x), int(current.y),
-                         int(next.x), int(next.y));
+      SDL_RenderDrawLine(renderer, int(current.x), int(current.y), int(next.x),
+                         int(next.y));
     }
   }
 
@@ -220,6 +229,4 @@ void GameScreen::onPostDraw() {
   mPathFinder.generateHeatmap(mPlayerShip->position);
 }
 
-void GameScreen::onSizeChanged(const Vec2 &size) {
-  mCameraSize = size;
-}
+void GameScreen::onSizeChanged(const Vec2 &size) { mCameraSize = size; }

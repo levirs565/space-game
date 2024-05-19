@@ -1,9 +1,9 @@
 #include "Laser.hpp"
 
-Laser::Laser(const Vec2 &position, double angle)
+Laser::Laser(const Vec2 &position, double angle, const std::string &textureName)
     : GameEntity(position, angle) {
-  texture = TextureManager::getInstance()->load(
-      "PNG/Lasers/laserBlue01.png");
+  texture =
+      TextureManager::getInstance()->load("PNG/Lasers/" + textureName + ".png");
   directionVector.rotate(angle * M_PI / 180.0);
   updateBoundingBox();
 }
