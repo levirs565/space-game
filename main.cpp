@@ -23,6 +23,7 @@
 #include "Math/Polygon.hpp"
 #include "SAP.hpp"
 #include "Screen/MainScreen.hpp"
+#include "Screen/GameScreen.hpp"
 
 class App {
 public:
@@ -66,7 +67,7 @@ public:
       if (event == MainScreen::Event::Exit) {
         this->mIsExit = true;
       } else if (event == MainScreen::Event::Start) {
-
+        mNextScreen = std::make_unique<GameScreen>();
       }
     });
     mScreen->onSizeChanged(mWindowSize);
@@ -102,6 +103,12 @@ public:
       presentScene();
       mScreen->onPostDraw();
 
+      if (mNextScreen) {
+        std::swap(mNextScreen, mScreen);
+        mScreen->onSizeChanged(mWindowSize);
+        mNextScreen.reset();
+      }
+
       SDL_Delay(16);
     }
   }
@@ -110,6 +117,7 @@ private:
   SDL_Renderer *mRenderer;
   SDL_Window *mWindow;
   std::unique_ptr<IScreen> mScreen;
+  std::unique_ptr<IScreen> mNextScreen;
   bool mIsExit = false;
   Vec2 mWindowSize{800, 600};
 };
