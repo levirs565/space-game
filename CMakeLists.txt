@@ -43,6 +43,8 @@ add_executable(space
         Screen/GameScreen.hpp
         Screen/MainScreen.cpp
         Screen/MainScreen.hpp
+        Map.hpp
+        Map.cpp
 )
 
 if(TARGET SDL2::SDL2main)

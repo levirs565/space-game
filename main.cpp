@@ -136,6 +136,8 @@ int main(int argc, char **argv) {
   assetPath /= relativeAssetPath;
   AssetManager::getInstance()->setRootPath(assetPath);
 
+  SDL_CaptureMouse(SDL_FALSE);
+
   App app;
   app.run();
   return 0;

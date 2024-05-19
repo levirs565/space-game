@@ -13,6 +13,16 @@ struct Value {
 struct Object : Value {
   std::map<std::string, std::unique_ptr<Value>> field;
   std::vector<std::pair<std::string, Object>> builder;
+
+  template <class Type>
+  Type* getField(const std::string& name) {
+    if (!field.contains(name))
+      throw std::runtime_error("Field not found: " + name);
+    auto result = dynamic_cast<Type*>(field[name].get());
+    if (result == nullptr)
+      throw std::runtime_error("Field has invalid value: " + name);
+    return result;
+  }
 };
 
 struct String : Value {

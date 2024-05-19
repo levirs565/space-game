@@ -1,0 +1,24 @@
+width: 5000
+height: 5000
+entityList: {
+  Meteor {
+    x: 162.18794
+    y: 99.103943
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 311.20909
+    y: 449.86826
+    type: Brown_big2 
+  }
+  Meteor {
+    x: 637.27563
+    y: 151.96944
+    type: Brown_big3 
+  }
+  Meteor {
+    x: 926.00299
+    y: 436.73157
+    type: Brown_big4 
+  }
+}

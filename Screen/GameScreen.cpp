@@ -1,25 +1,31 @@
 #include "GameScreen.hpp"
 #include "../Entity/Enemy.hpp"
 #include "../Entity/Meteor.hpp"
+#include "../Map.hpp"
 #include "../Math/Polygon.hpp"
 
 void GameScreen::processKeyDown(const SDL_KeyboardEvent &key) {
   if (key.repeat != 0)
     return;
 
-  if (key.keysym.scancode == SDL_SCANCODE_UP || key.keysym.scancode== SDL_SCANCODE_W)
+  if (key.keysym.scancode == SDL_SCANCODE_UP ||
+      key.keysym.scancode == SDL_SCANCODE_W)
     mIsUp = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_DOWN || key.keysym.scancode== SDL_SCANCODE_S)
+  if (key.keysym.scancode == SDL_SCANCODE_DOWN ||
+      key.keysym.scancode == SDL_SCANCODE_S)
     mIsDown = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LEFT || key.keysym.scancode== SDL_SCANCODE_A)
+  if (key.keysym.scancode == SDL_SCANCODE_LEFT ||
+      key.keysym.scancode == SDL_SCANCODE_A)
     mIsLeft = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_RIGHT || key.keysym.scancode== SDL_SCANCODE_D)
+  if (key.keysym.scancode == SDL_SCANCODE_RIGHT ||
+      key.keysym.scancode == SDL_SCANCODE_D)
     mIsRight = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LCTRL || key.keysym.scancode== SDL_SCANCODE_SPACE)
+  if (key.keysym.scancode == SDL_SCANCODE_LCTRL ||
+      key.keysym.scancode == SDL_SCANCODE_SPACE)
     mIsFire = true;
 }
 
@@ -27,23 +33,30 @@ void GameScreen::processKeyUp(const SDL_KeyboardEvent &key) {
   if (key.repeat != 0)
     return;
 
-  if (key.keysym.scancode == SDL_SCANCODE_UP|| key.keysym.scancode== SDL_SCANCODE_W)
+  if (key.keysym.scancode == SDL_SCANCODE_UP ||
+      key.keysym.scancode == SDL_SCANCODE_W)
     mIsUp = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_DOWN || key.keysym.scancode== SDL_SCANCODE_S)
+  if (key.keysym.scancode == SDL_SCANCODE_DOWN ||
+      key.keysym.scancode == SDL_SCANCODE_S)
     mIsDown = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LEFT || key.keysym.scancode== SDL_SCANCODE_A)
+  if (key.keysym.scancode == SDL_SCANCODE_LEFT ||
+      key.keysym.scancode == SDL_SCANCODE_A)
     mIsLeft = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_RIGHT || key.keysym.scancode== SDL_SCANCODE_D)
+  if (key.keysym.scancode == SDL_SCANCODE_RIGHT ||
+      key.keysym.scancode == SDL_SCANCODE_D)
     mIsRight = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LCTRL || key.keysym.scancode== SDL_SCANCODE_SPACE)
+  if (key.keysym.scancode == SDL_SCANCODE_LCTRL ||
+      key.keysym.scancode == SDL_SCANCODE_SPACE)
     mIsFire = false;
 }
-void GameScreen::addLaser(const Vec2 &position, double angle, const std::string & textureName) {
-  std::unique_ptr<Laser> laser = std::make_unique<Laser>(position, angle, textureName);
+void GameScreen::addLaser(const Vec2 &position, double angle,
+                          const std::string &textureName) {
+  std::unique_ptr<Laser> laser =
+      std::make_unique<Laser>(position, angle, textureName);
   addEntity(std::move(laser));
   Mix_PlayChannel(1, mLaserSound, 0);
 }
@@ -108,10 +121,14 @@ GameScreen::GameScreen() : mRandomEngine(mRandomDevice()) {
   mPlayerShip = playerShip.get();
   addEntity(std::move(playerShip));
 
-  addEntity(std::move(std::make_unique<Meteor>(Vec2(100, 500), "Brown_big1")));
-  addEntity(std::move(std::make_unique<Meteor>(Vec2(300, 500), "Brown_big2")));
-  addEntity(std::move(std::make_unique<Meteor>(Vec2(600, 500), "Brown_big3")));
-  addEntity(std::move(std::make_unique<Meteor>(Vec2(615, 1000), "Brown_big3")));
+  Map map = Map::fromAsset();
+
+  mWordSize = map.size;
+
+  for (auto& entity : map.entityList) {
+    addEntity(std::move(entity));
+  }
+
   mPathFinder.init(mWordSize, 110);
 
   mPathFinder.clearState();
