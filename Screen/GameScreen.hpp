@@ -8,6 +8,7 @@
 #include "../Entity/PlayerShip.hpp"
 #include "../AI/FlowField.hpp"
 #include "../SAP.hpp"
+#include <random>
 
 class GameScreen : public IScreen, public IGameStage {
   SDL_Texture *mBackgroundTexture;
@@ -24,12 +25,20 @@ class GameScreen : public IScreen, public IGameStage {
   bool mIsRight = false;
   bool mIsFire = false;
   SAP mSAP;
+  std::random_device mRandomDevice;
+  std::default_random_engine mRandomEngine;
+  std::uniform_int_distribution <int> mRandomAngle;
+  Uint32 mLastSpawn = 0;
+  Uint32 mSpawnDelay = 5000;
+  int mspawnedCount = 0;
+  Uint32 mLastSpawnMultiplier = 0;
 
   void processKeyDown(const SDL_KeyboardEvent &key);
   void processKeyUp(const SDL_KeyboardEvent &key);
 
   void drawBackground(SDL_Renderer *renderer);
   void calculateCamera();
+  void spawnEntity();
 public:
   GameScreen();
 
