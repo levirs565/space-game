@@ -7,19 +7,19 @@ void GameScreen::processKeyDown(const SDL_KeyboardEvent &key) {
   if (key.repeat != 0)
     return;
 
-  if (key.keysym.scancode == SDL_SCANCODE_UP)
+  if (key.keysym.scancode == SDL_SCANCODE_UP || key.keysym.scancode== SDL_SCANCODE_W)
     mIsUp = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_DOWN)
+  if (key.keysym.scancode == SDL_SCANCODE_DOWN || key.keysym.scancode== SDL_SCANCODE_S)
     mIsDown = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LEFT)
+  if (key.keysym.scancode == SDL_SCANCODE_LEFT || key.keysym.scancode== SDL_SCANCODE_A)
     mIsLeft = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_RIGHT)
+  if (key.keysym.scancode == SDL_SCANCODE_RIGHT || key.keysym.scancode== SDL_SCANCODE_D)
     mIsRight = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LCTRL)
+  if (key.keysym.scancode == SDL_SCANCODE_LCTRL || key.keysym.scancode== SDL_SCANCODE_SPACE)
     mIsFire = true;
 }
 
@@ -27,19 +27,19 @@ void GameScreen::processKeyUp(const SDL_KeyboardEvent &key) {
   if (key.repeat != 0)
     return;
 
-  if (key.keysym.scancode == SDL_SCANCODE_UP)
+  if (key.keysym.scancode == SDL_SCANCODE_UP|| key.keysym.scancode== SDL_SCANCODE_W)
     mIsUp = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_DOWN)
+  if (key.keysym.scancode == SDL_SCANCODE_DOWN || key.keysym.scancode== SDL_SCANCODE_S)
     mIsDown = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LEFT)
+  if (key.keysym.scancode == SDL_SCANCODE_LEFT || key.keysym.scancode== SDL_SCANCODE_A)
     mIsLeft = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_RIGHT)
+  if (key.keysym.scancode == SDL_SCANCODE_RIGHT || key.keysym.scancode== SDL_SCANCODE_D)
     mIsRight = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LCTRL)
+  if (key.keysym.scancode == SDL_SCANCODE_LCTRL || key.keysym.scancode== SDL_SCANCODE_SPACE)
     mIsFire = false;
 }
 void GameScreen::addLaser(const Vec2 &position, double angle) {
