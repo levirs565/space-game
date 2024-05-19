@@ -123,6 +123,7 @@ private:
 };
 
 int main(int argc, char **argv) {
+  std::cout << "Abc" << std::endl;
   std::string relativeAssetPath = "Data";
 
   for (int argIndex = 0; argIndex < argc; argIndex++) {

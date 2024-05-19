@@ -34,7 +34,7 @@ SDL_Texture *TextureManager::load(const std::string &name) {
 
   SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO,
                  "Loading texture %s", name.c_str());
-  std::filesystem::path path = AssetManager::getInstance()->getAsset(name);
+  std::string path = AssetManager::getInstance()->getAsset(name).string();
   SDL_Texture *texture = IMG_LoadTexture(mRenderer, path.c_str());
   mCache[name] = std::unique_ptr<SDL_Texture, TextureDeleter>(texture);
   return texture;
@@ -63,7 +63,7 @@ TTF_Font *FontManager::load(const std::string &name, int size) {
   if (mCache.count(key) > 0)
     return mCache[key].get();
 
-  std::filesystem::path path = AssetManager::getInstance()->getAsset(name);
+  std::string path = AssetManager::getInstance()->getAsset(name).string();
   TTF_Font* font = TTF_OpenFont(path.c_str(), size);
   mCache[key] = std::unique_ptr<TTF_Font, FontDeleter>(font);
   return font;
