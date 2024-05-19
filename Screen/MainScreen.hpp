@@ -7,18 +7,14 @@
 #include <array>
 #include <functional>
 #include <string>
+#include "../TextRenderer.hpp"
 
 class MainButton {
-  std::string mText;
   double mScale = 1;
   bool mFocus = false;
 
+  TextRenderer mTextRenderer;
   SDL_Texture *mButtonTexture;
-
-  TTF_Font *mFont;
-  SDL_Surface *mTextSurface;
-  SDL_Texture *mTextTexture = nullptr;
-
   Vec2 mCenterPosition;
 
   SDL_Rect calculateTextureRect(SDL_Texture *texture);
@@ -27,7 +23,6 @@ class MainButton {
 
 public:
   explicit MainButton(std::string text);
-  ~MainButton();
 
   void setCenter(const Vec2 &center) { mCenterPosition = center; }
   void setFocus(bool focus) { mFocus = focus; }

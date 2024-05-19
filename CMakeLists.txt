@@ -45,6 +45,8 @@ add_executable(space
         Screen/MainScreen.hpp
         Map.hpp
         Map.cpp
+        TextRenderer.cpp
+        TextRenderer.hpp
 )
 
 if(TARGET SDL2::SDL2main)
