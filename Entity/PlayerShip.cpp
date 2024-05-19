@@ -63,7 +63,7 @@ void PlayerShip::doFire(IGameStage *stage) {
     Vec2 laserPos(0, -rect.h);
     laserPos.rotate(angle * M_PI / 180.0);
     laserPos.add(position, 1);
-    stage->addLaser(laserPos, angle);
+    stage->addLaser(laserPos, angle, "laserBlue01");
     lastFire = SDL_GetTicks();
   }
 }

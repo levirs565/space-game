@@ -42,8 +42,8 @@ void GameScreen::processKeyUp(const SDL_KeyboardEvent &key) {
   if (key.keysym.scancode == SDL_SCANCODE_LCTRL || key.keysym.scancode== SDL_SCANCODE_SPACE)
     mIsFire = false;
 }
-void GameScreen::addLaser(const Vec2 &position, double angle) {
-  std::unique_ptr<Laser> laser = std::make_unique<Laser>(position, angle);
+void GameScreen::addLaser(const Vec2 &position, double angle, const std::string & textureName) {
+  std::unique_ptr<Laser> laser = std::make_unique<Laser>(position, angle, textureName);
   addEntity(std::move(laser));
   Mix_PlayChannel(1, mLaserSound, 0);
 }

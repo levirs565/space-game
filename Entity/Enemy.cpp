@@ -184,7 +184,7 @@ void Enemy::onTick(IGameStage *stage) {
     double laserAngle = direction.getRotation() * 180.0 / M_PI - 90;
     laserPos.rotate((laserAngle)*M_PI / 180.0);
     laserPos.add(position, 1);
-    stage->addLaser(laserPos, laserAngle - 180);
+    stage->addLaser(laserPos, laserAngle - 180, "laserRed01");
     lastFire = SDL_GetTicks();
   }
 

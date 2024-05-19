@@ -51,7 +51,7 @@ public:
   void addEntity(std::unique_ptr<GameEntity> &&entity);
 
   GameEntity *getPlayerEntity() override { return mPlayerShip; }
-  void addLaser(const Vec2 &position, double angle) override;
+  void addLaser(const Vec2 &position, double angle, const std::string& textureName) override;
   const Vec2 &getWorldSize() override { return mWordSize; }
   FlowField *getFlowField() override { return &mPathFinder; }
   SAP *getSAP() override { return &mSAP; }
