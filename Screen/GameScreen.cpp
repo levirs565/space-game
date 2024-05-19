@@ -99,7 +99,7 @@ GameScreen::GameScreen() {
   mBackgroundTexture = TextureManager::getInstance()->load(
       "Backgrounds/black.png");
 
-  std::filesystem::path laserSoundPath = AssetManager::getInstance()->getAsset("Bonus/sfx_laser1.ogg");
+  std::string laserSoundPath = AssetManager::getInstance()->getAsset("Bonus/sfx_laser1.ogg").string();
   mLaserSound = Mix_LoadWAV(laserSoundPath.c_str());
 
   std::unique_ptr<PlayerShip> playerShip =

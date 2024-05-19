@@ -8,6 +8,8 @@ find_package(SDL2_image REQUIRED)
 find_package(SDL2_mixer REQUIRED)
 find_package(SDL2_ttf REQUIRED)
 
+find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
+
 add_executable(space
         main.cpp
         Math/Vec2.hpp
@@ -42,4 +44,9 @@ add_executable(space
         Screen/MainScreen.cpp
         Screen/MainScreen.hpp
 )
+
+if(TARGET SDL2::SDL2main)
+    target_link_libraries(space PRIVATE SDL2::SDL2main)
+endif()
+
 target_link_libraries(space PRIVATE SDL2::SDL2 SDL2_image::SDL2_image SDL2_mixer::SDL2_mixer SDL2_ttf::SDL2_ttf)
