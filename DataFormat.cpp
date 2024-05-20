@@ -1,10 +1,16 @@
 #include "DataFormat.hpp"
 #include <iomanip>
+#include <locale>
 
 namespace DF {
 void trimString(std::string &str) {
-  str.erase(0, str.find_first_not_of(" "));
-  str.erase(str.find_last_not_of(" ") + 1);
+  str.erase(str.begin(),
+            std::find_if(str.begin(), str.end(),
+                         [](unsigned char ch) { return !std::isspace(ch); }));
+  str.erase(std::find_if(str.rbegin(), str.rend(),
+                         [](unsigned char ch) { return !std::isspace(ch); })
+                .base(),
+            str.end());
 }
 
 Object parseObjectInternal(std::istream &stream, int &lineNumber) {
@@ -45,8 +51,7 @@ Object parseObjectInternal(std::istream &stream, int &lineNumber) {
 
       trimString(name);
 
-      result.builder.push_back(
-          std::make_pair(name, parseObjectInternal(stream, lineNumber)));
+      result.builder.emplace_back(name, parseObjectInternal(stream, lineNumber));
       continue;
     }
 
