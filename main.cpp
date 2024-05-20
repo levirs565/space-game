@@ -17,6 +17,7 @@
 #include "Screen/MainScreen.hpp"
 #include "Screen/GameScreen.hpp"
 #include "Screen/GameOverScreen.hpp"
+#include "Screen/GamePauseScreen.hpp"
 
 class App {
 public:
@@ -63,7 +64,8 @@ public:
 //        mNextScreen = std::make_unique<GameScreen>();
 //      }
 //    });
-    mScreen = std::make_unique<GameOverScreen>();
+//    mScreen = std::make_unique<GameOverScreen>();
+    mScreen = std::make_unique<GamePauseScreen>();
     mScreen->onSizeChanged(mWindowSize);
   }
 

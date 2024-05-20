@@ -1,6 +1,6 @@
 #include "TextRenderer.hpp"
 
-void TextRenderer::setText(const std::string& text) {
+void TextRenderer::setText(const std::string &text) {
   if (text == mText)
     return;
 
@@ -34,4 +34,9 @@ void TextRenderer::createSurface() {
 TextRenderer::TextRenderer(TTF_Font *font, SDL_Color color)
     : mFont(font), mColor(color) {
   createSurface();
+}
+Vec2 TextRenderer::getSize() {
+  int width, height;
+  TTF_SizeUTF8(mFont, mText.c_str(), &width, &height);
+  return { double(width), double(height) };
 }

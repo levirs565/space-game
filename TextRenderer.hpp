@@ -3,6 +3,7 @@
 
 #include <SDL_ttf.h>
 #include <string>
+#include "Math/Vec2.hpp"
 
 class TextRenderer {
   TTF_Font *mFont;
@@ -20,6 +21,7 @@ public:
   void setText(const std::string& text);
   const std::string& getText() {return mText;}
   SDL_Texture *getTexture(SDL_Renderer *renderer);
+  Vec2 getSize();
 };
 
 #endif // SPACE_TEXTRENDERER_HPP

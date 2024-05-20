@@ -59,6 +59,10 @@ add_executable(space
         UI/Column.hpp
         UI/TextInput.cpp
         UI/TextInput.hpp
+        UI/Label.cpp
+        UI/Label.hpp
+        Screen/GamePauseScreen.cpp
+        Screen/GamePauseScreen.hpp
 )
 
 if(TARGET SDL2::SDL2main)

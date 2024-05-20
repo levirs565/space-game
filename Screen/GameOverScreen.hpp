@@ -6,8 +6,11 @@
 #include "../UI/Column.hpp"
 #include "../UI/TextInput.hpp"
 #include "../UI/Button.hpp"
+#include "../UI/Label.hpp"
 
 class GameOverScreen : public IScreen {
+  Label mGameOverLabel{"Game Over"};
+  Label mMessageLabel{"Enter  Your  Name"};
   TextInput mNameInput;
   Button mButton{"OK"};
   Column mColumn;

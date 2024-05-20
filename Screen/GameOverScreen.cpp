@@ -3,6 +3,8 @@
 #include "../SDLHelper.hpp"
 
 GameOverScreen::GameOverScreen() {
+  mColumn.viewList.push_back(&mGameOverLabel);
+  mColumn.viewList.push_back(&mMessageLabel);
   mColumn.viewList.push_back(&mNameInput);
   mColumn.viewList.push_back(&mButton);
 }
