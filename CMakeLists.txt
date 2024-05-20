@@ -39,8 +39,8 @@ add_executable(space
         AI/ContextSteering.cpp
         AI/FlowField.cpp
         Screen/IScreen.hpp
-        Screen/GameScreen.cpp
-        Screen/GameScreen.hpp
+        Screen/GameStageScreen.cpp
+        Screen/GameStageScreen.hpp
         Screen/MainScreen.cpp
         Screen/MainScreen.hpp
         Map.hpp
@@ -63,6 +63,8 @@ add_executable(space
         UI/Label.hpp
         Screen/GamePauseScreen.cpp
         Screen/GamePauseScreen.hpp
+        Screen/GameScreen.cpp
+        Screen/GameScreen.hpp
 )
 
 if(TARGET SDL2::SDL2main)

@@ -14,10 +14,11 @@
 #include "Entity/PlayerShip.hpp"
 #include "Math/Polygon.hpp"
 #include "SAP.hpp"
-#include "Screen/MainScreen.hpp"
-#include "Screen/GameScreen.hpp"
 #include "Screen/GameOverScreen.hpp"
 #include "Screen/GamePauseScreen.hpp"
+#include "Screen/GameStageScreen.hpp"
+#include "Screen/GameScreen.hpp"
+#include "Screen/MainScreen.hpp"
 
 class App {
 public:
@@ -57,16 +58,25 @@ public:
 
     TextureManager::getInstance()->init(mRenderer);
 
-//    mScreen = std::make_unique<MainScreen>([this] (auto event) {
-//      if (event == MainScreen::Event::Exit) {
-//        this->mIsExit = true;
-//      } else if (event == MainScreen::Event::Start) {
-//        mNextScreen = std::make_unique<GameScreen>();
-//      }
-//    });
-//    mScreen = std::make_unique<GameOverScreen>();
-    mScreen = std::make_unique<GamePauseScreen>();
+    mScreen = createMain();
     mScreen->onSizeChanged(mWindowSize);
+  }
+
+  std::unique_ptr<IScreen> createMain() {
+    return std::make_unique<MainScreen>([this] (auto event) {
+        if (event == MainScreen::Event::Exit) {
+          this->mIsExit = true;
+        } else if (event == MainScreen::Event::Start) {
+          mNextScreen = createGameScreen();
+        }
+      });
+  }
+
+  std::unique_ptr<IScreen> createGameScreen() {
+    return std::make_unique<GameScreen>([this] (auto event) {
+      if (event == GameScreen::Event::Quit)
+        mNextScreen = createMain();
+    });
   }
 
   void prepareScene() {
