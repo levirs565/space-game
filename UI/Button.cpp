@@ -13,6 +13,10 @@ Vec2 Button::getLayoutSize() {
   return getTextureSize(mButtonTexture);
 }
 void Button::update() {
+  SDL_Point mouse;
+  SDL_GetMouseState(&mouse.x, &mouse.y);
+  setFocus(isPointInside(mouse));
+
   double targetScale = mFocus ? mFocusScale : 1;
   mScale += (targetScale - mScale) * (1.0 - std::exp(-0.5));
   mScale = std::clamp(mScale, 1.0, mFocusScale);

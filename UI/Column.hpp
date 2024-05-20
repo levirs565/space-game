@@ -9,6 +9,8 @@ class Column : View {
 public:
   std::vector<View*> viewList;
 
+  View* findByPoint(SDL_Point point);
+
   Vec2 getLayoutSize() override;
   SDL_Rect getRect() override;
   void layout(Vec2 size);

@@ -38,3 +38,11 @@ void Column::update() {
   for (View *view : viewList)
     view->update();
 }
+View *Column::findByPoint(SDL_Point point) {
+  for (View* view : viewList) {
+    if (view->isPointInside(point)) {
+      return view;
+    }
+  }
+  return nullptr;
+}
