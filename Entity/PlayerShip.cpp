@@ -11,6 +11,8 @@ PlayerShip::PlayerShip(const Vec2 &position) : GameEntity(position, 25) {
                                          "Damage/playerShip3_damage2.png"));
   damagedTexture.push_back(manager->load("PNG/"
                                          "Damage/playerShip3_damage3.png"));
+
+  shieldTexture = manager->load("PNG/Effects/shield3.png");
 }
 
 void PlayerShip::setDirection(Direction direction, Rotation rotation) {
@@ -42,6 +44,11 @@ void PlayerShip::onTick(IGameStage *stage) {
   position.y = SDL_clamp(position.y, 0, worldSize.y);
 
   updateBoundingBox();
+
+  if (hasShield && SDL_GetTicks() - shieldActivationTime >= 5000) {
+    hasShield = false;
+    shieldDeactivationTIme = SDL_GetTicks();
+  }
 }
 
 void PlayerShip::onHit(GameEntity *other) {
@@ -49,8 +56,15 @@ void PlayerShip::onHit(GameEntity *other) {
     healthCount = 4;
     return;
   }
-  if (Laser *laser = dynamic_cast<Laser *>(other); other != nullptr) {
+  if (Laser *laser = dynamic_cast<Laser *>(other); other != nullptr && !hasShield) {
     healthCount--;
+
+    if (!hasShield) {
+      if (SDL_GetTicks() - shieldDeactivationTIme >= 1000) {
+        hasShield = true;
+        shieldActivationTime = SDL_GetTicks();
+      }
+    }
   }
 }
 
@@ -60,6 +74,8 @@ void PlayerShip::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
     int index = std::min(4 - healthCount, int(damagedTexture.size())) - 1;
     drawTexture(renderer, cameraPosition, damagedTexture[index]);
   }
+  if (hasShield)
+    drawTexture(renderer, cameraPosition, shieldTexture);
 }
 
 void PlayerShip::doFire(IGameStage *stage) {

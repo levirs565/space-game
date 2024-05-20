@@ -16,7 +16,11 @@ public:
   Vec2 directionVector{0, 0};
   Uint32 lastFire = 0;
   int healthCount = 4;
+  Uint32 shieldActivationTime = 0;
+  Uint32 shieldDeactivationTIme = 0;
+  bool hasShield = false;
   std::vector<SDL_Texture *> damagedTexture;
+  SDL_Texture * shieldTexture;
 
   explicit PlayerShip(const Vec2 &position);
   void setDirection(Direction direction, Rotation rotation);
