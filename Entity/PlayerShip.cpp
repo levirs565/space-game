@@ -1,5 +1,6 @@
 #include "PlayerShip.hpp"
 #include "../AssetManager.hpp"
+#include "PowerUpHealth.hpp"
 
 PlayerShip::PlayerShip(const Vec2 &position) : GameEntity(position, 25) {
   TextureManager *manager = TextureManager::getInstance();
@@ -44,6 +45,10 @@ void PlayerShip::onTick(IGameStage *stage) {
 }
 
 void PlayerShip::onHit(GameEntity *other) {
+  if (dynamic_cast<PowerUpHealth*>(other) != nullptr) {
+    healthCount = 4;
+    return;
+  }
   if (Laser *laser = dynamic_cast<Laser *>(other); other != nullptr) {
     healthCount--;
   }

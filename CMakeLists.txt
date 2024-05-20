@@ -65,6 +65,8 @@ add_executable(space
         Screen/GamePauseScreen.hpp
         Screen/GameScreen.cpp
         Screen/GameScreen.hpp
+        Entity/PowerUpHealth.cpp
+        Entity/PowerUpHealth.hpp
 )
 
 if(TARGET SDL2::SDL2main)

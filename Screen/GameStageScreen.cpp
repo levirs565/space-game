@@ -1,6 +1,7 @@
 #include "GameStageScreen.hpp"
 #include "../Entity/Enemy.hpp"
 #include "../Entity/Meteor.hpp"
+#include "../Entity/PowerUpHealth.hpp"
 #include "../Map.hpp"
 #include "../Math/Polygon.hpp"
 
@@ -109,7 +110,8 @@ void GameStageScreen::calculateCamera() {
                                 mWordSize.y - mCameraSize.y);
 }
 GameStageScreen::GameStageScreen(std::function<void(Event)> callback)
-    : mCallback(std::move(callback)), mRandomEngine(mRandomDevice()) {
+    : mCallback(std::move(callback)), mRandomAngleEngine(mRandomAngleDevice()),
+      mRandomHealthEngine(mRandomHealthDevice()) {
   mBackgroundTexture =
       TextureManager::getInstance()->load("Backgrounds/black.png");
 
@@ -145,14 +147,26 @@ GameStageScreen::GameStageScreen(std::function<void(Event)> callback)
   mPathFinder.generateHeatmap(mPlayerShip->position);
 }
 
-void GameStageScreen::spawnEntity() {
-  int Angle = mRandomAngle(mRandomEngine);
+void GameStageScreen::spawnEnemy() {
+  int angle = mRandomAngle(mRandomAngleEngine);
   Vec2 direction(1, 0);
-  direction.rotate(double(Angle) * M_PI / 180);
+  direction.rotate(double(angle) * M_PI / 180);
   direction.scale(1000);
-  Vec2 EnemyPosisition(mPlayerShip->position);
-  EnemyPosisition.add(direction, 1);
-  addEntity(std::move(std::make_unique<Enemy>(EnemyPosisition)));
+  Vec2 enemyPosition(mPlayerShip->position);
+  enemyPosition.add(direction, 1);
+  addEntity(std::move(std::make_unique<Enemy>(enemyPosition)));
+}
+
+void GameStageScreen::spawnHealth() {
+  int angle = mRandomAngle(mRandomAngleEngine);
+  int distance = mRandomHealth(mRandomHealthEngine);
+  Vec2 direction(1, 0);
+  direction.rotate(double(angle) * M_PI / 180);
+  direction.scale(100 + distance);
+  Vec2 healthPosition(mPlayerShip->position);
+  healthPosition.add(direction, 1);
+
+  addEntity(std::move(std::make_unique<PowerUpHealth>(healthPosition)));
 }
 
 void GameStageScreen::onUpdate() {
@@ -175,16 +189,24 @@ void GameStageScreen::onUpdate() {
     // penambahan elemen ke mEntityList yang menyebabkan operasi std::move
     // terhadap entity sehingga entity berada dalam keadaan invalid
   }
-  if (SDL_GetTicks() - mLastSpawn >= mSpawnDelay) {
-    spawnEntity();
-    mLastSpawn = SDL_GetTicks();
+
+  if (SDL_GetTicks() - mEnemyLastSpawn >= mEnemySpawnDelay) {
+    spawnEnemy();
+    mEnemyLastSpawn = SDL_GetTicks();
     mSpawnedCount++;
   }
 
-  if (SDL_GetTicks() - mLastSpawnMultiplier >= 10000 && mSpawnDelay >= 1000) {
-    mSpawnDelay -= 200;
-    mLastSpawnMultiplier = SDL_GetTicks();
+  if (SDL_GetTicks() - mEnemyLastSpawnMultiplier >= 10000 &&
+      mEnemySpawnDelay >= 1000) {
+    mEnemySpawnDelay -= 200;
+    mEnemyLastSpawnMultiplier = SDL_GetTicks();
   }
+
+  if (SDL_GetTicks() - mHealthLastSpawn >= mHealthSpawnDelay) {
+    spawnHealth();
+    mHealthLastSpawn = SDL_GetTicks();
+  }
+
   for (std::unique_ptr<GameEntity> &entity : mEntityList) {
     mSAP.move(entity.get());
   }
@@ -251,3 +273,4 @@ void GameStageScreen::onPostDraw() {
 }
 
 void GameStageScreen::onSizeChanged(const Vec2 &size) { mCameraSize = size; }
+
