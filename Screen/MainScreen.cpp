@@ -1,88 +1,24 @@
 #include "MainScreen.hpp"
-
-#include "../AssetManager.hpp"
 #include <utility>
 
-MainButton::MainButton(std::string text)
-    : mTextRenderer(
-          FontManager::getInstance()->load("Bonus/kenvector_future.ttf", 16),
-          {.r = 0, .g = 0, .b = 0, .a = 255}) {
-  mButtonTexture = TextureManager::getInstance()->load("PNG/UI/buttonBlue.png");
-  mTextRenderer.setText(std::move(text));
-}
-
-Vec2 MainButton::getFocusSize() {
-  int buttonWidth, buttonHeight;
-  SDL_QueryTexture(mButtonTexture, nullptr, nullptr, &buttonWidth,
-                   &buttonHeight);
-  return {double(buttonWidth) * mFocusScale,
-          double(buttonHeight) * mFocusScale};
-}
-
-void MainButton::draw(SDL_Renderer *renderer) {
-  SDL_Rect rect = calculateTextureRect(mButtonTexture);
-  SDL_RenderCopy(renderer, mButtonTexture, nullptr, &rect);
-
-  SDL_Texture *textTexture = mTextRenderer.getTexture(renderer);
-  rect = calculateTextureRect(textTexture);
-  SDL_RenderCopy(renderer, textTexture, nullptr, &rect);
-}
-
-void MainButton::update() {
-  double targetScale = mFocus ? mFocusScale : 1;
-  mScale += (targetScale - mScale) * (1.0 - std::exp(-0.5));
-  mScale = std::clamp(mScale, 1.0, mFocusScale);
-}
-
-SDL_Rect MainButton::calculateTextureRect(SDL_Texture *texture) {
-  int textureWidth, textureHeight;
-  SDL_QueryTexture(texture, nullptr, nullptr, &textureWidth, &textureHeight);
-
-  Vec2 size{double(textureWidth), double(textureHeight)};
-  size.scale(mScale);
-
-  Vec2 halfSize{size};
-  halfSize.scale(0.5);
-
-  Vec2 topLeft{mCenterPosition};
-  topLeft.substract(halfSize);
-
-  return {.x = int(std::floor(topLeft.x)),
-          .y = int(std::floor(topLeft.y)),
-          .w = int(std::ceil(size.x)),
-          .h = int(std::ceil(size.y))};
-}
-
 MainScreen::MainScreen(std::function<void(Event)> eventHandler)
-    : mEventHandler(std::move(eventHandler)) {}
+    : mEventHandler(std::move(eventHandler)) {
+  mColumn.viewList.push_back(&mStartButton);
+  mColumn.viewList.push_back(&mExitButton);
+}
 
 void MainScreen::onSizeChanged(const Vec2 &size) {
   mSize = size;
-
-  constexpr double margin = 25;
-  Vec2 focusSize = mButtonArray[0].first.getFocusSize();
-  Vec2 allSize{focusSize.x, focusSize.y * double(mButtonArray.size()) +
-                                margin * (int(mButtonArray.size()) - 1)};
-
-  Vec2 centerPosition = mSize;
-  centerPosition.scale(0.5);
-  centerPosition.add(allSize, -0.5);
-  centerPosition.add(focusSize, 0.5);
-
-  for (auto &[button, event] : mButtonArray) {
-    button.setCenter(centerPosition);
-    centerPosition.y += margin + focusSize.y;
-  }
+  mColumn.layout(size);
 }
 void MainScreen::onSDLEvent(const SDL_Event &event) {
   if (event.type == SDL_MOUSEBUTTONDOWN &&
       event.button.button == SDL_BUTTON_LEFT) {
     SDL_Point point{event.button.x, event.button.y};
-
-    for (auto &[button, event] : mButtonArray) {
-      SDL_Rect rect = button.getRect();
-      if (SDL_PointInRect(&point, &rect) == SDL_TRUE) {
-        mEventHandler(event);
+    for (View* view : mColumn.viewList) {
+      if (view->isPointInside(point)) {
+        if (mEventMap.contains(view))
+          mEventHandler(mEventMap[view]);
         break;
       }
     }
@@ -92,16 +28,18 @@ void MainScreen::onSDLEvent(const SDL_Event &event) {
 void MainScreen::onUpdate() {
   SDL_Point mouse;
   SDL_GetMouseState(&mouse.x, &mouse.y);
-  for (auto &[button, _] : mButtonArray) {
-    SDL_Rect rect = button.getRect();
-    button.setFocus(SDL_PointInRect(&mouse, &rect) == SDL_TRUE);
-    button.update();
+
+  for (View* view : mColumn.viewList) {
+    auto button = dynamic_cast<Button*>(view);
+    if (button == nullptr) continue;
+
+    button->setFocus(button->isPointInside(mouse));
   }
+
+  mColumn.update();
 }
 
 void MainScreen::onDraw(SDL_Renderer *renderer) {
-  for (auto &[button, _] : mButtonArray) {
-    button.draw(renderer);
-  }
+  mColumn.draw(renderer);
 }
 void MainScreen::onPostDraw() {}

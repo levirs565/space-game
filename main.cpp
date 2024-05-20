@@ -2,9 +2,6 @@
 #include <SDL_image.h>
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
-#include <cmath>
-#include <exception>
-#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -13,17 +10,13 @@
 #include <vector>
 
 #include "AI/FlowField.hpp"
-#include "DataFormat.hpp"
 #include "Entity/Enemy.hpp"
-#include "Entity/GameEntity.hpp"
-#include "Entity/Laser.hpp"
-#include "Entity/Meteor.hpp"
 #include "Entity/PlayerShip.hpp"
-#include "IGameStage.hpp"
 #include "Math/Polygon.hpp"
 #include "SAP.hpp"
 #include "Screen/MainScreen.hpp"
 #include "Screen/GameScreen.hpp"
+#include "Screen/GameOverScreen.hpp"
 
 class App {
 public:
@@ -63,13 +56,14 @@ public:
 
     TextureManager::getInstance()->init(mRenderer);
 
-    mScreen = std::make_unique<MainScreen>([this] (auto event) {
-      if (event == MainScreen::Event::Exit) {
-        this->mIsExit = true;
-      } else if (event == MainScreen::Event::Start) {
-        mNextScreen = std::make_unique<GameScreen>();
-      }
-    });
+//    mScreen = std::make_unique<MainScreen>([this] (auto event) {
+//      if (event == MainScreen::Event::Exit) {
+//        this->mIsExit = true;
+//      } else if (event == MainScreen::Event::Start) {
+//        mNextScreen = std::make_unique<GameScreen>();
+//      }
+//    });
+    mScreen = std::make_unique<GameOverScreen>();
     mScreen->onSizeChanged(mWindowSize);
   }
 
@@ -123,7 +117,6 @@ private:
 };
 
 int main(int argc, char **argv) {
-  std::cout << "Abc" << std::endl;
   std::string relativeAssetPath = "Data";
 
   for (int argIndex = 0; argIndex < argc; argIndex++) {

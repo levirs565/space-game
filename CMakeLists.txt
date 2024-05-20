@@ -47,6 +47,18 @@ add_executable(space
         Map.cpp
         TextRenderer.cpp
         TextRenderer.hpp
+        Screen/GameOverScreen.cpp
+        Screen/GameOverScreen.hpp
+        SDLHelper.hpp
+        SDLHelper.cpp
+        UI/View.cpp
+        UI/View.hpp
+        UI/Button.cpp
+        UI/Button.hpp
+        UI/Column.cpp
+        UI/Column.hpp
+        UI/TextInput.cpp
+        UI/TextInput.hpp
 )
 
 if(TARGET SDL2::SDL2main)

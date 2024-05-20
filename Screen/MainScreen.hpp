@@ -7,33 +7,9 @@
 #include <array>
 #include <functional>
 #include <string>
-#include "../TextRenderer.hpp"
-
-class MainButton {
-  double mScale = 1;
-  bool mFocus = false;
-
-  TextRenderer mTextRenderer;
-  SDL_Texture *mButtonTexture;
-  Vec2 mCenterPosition;
-
-  SDL_Rect calculateTextureRect(SDL_Texture *texture);
-
-  static constexpr double mFocusScale = 1.05;
-
-public:
-  explicit MainButton(std::string text);
-
-  void setCenter(const Vec2 &center) { mCenterPosition = center; }
-  void setFocus(bool focus) { mFocus = focus; }
-
-  void update();
-  void draw(SDL_Renderer *renderer);
-
-  Vec2 getFocusSize();
-
-  SDL_Rect getRect() { return calculateTextureRect(mButtonTexture); }
-};
+#include <map>
+#include "../UI/Button.hpp"
+#include "../UI/Column.hpp"
 
 class MainScreen : public IScreen {
 public:
@@ -41,10 +17,13 @@ public:
 
 private:
   Vec2 mSize;
-  MainButton mStartButton{"Start"};
-  MainButton mExitButton{"Exit"};
-  std::array<std::pair<MainButton &, Event>, 2> mButtonArray = {
-      {{mStartButton, Event::Start}, {mExitButton, Event::Exit}}};
+  Button mStartButton{"Start"};
+  Button mExitButton{"Exit"};
+  Column mColumn;
+  std::map<View*, Event> mEventMap = {
+      {&mStartButton, Event::Start},
+      {&mExitButton, Event::Exit}
+  };
 
   std::function<void(Event)> mEventHandler;
 

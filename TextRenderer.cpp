@@ -1,10 +1,10 @@
 #include "TextRenderer.hpp"
 
-void TextRenderer::setText(std::string text) {
+void TextRenderer::setText(const std::string& text) {
   if (text == mText)
     return;
 
-  mText = std::move(text);
+  mText = text;
 
   clear();
   createSurface();

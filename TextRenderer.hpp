@@ -17,7 +17,8 @@ public:
   TextRenderer(TTF_Font* font, SDL_Color color);
   ~TextRenderer();
 
-  void setText(std::string text);
+  void setText(const std::string& text);
+  const std::string& getText() {return mText;}
   SDL_Texture *getTexture(SDL_Renderer *renderer);
 };
 
