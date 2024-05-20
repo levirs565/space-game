@@ -54,7 +54,7 @@ void GameStageScreen::processKeyUp(const SDL_KeyboardEvent &key) {
     mIsFire = false;
 }
 void GameStageScreen::addLaser(const Vec2 &position, double angle,
-                          const std::string &textureName) {
+                               const std::string &textureName) {
   std::unique_ptr<Laser> laser =
       std::make_unique<Laser>(position, angle, textureName);
   addEntity(std::move(laser));
@@ -108,7 +108,8 @@ void GameStageScreen::calculateCamera() {
   mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2, 0,
                                 mWordSize.y - mCameraSize.y);
 }
-GameStageScreen::GameStageScreen() : mRandomEngine(mRandomDevice()) {
+GameStageScreen::GameStageScreen(std::function<void(Event)> callback)
+    : mCallback(std::move(callback)), mRandomEngine(mRandomDevice()) {
   mBackgroundTexture =
       TextureManager::getInstance()->load("Backgrounds/black.png");
 
@@ -125,7 +126,7 @@ GameStageScreen::GameStageScreen() : mRandomEngine(mRandomDevice()) {
 
   mWordSize = map.size;
 
-  for (auto& entity : map.entityList) {
+  for (auto &entity : map.entityList) {
     addEntity(std::move(entity));
   }
 
@@ -177,7 +178,7 @@ void GameStageScreen::onUpdate() {
   if (SDL_GetTicks() - mLastSpawn >= mSpawnDelay) {
     spawnEntity();
     mLastSpawn = SDL_GetTicks();
-    mspawnedCount++;
+    mSpawnedCount++;
   }
 
   if (SDL_GetTicks() - mLastSpawnMultiplier >= 10000 && mSpawnDelay >= 1000) {
@@ -214,6 +215,9 @@ void GameStageScreen::onUpdate() {
       }
     }
   }
+
+  if (mPlayerShip->healthCount <= 0)
+    mCallback(Event::GameOver);
 }
 
 void GameStageScreen::onDraw(SDL_Renderer *renderer) {

@@ -3,6 +3,7 @@
 
 #include "GameStageScreen.hpp"
 #include "GamePauseScreen.hpp"
+#include "GameOverScreen.hpp"
 
 class GameScreen : public IScreen {
 public:
@@ -12,7 +13,9 @@ public:
 private:
   GameStageScreen mStageScreen;
   GamePauseScreen mPauseScreen;
+  GameOverScreen mGameOverScreen;
   bool mIsPause = false;
+  bool mIsGameOver = false;
   std::function<void(Event)> mCallback;
 public:
   GameScreen(std::function<void(Event)> callback);

@@ -6,7 +6,9 @@ SDL_Rect TextInput::getRect() { return calculateRect(getLayoutSize()); }
 void TextInput::update() {}
 
 void TextInput::setText(const std::string &text) {
+  if (text.length() <= 20)
   mTextRenderer.setText(text);
+  else mTextRenderer.setText(text.substr(0, 20));
 }
 void TextInput::draw(SDL_Renderer *renderer) {
   SDL_Rect outer = getRect();

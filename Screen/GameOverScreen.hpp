@@ -1,26 +1,33 @@
 #ifndef SPACE_GAMEOVERSCREEN_HPP
 #define SPACE_GAMEOVERSCREEN_HPP
 
-#include "IScreen.hpp"
 #include "../TextRenderer.hpp"
-#include "../UI/Column.hpp"
-#include "../UI/TextInput.hpp"
 #include "../UI/Button.hpp"
+#include "../UI/Column.hpp"
 #include "../UI/Label.hpp"
+#include "../UI/TextInput.hpp"
+#include "IScreen.hpp"
+#include <functional>
 
 class GameOverScreen : public IScreen {
   Label mGameOverLabel{"Game Over"};
   Label mMessageLabel{"Enter  Your  Name"};
   TextInput mNameInput;
-  Button mButton{"OK"};
+  Button mButton{"Save"};
   Column mColumn;
-public:
-  GameOverScreen();
+  Vec2 mFillSize;
 
-  void onSizeChanged(const Vec2& size) override;
-  void onSDLEvent(const SDL_Event& event) override;
+public:
+  enum class Event { Quit };
+  std::function<void(Event)> mCallback;
+
+public:
+  GameOverScreen(std::function<void(Event)> callback);
+
+  void onSizeChanged(const Vec2 &size) override;
+  void onSDLEvent(const SDL_Event &event) override;
   void onUpdate() override;
-  void onDraw(SDL_Renderer* renderer) override;
+  void onDraw(SDL_Renderer *renderer) override;
   void onPostDraw() override;
 };
 

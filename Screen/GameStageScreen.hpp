@@ -9,6 +9,7 @@
 #include "../AI/FlowField.hpp"
 #include "../SAP.hpp"
 #include <random>
+#include <functional>
 
 class GameStageScreen : public IScreen, public IGameStage {
   SDL_Texture *mBackgroundTexture;
@@ -30,7 +31,7 @@ class GameStageScreen : public IScreen, public IGameStage {
   std::uniform_int_distribution <int> mRandomAngle;
   Uint32 mLastSpawn = 0;
   Uint32 mSpawnDelay = 5000;
-  int mspawnedCount = 0;
+  int mSpawnedCount = 0;
   Uint32 mLastSpawnMultiplier = 0;
 
   void processKeyDown(const SDL_KeyboardEvent &key);
@@ -40,7 +41,13 @@ class GameStageScreen : public IScreen, public IGameStage {
   void calculateCamera();
   void spawnEntity();
 public:
-  GameStageScreen();
+  enum class Event {
+    GameOver
+  };
+private:
+  std::function<void(Event)> mCallback;
+public:
+  GameStageScreen(std::function<void(Event)> callback);
 
   void onSDLEvent(const SDL_Event &event) override;
   void onSizeChanged(const Vec2 &size) override;

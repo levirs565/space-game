@@ -3,6 +3,7 @@
 void GameScreen::onSizeChanged(const Vec2 &size) {
   mStageScreen.onSizeChanged(size);
   mPauseScreen.onSizeChanged(size);
+  mGameOverScreen.onSizeChanged(size);
 }
 void GameScreen::onSDLEvent(const SDL_Event &event) {
   if (event.type == SDL_KEYDOWN) {
@@ -11,25 +12,33 @@ void GameScreen::onSDLEvent(const SDL_Event &event) {
     }
   }
 
-  if (!mIsPause)
+  if (!mIsPause && !mIsGameOver)
     mStageScreen.onSDLEvent(event);
+  else if (mIsGameOver)
+    mGameOverScreen.onSDLEvent(event);
   else
     mPauseScreen.onSDLEvent(event);
 }
 void GameScreen::onUpdate() {
-  if (!mIsPause)
+  if (!mIsPause && !mIsGameOver)
     mStageScreen.onUpdate();
+  else if (mIsGameOver)
+    mGameOverScreen.onUpdate();
   else
     mPauseScreen.onUpdate();
 }
 void GameScreen::onDraw(SDL_Renderer *renderer) {
   mStageScreen.onDraw(renderer);
-  if (mIsPause)
+  if (mIsPause && !mIsGameOver)
     mPauseScreen.onDraw(renderer);
+  else if (mIsGameOver)
+    mGameOverScreen.onDraw(renderer);
 }
 void GameScreen::onPostDraw() {
-  if (!mIsPause)
+  if (!mIsPause && !mIsGameOver)
     mStageScreen.onPostDraw();
+  else if (mIsGameOver)
+    mGameOverScreen.onPostDraw();
   else
     mPauseScreen.onPostDraw();
 }
@@ -40,5 +49,14 @@ GameScreen::GameScreen(std::function<void(Event)> callback)
         if (event == GamePauseScreen::Event::Resume)
           mIsPause = false;
         else if (event == GamePauseScreen::Event::Quit)
+          mCallback(Event::Quit);
+      }),
+      mStageScreen([this](GameStageScreen::Event event) {
+        if (event == GameStageScreen::Event::GameOver) {
+          mIsGameOver = true;
+        }
+      }),
+      mGameOverScreen([this](GameOverScreen::Event event) {
+        if (event == GameOverScreen::Event::Quit)
           mCallback(Event::Quit);
       }) {}
