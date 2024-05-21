@@ -21,6 +21,10 @@ public:
   virtual SAP *getSAP() = 0;
 
   virtual GameEntity *getPlayerEntity() = 0;
+
+  virtual const Vec2& getCameraPosition() = 0;
+
+  virtual const Vec2& getCameraSize() = 0;
 };
 
 #endif // SPACE_IGAMESTAGE_HPP

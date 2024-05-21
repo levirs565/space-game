@@ -76,6 +76,8 @@ public:
   GameEntity *getPlayerEntity() override { return mPlayerShip; }
   void addLaser(const Vec2 &position, double angle,
                 const std::string &textureName) override;
+  const Vec2 &getCameraPosition() override { return mCameraPosition; }
+  const Vec2 &getCameraSize() override { return mCameraSize; }
   const Vec2 &getWorldSize() override { return mWordSize; }
   FlowField *getFlowField() override { return &mPathFinder; }
   SAP *getSAP() override { return &mSAP; }
