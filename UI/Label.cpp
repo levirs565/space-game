@@ -18,3 +18,6 @@ Label::Label(std::string text)
           {.r = 255, .g = 255, .b = 255, .a = 255}) {
   mTextRenderer.setText(std::move(text));
 }
+void Label::setText(std::string text) {
+  mTextRenderer.setText(text);
+}

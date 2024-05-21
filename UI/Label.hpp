@@ -9,6 +9,8 @@ class Label : public View {
 public:
   explicit Label(std::string text);
 
+  void setText(std::string text);
+
   Vec2 getLayoutSize() override;
   SDL_Rect getRect() override;
   void update() override;

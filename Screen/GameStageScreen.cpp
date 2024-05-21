@@ -213,16 +213,27 @@ void GameStageScreen::onUpdate() {
     mSAP.move(entity.get());
   }
 
+  bool needUpdateScore = false;
   for (std::vector<std::unique_ptr<GameEntity>>::iterator it =
            mEntityList.begin();
        it != mEntityList.end(); it++) {
     std::unique_ptr<GameEntity> &entity = *it;
 
     if (entity->mustGone) {
+      if (dynamic_cast<Enemy *>(entity.get())) {
+        mScore += 100;
+        needUpdateScore = true;
+      }
+
       mSAP.remove(entity.get());
       it = mEntityList.erase(it) - 1;
       continue;
     }
+  }
+
+  if (needUpdateScore) {
+    mScoreLabel.setText(std::to_string(mScore));
+    layoutScoreLabel();
   }
 
   mSAP.update();
@@ -268,11 +279,14 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
   }
 
   SDL_Rect lifeIcon = {.x = 4, .y = 4};
-  SDL_QueryTexture(mPlayerLifeTexture, nullptr, nullptr, &lifeIcon.w, &lifeIcon.h);
-  for (int i = 1; i <= mPlayerShip->healthCount; i++)  {
+  SDL_QueryTexture(mPlayerLifeTexture, nullptr, nullptr, &lifeIcon.w,
+                   &lifeIcon.h);
+  for (int i = 1; i <= mPlayerShip->healthCount; i++) {
     SDL_RenderCopy(renderer, mPlayerLifeTexture, nullptr, &lifeIcon);
     lifeIcon.x += lifeIcon.w + 4;
   }
+
+  mScoreLabel.draw(renderer);
   // mPathFinder.drawGrid(mRenderer, mCameraPosition, mCameraSize);
 }
 
@@ -280,4 +294,14 @@ void GameStageScreen::onPostDraw() {
   mPathFinder.generateHeatmap(mPlayerShip->position);
 }
 
-void GameStageScreen::onSizeChanged(const Vec2 &size) { mCameraSize = size; }
+void GameStageScreen::onSizeChanged(const Vec2 &size) {
+  mCameraSize = size;
+  layoutScoreLabel();
+}
+void GameStageScreen::layoutScoreLabel() {
+  Vec2 size = mScoreLabel.getLayoutSize();
+  mScoreLabel.setCenterPosition({
+      mCameraSize.x - size.x / 2,
+      size.y / 2
+  });
+}

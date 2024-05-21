@@ -3,13 +3,14 @@
 
 #include <SDL_mixer.h>
 
-#include "IScreen.hpp"
-#include "../IGameStage.hpp"
-#include "../Entity/PlayerShip.hpp"
 #include "../AI/FlowField.hpp"
+#include "../Entity/PlayerShip.hpp"
+#include "../IGameStage.hpp"
 #include "../SAP.hpp"
-#include <random>
+#include "../UI/Label.hpp"
+#include "IScreen.hpp"
 #include <functional>
+#include <random>
 
 class GameStageScreen : public IScreen, public IGameStage {
   SDL_Texture *mBackgroundTexture;
@@ -29,7 +30,7 @@ class GameStageScreen : public IScreen, public IGameStage {
   SAP mSAP;
   std::random_device mRandomAngleDevice;
   std::default_random_engine mRandomAngleEngine;
-  std::uniform_int_distribution <int> mRandomAngle{0, 360};
+  std::uniform_int_distribution<int> mRandomAngle{0, 360};
 
   Uint32 mEnemyLastSpawn = 0;
   Uint32 mEnemySpawnDelay = 5000;
@@ -50,12 +51,17 @@ class GameStageScreen : public IScreen, public IGameStage {
   void calculateCamera();
   void spawnEnemy();
   void spawnHealth();
+
+  int mScore = 0;
+  Label mScoreLabel{"0"};
+  void layoutScoreLabel();
+
 public:
-  enum class Event {
-    GameOver
-  };
+  enum class Event { GameOver };
+
 private:
   std::function<void(Event)> mCallback;
+
 public:
   GameStageScreen(std::function<void(Event)> callback);
 
@@ -68,10 +74,13 @@ public:
   void addEntity(std::unique_ptr<GameEntity> &&entity);
 
   GameEntity *getPlayerEntity() override { return mPlayerShip; }
-  void addLaser(const Vec2 &position, double angle, const std::string& textureName) override;
+  void addLaser(const Vec2 &position, double angle,
+                const std::string &textureName) override;
   const Vec2 &getWorldSize() override { return mWordSize; }
   FlowField *getFlowField() override { return &mPathFinder; }
   SAP *getSAP() override { return &mSAP; }
+
+  int getScore() { return mScore; }
 };
 
 #endif // SPACE_GAMESTAGESCREEN_HPP
