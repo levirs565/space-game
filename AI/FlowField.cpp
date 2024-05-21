@@ -1,4 +1,6 @@
 #include "FlowField.hpp"
+#include "../TextRenderer.hpp"
+#include "../AssetManager.hpp"
 
 void FlowField::init(const Vec2 &worldSize, int entitySize) {
   mRowCount = ceil(worldSize.y / entitySize);
@@ -46,9 +48,10 @@ void FlowField::moveObstacle(GameEntity *entity) {
 void FlowField::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
                          Vec2 &cameraSize) {
   static TTF_Font *font =
-      TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/"
-                   "kenvector_future.ttf",
-                   16);
+      FontManager::getInstance()->load("Bonus/kenvector_future.ttf", 16);
+  TextRenderer textRenderer(
+      font,
+      {.r = 255, .g = 255, .b = 255, .a = 255});
 
   int left = floor(cameraPosition.x / mEntitySize);
   int top = floor(cameraPosition.y / mEntitySize);
