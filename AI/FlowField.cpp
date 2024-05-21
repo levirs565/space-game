@@ -8,38 +8,43 @@ void FlowField::init(const Vec2 &worldSize, int entitySize) {
   mGrid.resize(mRowCount, std::vector<Node>(mColumnCount));
 }
 
-void FlowField::clearState() {
-  for (std::vector<Node> &row : mGrid) {
-    for (Node &cell : row) {
-      cell.isWalkable = true;
-    }
-  }
+void FlowField::addObstacle(GameEntity *entity) {
+  mObstacleMap[entity] = {
+    .left = 0,
+    .right = 0,
+    .top = 0,
+    .bottom = 0
+  };
+  moveObstacle(entity);
 }
 
-void FlowField::addObstacle(const Vec2 &centerPosition, int radius) {
-  int left =
-      floor(std::max((centerPosition.x - radius) / mEntitySize - 0.5, 0.0));
-  int top =
-      floor(std::max((centerPosition.y - radius) / mEntitySize - 0.5, 0.0));
-  int right = int(
-      round(std::max((centerPosition.x + radius) / mEntitySize + 0.5, 0.0)));
-  int bottom = int(
-      round(std::max((centerPosition.y + radius) / mEntitySize + 0.5, 0.0)));
+void FlowField::moveObstacle(GameEntity *entity) {
+  ObstacleData &data = mObstacleMap[entity];
 
-  if (left > mColumnCount || right > mColumnCount)
-    return;
-  if (top > mRowCount || bottom > mRowCount)
-    return;
+  for (int row = data.top; row < data.bottom; row++) {
+    for (int column = data.left; column < data.right; column++) {
+      mGrid[row][column].obstacleCount -= 1;
+    }
+  }
 
-  for (int row = top; row < bottom; row++) {
-    for (int column = left; column < right; column++) {
-      mGrid[row][column].isWalkable = false;
+  data.left = floor(
+      std::clamp(entity->x0 / mEntitySize, 0.0, double(mColumnCount) - 1));
+  data.top =
+      floor(std::clamp(entity->y0 / mEntitySize, 0.0, double(mRowCount) - 1));
+  data.right = int(
+      ceil(std::clamp(entity->x1 / mEntitySize, 0.0, double(mColumnCount))));
+  data.bottom =
+      int(ceil(std::clamp(entity->y1 / mEntitySize, 0.0, double(mRowCount))));
+
+  for (int row = data.top; row < data.bottom; row++) {
+    for (int column = data.left; column < data.right; column++) {
+      mGrid[row][column].obstacleCount += 1;
     }
   }
 }
 
 void FlowField::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
-              Vec2 &cameraSize) {
+                         Vec2 &cameraSize) {
   static TTF_Font *font =
       TTF_OpenFont("/home/levirs565/Unduhan/kenney_space-shooter-redux/Bonus/"
                    "kenvector_future.ttf",
@@ -75,7 +80,7 @@ void FlowField::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
       r.y = startY + (row - top) * mEntitySize;
       if (node.lineOfSight)
         SDL_SetRenderDrawColor(renderer, 255, 255, 0, 64);
-      else if (node.isWalkable)
+      else if (node.isWalkable())
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 64);
       else
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 64);
@@ -137,7 +142,8 @@ FlowField::getNeighbours(const NodePosition &position) {
 
 std::vector<FlowField::NodePosition>
 FlowField::getEdges(const NodePosition &position) {
-  static std::vector<NodePosition> edgeOffsets = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
+  static std::vector<NodePosition> edgeOffsets = {
+      {0, -1}, {-1, 0}, {1, 0}, {0, 1}};
 
   std::vector<NodePosition> neighbours;
 
@@ -156,7 +162,8 @@ FlowField::getEdges(const NodePosition &position) {
   return neighbours;
 }
 
-Vec2 FlowField::getDirection(const NodePosition &nodePosition, const Vec2 &direction) {
+Vec2 FlowField::getDirection(const NodePosition &nodePosition,
+                             const Vec2 &direction) {
   int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
   bool considerDirection = direction.length() > 0;
   if (currentCost == 0)
@@ -195,8 +202,8 @@ Vec2 FlowField::getDirection(const NodePosition &nodePosition, const Vec2 &direc
 }
 
 bool FlowField::addDirectionToSteering(const NodePosition &nodePosition,
-                            const Vec2 &direction, ContextSteeringMap &map,
-                            double scale) {
+                                       const Vec2 &direction,
+                                       ContextSteeringMap &map, double scale) {
   int currentCost = mGrid[nodePosition.first][nodePosition.second].cost;
 
   if (currentCost == std::numeric_limits<int>::max())
@@ -230,7 +237,7 @@ bool FlowField::addDirectionToSteering(const NodePosition &nodePosition,
 }
 
 bool FlowField::canWalk(const NodePosition &from, const NodePosition &to) {
-  if (!mGrid[to.first][to.second].isWalkable)
+  if (!mGrid[to.first][to.second].isWalkable())
     return false;
 
   int deltaRow = to.first - from.first;
@@ -242,11 +249,12 @@ bool FlowField::canWalk(const NodePosition &from, const NodePosition &to) {
   if (abs(deltaRow) > 1 || abs(deltaColumn) > 1)
     throw std::invalid_argument("node is too far");
 
-  return mGrid[from.first][to.second].isWalkable &&
-         mGrid[to.first][from.second].isWalkable;
+  return mGrid[from.first][to.second].isWalkable() &&
+         mGrid[to.first][from.second].isWalkable();
 }
 
-void FlowField::calculateLineOfSight(const NodePosition &from, const NodePosition &to) {
+void FlowField::calculateLineOfSight(const NodePosition &from,
+                                     const NodePosition &to) {
   const double deltaFirst = to.first - from.first;
   const double deltaSecond = to.second - from.second;
 
@@ -273,8 +281,8 @@ void FlowField::calculateLineOfSight(const NodePosition &from, const NodePositio
              .lineOfSight)
       hasLineOfSight = false;
     else if (deltaFirstAbs == deltaSecondAbs) {
-      if (!mGrid[from.first + deltaFirstSign][from.second].isWalkable ||
-          !mGrid[from.first][from.second + deltaSecondSign].isWalkable ==
+      if (!mGrid[from.first + deltaFirstSign][from.second].isWalkable() ||
+          !mGrid[from.first][from.second + deltaSecondSign].isWalkable() ==
               std::numeric_limits<int>::max()) {
         hasLineOfSight = false;
       }
@@ -297,7 +305,7 @@ void FlowField::generateHeatmap(const Vec2 &target) {
     }
   }
 
-  if (!mGrid[targetNodePos.first][targetNodePos.second].isWalkable)
+  if (!mGrid[targetNodePos.first][targetNodePos.second].isWalkable())
     return;
 
   std::vector<NodePosition> openSet;
@@ -329,11 +337,9 @@ void FlowField::generateHeatmap(const Vec2 &target) {
 
       int newCost = currentNode.cost + 1;
 
-      bool isQueued =
-          std::count(openSet.begin(), openSet.end(), neighbour) > 0;
+      bool isQueued = std::count(openSet.begin(), openSet.end(), neighbour) > 0;
       if (newCost < node.cost || !isQueued) {
         node.cost = newCost;
-        node.parentPosition = currentPos;
         if (!isQueued)
           openSet.push_back(neighbour);
       }

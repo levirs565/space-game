@@ -136,14 +136,13 @@ GameStageScreen::GameStageScreen(std::function<void(Event)> callback)
 
   mPathFinder.init(mWordSize, 110);
 
-  mPathFinder.clearState();
   for (std::vector<std::unique_ptr<GameEntity>>::iterator it =
            mEntityList.begin();
        it != mEntityList.end(); it++) {
     std::unique_ptr<GameEntity> &entity = *it;
     if (dynamic_cast<Meteor *>(entity.get()) == nullptr)
       continue;
-    mPathFinder.addObstacle(entity->position, entity->boundingRadius);
+    mPathFinder.addObstacle(entity.get());
   }
 
   mPathFinder.generateHeatmap(mPlayerShip->position);
@@ -259,6 +258,9 @@ void GameStageScreen::onUpdate() {
                 GameEntity::CollisionResponse::RejectBoth) {
           entity->position.add(collision.normal, -collision.depth / 2);
           entity->updateBoundingBox();
+          if (dynamic_cast<Meteor*>(entity) != nullptr) {
+            mPathFinder.moveObstacle(entity);
+          }
           mSAP.move(entity);
         }
       }
@@ -303,7 +305,7 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
   }
 
   mScoreLabel.draw(renderer);
-  // mPathFinder.drawGrid(mRenderer, mCameraPosition, mCameraSize);
+  mPathFinder.drawGrid(renderer, mCameraPosition, mCameraSize);
 }
 
 void GameStageScreen::onPostDraw() {
