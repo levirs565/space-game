@@ -111,6 +111,7 @@ public:
 
   void run() {
     while (!mIsExit) {
+      Uint32 nextFrameTick = SDL_GetTicks() + 16;
       prepareScene();
       processInput();
 
@@ -125,7 +126,11 @@ public:
         mNextScreen.reset();
       }
 
-      SDL_Delay(16);
+      Uint32 currentTick = SDL_GetTicks();
+      if (currentTick < nextFrameTick)
+        SDL_Delay(nextFrameTick - currentTick);
+      else
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Frame drop");
     }
   }
 
