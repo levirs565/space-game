@@ -190,19 +190,19 @@ void SAPDimension::addStabsToSet(size_t index,
 }
 
 std::pair<int, int> SAPDimension::binarySearch(double value) {
-  int start = 0, end = intervalList.size() - 1;
+  int start = 0, end = int(intervalList.size() - 1);
 
-  int lower = -1, upper = intervalList.size();
+  int lower = -1, upper = int(intervalList.size());
 
   while (start <= end) {
-    size_t mid = (start + end) / 2;
+    int mid = (start + end) / 2;
     double currentValue = intervalList[mid]->value;
 
     if (value == currentValue) {
       lower = mid;
       upper = mid;
 
-      size_t num = mid - 1;
+      int num = mid - 1;
       while (num > 0 && value == intervalList[num]->value) {
         lower = num;
         num--;
@@ -378,6 +378,9 @@ void SAP::update() {
 std::vector<GameEntity *> SAP::queryArea(double x0, double y0, double x1,
                                     double y1, bool enclosed) {
   int minScore = enclosed ? 3 : 0;
+  if (dimensionX.intervalList.size() > 0) {
+    dimensionX.binarySearch(dimensionX.intervalList[0]->value);
+  }
   auto [_xl, xi] = dimensionX.binarySearch(x0);
   auto [_yl, yi] = dimensionY.binarySearch(y0);
   std::unordered_map<GameEntity *, int> xSet, ySet;
