@@ -14,6 +14,7 @@ PlayerShip::PlayerShip(const Vec2 &position) : GameEntity(position, 25) {
                                          "Damage/playerShip3_damage3.png"));
 
   shieldTexture = manager->load("PNG/Effects/shield3.png");
+  updateBoundingBox();
 }
 
 void PlayerShip::setDirection(Direction direction, Rotation rotation) {

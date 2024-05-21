@@ -12,6 +12,7 @@
 Enemy::Enemy(const Vec2 &position) : GameEntity(position, 0) {
   collisionResponse = CollisionResponse::Repel;
   texture = TextureManager::getInstance()->load("PNG/Enemies/enemyBlack1.png");
+  updateBoundingBox();
 }
 
 void Enemy::onTick(IGameStage *stage) {
