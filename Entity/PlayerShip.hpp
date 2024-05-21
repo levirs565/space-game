@@ -16,9 +16,9 @@ public:
   Vec2 directionVector{0, 0};
   Uint32 lastFire = 0;
   int healthCount = 4;
-  Uint32 shieldActivationTime = 0;
+  Uint32 shieldActivationTime = SDL_GetTicks();
   Uint32 shieldDeactivationTIme = 0;
-  bool hasShield = false;
+  bool hasShield = true;
   std::vector<SDL_Texture *> damagedTexture;
   SDL_Texture * shieldTexture;
 

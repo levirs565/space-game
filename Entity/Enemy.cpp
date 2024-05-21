@@ -7,17 +7,16 @@
 #include "Laser.hpp"
 #include "Meteor.hpp"
 #include "PlayerShip.hpp"
+#include "PowerUpHealth.hpp"
 
-Enemy::Enemy(const Vec2 &position)
-    : GameEntity(position, 0) {
+Enemy::Enemy(const Vec2 &position) : GameEntity(position, 0) {
   texture = TextureManager::getInstance()->load("PNG/Enemies/enemyBlack1.png");
 }
 
 void Enemy::onTick(IGameStage *stage) {
   nearEntity = stage->getSAP()->queryArea(
       position.x - 3 * boundingRadius, position.y - 3 * boundingRadius,
-      position.x + 3 * boundingRadius, position.y + 3 * boundingRadius,
-      false);
+      position.x + 3 * boundingRadius, position.y + 3 * boundingRadius, false);
 
   contextSteering.clear();
 
@@ -41,6 +40,8 @@ void Enemy::onTick(IGameStage *stage) {
       continue;
     if (dynamic_cast<Laser *>(entity) != nullptr)
       continue;
+    if (dynamic_cast<PowerUpHealth *>(entity) != nullptr)
+      continue;
 
     Vec2 distanceVec{entity->position};
     distanceVec.substract(position);
@@ -53,8 +54,8 @@ void Enemy::onTick(IGameStage *stage) {
 
     for (const auto &[_, index] : contextSteering.dangerMap.withIndex()) {
       Vec2 ray = ContextSteeringMap::directionBy(index);
-      auto intersection = rayCircleIntersection(
-          position, ray, entity->position, entity->boundingRadius);
+      auto intersection = rayCircleIntersection(position, ray, entity->position,
+                                                entity->boundingRadius);
       if (intersection.has_value()) {
         Vec2 avoid = intersection.value();
         double length = avoid.length();
@@ -85,9 +86,9 @@ void Enemy::onTick(IGameStage *stage) {
     Vec2 distanceNormalized{distanceVector};
     distanceNormalized.normalize();
 
-    auto intersection =
-        rayCircleIntersection(position, direction, stage->getPlayerEntity()->position,
-                              stage->getPlayerEntity()->boundingRadius);
+    auto intersection = rayCircleIntersection(
+        position, direction, stage->getPlayerEntity()->position,
+        stage->getPlayerEntity()->boundingRadius);
     if (intersection.has_value()) {
       Vec2 playerPosition = stage->getPlayerEntity()->position;
       canAttack = true;
@@ -102,8 +103,7 @@ void Enemy::onTick(IGameStage *stage) {
         Vec2 to{playerPosition};
         to.add(perpendicularDistance, perpendicularShift);
 
-        for (SAPRay ray =
-                 stage->getSAP()->queryRay(from.x, from.y, to.x, to.y);
+        for (SAPRay ray = stage->getSAP()->queryRay(from.x, from.y, to.x, to.y);
              ray.next();) {
           if (ray.currentEntity == this) {
             continue;
@@ -112,7 +112,10 @@ void Enemy::onTick(IGameStage *stage) {
             break;
           }
           if (dynamic_cast<Laser *>(ray.currentEntity) != nullptr) {
-            break;
+            continue;
+          }
+          if (dynamic_cast<PowerUpHealth *>(ray.currentEntity) != nullptr) {
+            continue;
           }
           canAttack = false;
           break;

@@ -1,4 +1,5 @@
 #include "Laser.hpp"
+#include "PowerUpHealth.hpp"
 
 Laser::Laser(const Vec2 &position, double angle, const std::string &textureName)
     : GameEntity(position, angle) {
@@ -16,6 +17,8 @@ void Laser::onTick(IGameStage *stage) {
 
 void Laser::onHit(GameEntity *other) {
   if (dynamic_cast<Laser *>(other) != nullptr)
+    return;
+  if (dynamic_cast<PowerUpHealth*>(other) != nullptr)
     return;
   mustGone = true;
 }

@@ -10,6 +10,9 @@
 #include <map>
 #include "../UI/Button.hpp"
 #include "../UI/Column.hpp"
+#include "../UI/Label.hpp"
+#include "../UI/LRLabel.hpp"
+#include <array>
 
 class MainScreen : public IScreen {
 public:
@@ -17,6 +20,9 @@ public:
 
 private:
   Vec2 mSize;
+  Label mTitle {"Space"};
+  Label mDeveloper{"Kelompok 1"};
+  std::array<LRLabel, 5> mNamaArray;
   Button mStartButton{"Start"};
   Button mExitButton{"Exit"};
   Button mScoreListButton{"Score List"};
