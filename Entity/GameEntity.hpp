@@ -23,6 +23,7 @@ public:
 
   GameEntity(const Vec2 &position, double angle)
       : position(position), angle(angle) {}
+  virtual ~GameEntity() = default;
 
   SDL_Rect getRect() const;
 
