@@ -69,7 +69,7 @@ void SAPDimension::run() {
 
   std::sort(bufferList.begin(), bufferList.end(),
             [](const std::shared_ptr<Item> &a, const std::shared_ptr<Item> &b) {
-              return *(a.get()) < *(b.get());
+              return *a < *b;
             });
 
   while (i < intervalList.size()) {
@@ -91,7 +91,7 @@ void SAPDimension::run() {
         continue;
       }
 
-      if (*(newItem.get()) < *(item.get())) {
+      if (*newItem < *item) {
         if (isY) {
           processSets(newItem, setInsert, {&setInsert, &setInterval});
         }
@@ -115,8 +115,8 @@ void SAPDimension::run() {
     }
 
     std::shared_ptr<Item> v = std::move(intervalList[i]);
-    int k = i - 1;
-    while (k >= 0 && *(v.get()) < *(intervalList[k].get())) {
+    int k = int(i) - 1;
+    while (k >= 0 && *v < *(intervalList[k].get())) {
       swapCallback(intervalList[k], v);
       intervalList[k + 1] = std::move(intervalList[k]);
       k--;
@@ -293,7 +293,7 @@ bool SAPRay::next() {
     mYRay.findInternalHit(&mInternalHit);
   }
 
-  if (mInternalHit.size() > 0) {
+  if (!mInternalHit.empty()) {
     currentEntity = mInternalHit[0];
     mInternalHit.erase(mInternalHit.begin());
     return true;
@@ -378,9 +378,6 @@ void SAP::update() {
 std::vector<GameEntity *> SAP::queryArea(double x0, double y0, double x1,
                                     double y1, bool enclosed) {
   int minScore = enclosed ? 3 : 0;
-  if (dimensionX.intervalList.size() > 0) {
-    dimensionX.binarySearch(dimensionX.intervalList[0]->value);
-  }
   auto [_xl, xi] = dimensionX.binarySearch(x0);
   auto [_yl, yi] = dimensionY.binarySearch(y0);
   std::unordered_map<GameEntity *, int> xSet, ySet;
