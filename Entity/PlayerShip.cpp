@@ -1,5 +1,6 @@
 #include "PlayerShip.hpp"
 #include "../AssetManager.hpp"
+#include "Meteor.hpp"
 #include "PowerUpHealth.hpp"
 
 PlayerShip::PlayerShip(const Vec2 &position) : GameEntity(position, 25) {
@@ -54,18 +55,17 @@ void PlayerShip::onTick(IGameStage *stage) {
 }
 
 void PlayerShip::onHit(GameEntity *other) {
-  if (dynamic_cast<PowerUpHealth*>(other) != nullptr) {
+  if (dynamic_cast<PowerUpHealth *>(other) != nullptr) {
     healthCount = 4;
     return;
   }
-  if (Laser *laser = dynamic_cast<Laser *>(other); other != nullptr && !hasShield) {
-//    healthCount--;
+  if (Laser *laser = dynamic_cast<Laser *>(other);
+      laser != nullptr && !hasShield) {
+    healthCount--;
 
-    if (!hasShield) {
-      if (SDL_GetTicks() - shieldDeactivationTIme >= 1000) {
-        hasShield = true;
-        shieldActivationTime = SDL_GetTicks();
-      }
+    if (SDL_GetTicks() - shieldDeactivationTIme >= 1000) {
+      hasShield = true;
+      shieldActivationTime = SDL_GetTicks();
     }
   }
 }
