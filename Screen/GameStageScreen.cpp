@@ -305,7 +305,7 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
   }
 
   mScoreLabel.draw(renderer);
-  mPathFinder.drawGrid(renderer, mCameraPosition, mCameraSize);
+//  mPathFinder.drawGrid(renderer, mCameraPosition, mCameraSize);
 }
 
 void GameStageScreen::onPostDraw() {
