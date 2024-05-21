@@ -153,7 +153,7 @@ void GameStageScreen::spawnEnemy() {
   int angle = mRandomAngle(mRandomAngleEngine);
   Vec2 direction(1, 0);
   direction.rotate(double(angle) * M_PI / 180);
-  direction.scale(500);
+  direction.scale(800);
   Vec2 enemyPosition(mPlayerShip->position);
   enemyPosition.add(direction, 1);
   addEntity(std::move(std::make_unique<Enemy>(enemyPosition)));
