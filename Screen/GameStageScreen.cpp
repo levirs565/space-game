@@ -114,6 +114,8 @@ GameStageScreen::GameStageScreen(std::function<void(Event)> callback)
       mRandomHealthEngine(mRandomHealthDevice()) {
   mBackgroundTexture =
       TextureManager::getInstance()->load("Backgrounds/black.png");
+  mPlayerLifeTexture =
+      TextureManager::getInstance()->load("PNG/UI/playerLife3_blue.png");
 
   std::string laserSoundPath =
       AssetManager::getInstance()->getAsset("Bonus/sfx_laser1.ogg").string();
@@ -265,6 +267,12 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
     }
   }
 
+  SDL_Rect lifeIcon = {.x = 4, .y = 4};
+  SDL_QueryTexture(mPlayerLifeTexture, nullptr, nullptr, &lifeIcon.w, &lifeIcon.h);
+  for (int i = 1; i <= mPlayerShip->healthCount; i++)  {
+    SDL_RenderCopy(renderer, mPlayerLifeTexture, nullptr, &lifeIcon);
+    lifeIcon.x += lifeIcon.w + 4;
+  }
   // mPathFinder.drawGrid(mRenderer, mCameraPosition, mCameraSize);
 }
 
@@ -273,4 +281,3 @@ void GameStageScreen::onPostDraw() {
 }
 
 void GameStageScreen::onSizeChanged(const Vec2 &size) { mCameraSize = size; }
-

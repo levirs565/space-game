@@ -13,6 +13,7 @@
 
 class GameStageScreen : public IScreen, public IGameStage {
   SDL_Texture *mBackgroundTexture;
+  SDL_Texture *mPlayerLifeTexture;
   PlayerShip *mPlayerShip;
   std::vector<std::unique_ptr<GameEntity>> mEntityList;
   FlowField mPathFinder;
