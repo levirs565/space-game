@@ -13,15 +13,17 @@
 
 class MainScreen : public IScreen {
 public:
-  enum class Event { Exit, Start };
+  enum class Event { Exit, Start, ScoreList };
 
 private:
   Vec2 mSize;
   Button mStartButton{"Start"};
   Button mExitButton{"Exit"};
+  Button mScoreListButton{"Score List"};
   Column mColumn;
   std::map<View*, Event> mEventMap = {
       {&mStartButton, Event::Start},
+      {&mScoreListButton, Event::ScoreList},
       {&mExitButton, Event::Exit}
   };
 

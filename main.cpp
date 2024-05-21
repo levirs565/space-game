@@ -16,7 +16,7 @@
 #include "SAP.hpp"
 #include "Screen/GameOverScreen.hpp"
 #include "Screen/GamePauseScreen.hpp"
-#include "Screen/GameStageScreen.hpp"
+#include "Screen/ScoreListScreen.hpp"
 #include "Screen/GameScreen.hpp"
 #include "Screen/MainScreen.hpp"
 
@@ -68,8 +68,18 @@ public:
           this->mIsExit = true;
         } else if (event == MainScreen::Event::Start) {
           mNextScreen = createGameScreen();
+        } else if (event == MainScreen::Event::ScoreList) {
+          mNextScreen = createScoreListScreen();
         }
       });
+  }
+
+  std::unique_ptr<IScreen> createScoreListScreen() {
+    return std::make_unique<ScoreListScreen>([this] (auto event) {
+      if (event == ScoreListScreen::Event::Back) {
+        mNextScreen = createMain();
+      }
+    });
   }
 
   std::unique_ptr<IScreen> createGameScreen() {

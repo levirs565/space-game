@@ -11,8 +11,14 @@ protected:
   SDL_Rect calculateRect(const Vec2& size);
   SDL_Rect calculateTextureRect(SDL_Texture *texture, double scale);
 public:
+  virtual ~View() = default;
+
   void setCenterPosition(const Vec2& centerPosition) {
     mCenterPosition = centerPosition;
+  }
+
+  Vec2 getCenterPosition() {
+    return mCenterPosition;
   }
 
   bool isPointInside(SDL_Point point);
