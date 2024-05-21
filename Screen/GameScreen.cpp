@@ -53,6 +53,7 @@ GameScreen::GameScreen(std::function<void(Event)> callback)
       }),
       mStageScreen([this](GameStageScreen::Event event) {
         if (event == GameStageScreen::Event::GameOver) {
+          mGameOverScreen.setScore(mStageScreen.getScore());
           mIsGameOver = true;
         }
       }),

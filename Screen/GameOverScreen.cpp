@@ -1,9 +1,11 @@
 #include "GameOverScreen.hpp"
 #include "../AssetManager.hpp"
 #include "../SDLHelper.hpp"
+#include "../ScoreListManager.hpp"
 
 GameOverScreen::GameOverScreen(std::function<void(Event)> callback): mCallback(std::move(callback)) {
   mColumn.viewList.push_back(&mGameOverLabel);
+  mColumn.viewList.push_back(&mScoreLabel);
   mColumn.viewList.push_back(&mMessageLabel);
   mColumn.viewList.push_back(&mNameInput);
   mColumn.viewList.push_back(&mButton);
@@ -27,8 +29,12 @@ void GameOverScreen::onSDLEvent(const SDL_Event &event) {
   if (event.type == SDL_MOUSEBUTTONDOWN &&
       event.button.button == SDL_BUTTON_LEFT) {
     View *clickedView = mColumn.findByPoint({event.button.x, event.button.y});
-    if (clickedView == &mButton)
+    if (clickedView == &mButton) {
+      std::string name = mNameInput.getText();
+      if (name.empty()) name = "<Anonymous>";
+      ScoreListManager::addScore(name, mScore);
       mCallback(Event::Quit);
+    }
   }
 }
 void GameOverScreen::onUpdate() {
@@ -42,3 +48,9 @@ void GameOverScreen::onDraw(SDL_Renderer *renderer) {
   mColumn.draw(renderer);
 }
 void GameOverScreen::onPostDraw() {}
+
+void GameOverScreen::setScore(int score) {
+  mScore = score;
+  mScoreLabel.setText("Score: " + std::to_string(score));
+  mColumn.layout(mFillSize);
+}
