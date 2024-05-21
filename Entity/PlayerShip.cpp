@@ -3,6 +3,7 @@
 #include "PowerUpHealth.hpp"
 
 PlayerShip::PlayerShip(const Vec2 &position) : GameEntity(position, 25) {
+  collisionResponse = CollisionResponse::Repel;
   TextureManager *manager = TextureManager::getInstance();
   texture = manager->load("PNG/playerShip3_blue.png");
   damagedTexture.push_back(manager->load("PNG/"
@@ -57,7 +58,7 @@ void PlayerShip::onHit(GameEntity *other) {
     return;
   }
   if (Laser *laser = dynamic_cast<Laser *>(other); other != nullptr && !hasShield) {
-    healthCount--;
+//    healthCount--;
 
     if (!hasShield) {
       if (SDL_GetTicks() - shieldDeactivationTIme >= 1000) {

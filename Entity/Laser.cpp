@@ -3,6 +3,7 @@
 
 Laser::Laser(const Vec2 &position, double angle, const std::string &textureName)
     : GameEntity(position, angle) {
+  collisionResponse = CollisionResponse::RejectBoth;
   texture =
       TextureManager::getInstance()->load("PNG/Lasers/" + textureName + ".png");
   directionVector.rotate(angle * M_PI / 180.0);

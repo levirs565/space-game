@@ -245,11 +245,27 @@ void GameStageScreen::onUpdate() {
 
   for (auto &[entity, collisionSet] : mSAP.getCollisionMap()) {
     for (auto otherEntity : collisionSet) {
-      if (isPolygonCollide(entity->boundingBox, otherEntity->boundingBox)) {
+      PolygonCollision collision = calculatePolygonCollision(
+          entity->boundingBox, otherEntity->boundingBox);
+      if (collision.isCollide) {
+        if (entity == otherEntity) {
+          //          SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Aneh");
+          continue;
+        }
         entity->onHit(otherEntity);
+        if (entity->collisionResponse !=
+                GameEntity::CollisionResponse::RejectBoth &&
+            otherEntity->collisionResponse !=
+                GameEntity::CollisionResponse::RejectBoth) {
+          entity->position.add(collision.normal, -collision.depth / 2);
+          entity->updateBoundingBox();
+          mSAP.move(entity);
+        }
       }
     }
   }
+
+  mSAP.update();
 
   if (mPlayerShip->healthCount <= 0)
     mCallback(Event::GameOver);
@@ -300,8 +316,5 @@ void GameStageScreen::onSizeChanged(const Vec2 &size) {
 }
 void GameStageScreen::layoutScoreLabel() {
   Vec2 size = mScoreLabel.getLayoutSize();
-  mScoreLabel.setCenterPosition({
-      mCameraSize.x - size.x / 2,
-      size.y / 2
-  });
+  mScoreLabel.setCenterPosition({mCameraSize.x - size.x / 2, size.y / 2});
 }

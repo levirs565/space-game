@@ -9,6 +9,10 @@
 
 class GameEntity {
 public:
+  enum class CollisionResponse {
+    Repel, RejectBoth };
+
+  CollisionResponse collisionResponse;
   SDL_Texture *texture;
   Vec2 position;
   double angle;
