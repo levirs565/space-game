@@ -1,24 +1,47 @@
 #include "SAP.hpp"
+#include <iostream>
 
 void SAPDimension::swapCallback(std::shared_ptr<Item> &item2, std::shared_ptr<Item> &item1) {
     GameEntity *entity1 = item1->entity;
     GameEntity *entity2 = item2->entity;
 
     if (item1->interval == 0 && item2->interval == 1) {
+      // 0      1      0        1
+      // [item2 item2][item1 item1]
+      // 0      1      2        1]
+      // [item2 [item1 item2] item1]
+
       setPair(entity1, entity2);
 
       item2->stabs++;
       item1->stabs++;
     } else if (item1->interval == 1 && item2->interval == 0) {
+      // 0      1      2      1
+      // [item1 [item2 item1] item2]
+      // 0      1      0      1
+      // [item1 item1] [item2 item2
+
       (*mCollisionMap)[entity1].erase(entity2);
       (*mCollisionMap)[entity2].erase(entity1);
 
       item2->stabs--;
       item1->stabs--;
     } else {
+      // First possibility
+      // 0      1
+      // [item2 [item1
+      // 0      1
+      // [item1 [item2
+
+      // Second possibility
+      // n      n - 1
+      // item2] item1]
+      // n      n - 1
+      // item1] item2]
+
+
       std::swap(item1->stabs, item2->stabs);
     }
-
 }
 
 void SAPDimension::setStabs(size_t i) {
@@ -110,7 +133,7 @@ void SAPDimension::run() {
     if (checkStab)
       setStabs(i);
 
-    if (j < bufferList.size() && isY) {
+    if (hasNew && isY) {
       processSets(item, setInterval, {&setInsert});
     }
 
@@ -148,13 +171,6 @@ void SAPDimension::run() {
   }
 
   bufferList.clear();
-
-  double prev = std::numeric_limits<double>::lowest();
-  for (const std::shared_ptr<Item> &item : intervalList) {
-    if (item->value < prev)
-      throw std::domain_error("Sorting faield");
-    prev = item->value;
-  }
 }
 
 std::vector<size_t> SAPDimension::iterateStabs(size_t index) {

@@ -12,13 +12,373 @@ entityList: {
     type: Brown_big2 
   }
   Meteor {
-    x: 637.27563
-    y: 151.96944
+    x: 814.71307
+    y: 183.13927
     type: Brown_big3 
   }
   Meteor {
-    x: 926.00299
-    y: 436.73157
+    x: 866.92969
+    y: 508.59064
     type: Brown_big4 
+  }
+  Meteor {
+    x: 1120.3981
+    y: 3313.1123
+    type: Grey_big1 
+  }
+  Meteor {
+    x: 2555.8003
+    y: 2722.7642
+    type: Grey_big2 
+  }
+  Meteor {
+    x: 1927.4913
+    y: 2364.4956
+    type: Grey_big3 
+  }
+  Meteor {
+    x: 3216.1997
+    y: 2580.3809
+    type: Grey_big4 
+  }
+  Meteor {
+    x: 2470.3931
+    y: 2159.7805
+    type: Grey_med1 
+  }
+  Meteor {
+    x: 2464.2476
+    y: 2230.2786
+    type: Grey_med2 
+  }
+  Meteor {
+    x: 1370.5101
+    y: 222.36223
+    type: Brown_med1 
+  }
+  Meteor {
+    x: 1361.3259
+    y: 178.86716
+    type: Brown_med3 
+  }
+  Meteor {
+    x: 1965.989
+    y: 279.49799
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 1320.672
+    y: 983.29248
+    type: Brown_big2 
+  }
+  Meteor {
+    x: 2698.1855
+    y: 133.15786
+    type: Brown_big3 
+  }
+  Meteor {
+    x: 2240.1396
+    y: 679.14484
+    type: Brown_big4 
+  }
+  Meteor {
+    x: 2859.7505
+    y: 489.9256
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 3539.1633
+    y: 152.5844
+    type: Brown_big2 
+  }
+  Meteor {
+    x: 4057.8447
+    y: 407.27563
+    type: Brown_big4 
+  }
+  Meteor {
+    x: 2998.6643
+    y: 2078.9004
+    type: Grey_big1 
+  }
+  Meteor {
+    x: 3669.5332
+    y: 1859.8048
+    type: Grey_big2 
+  }
+  Meteor {
+    x: 4069.4702
+    y: 2113.6431
+    type: Grey_big3 
+  }
+  Meteor {
+    x: 4865.1733
+    y: 2365.3235
+    type: Grey_big4 
+  }
+  Meteor {
+    x: 1184.1895
+    y: 2553.582
+    type: Grey_med1 
+  }
+  Meteor {
+    x: 1187.3127
+    y: 2594.7622865
+    type: Grey_med2 
+  }
+  Meteor {
+    x: 727.88147
+    y: 928.10376
+    type: Brown_big3 
+  }
+  Meteor {
+    x: 122.874298
+    y: 2018.7695
+    type: Brown_big4 
+  }
+  Meteor {
+    x: 558.28009
+    y: 1478.568
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 165.60975
+    y: 2874.2063
+    type: Grey_big1 
+  }
+  Meteor {
+    x: 620.80182
+    y: 3072.6716
+    type: Grey_big2 
+  }
+  Meteor {
+    x: 518.50439
+    y: 2516.9788
+    type: Grey_big3 
+  }
+  Meteor {
+    x: 1248.7632
+    y: 2910.8113
+    type: Grey_big4 
+  }
+  Meteor {
+    x: 1051.60004
+    y: 1961.3253
+    type: Brown_big2 
+  }
+  Meteor {
+    x: 1496.257
+    y: 1547.135
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 2599.53
+    y: 1164.9078
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 3024.488
+    y: 984.98578
+    type: Brown_big3 
+  }
+  Meteor {
+    x: 2288.5535
+    y: 1616.2208
+    type: Brown_big4 
+  }
+  Meteor {
+    x: 3095.1765
+    y: 1418.4607
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 3661.2253
+    y: 996.76703
+    type: Brown_big2 
+  }
+  Meteor {
+    x: 3917.0051
+    y: 1323.3549
+    type: Brown_big4 
+  }
+  Meteor {
+    x: 4421.1572
+    y: 131.39373
+    type: Brown_big2 
+  }
+  Meteor {
+    x: 4658.3057
+    y: 550.77637
+    type: Brown_big4 
+  }
+  Meteor {
+    x: 4379.7666
+    y: 879.10352
+    type: Brown_big2 
+  }
+  Meteor {
+    x: 4675.3325
+    y: 1379.7992
+    type: Brown_big4 
+  }
+  Meteor {
+    x: 864.23517
+    y: 4297.3623
+    type: Grey_big1 
+  }
+  Meteor {
+    x: 1223.0603
+    y: 3766.9717
+    type: Grey_med1 
+  }
+  Meteor {
+    x: 1226.1836
+    y: 3808.1518865
+    type: Grey_med2 
+  }
+  Meteor {
+    x: 306.15984
+    y: 3931.3369
+    type: Grey_big1 
+  }
+  Meteor {
+    x: 300.15199
+    y: 4309.2529
+    type: Grey_big2 
+  }
+  Meteor {
+    x: 540.73605
+    y: 3570.0491
+    type: Grey_big3 
+  }
+  Meteor {
+    x: 1287.634
+    y: 4124.2009
+    type: Grey_big4 
+  }
+  Meteor {
+    x: 1955.4764
+    y: 3027.8677
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 1646.8174
+    y: 2427.0432
+    type: Brown_big2 
+  }
+  Meteor {
+    x: 2976.7009
+    y: 2935.9377
+    type: Brown_big3 
+  }
+  Meteor {
+    x: 2981.5786
+    y: 3640.0654
+    type: Brown_big4 
+  }
+  Meteor {
+    x: 3463.2769
+    y: 3152.2527
+    type: Brown_med1 
+  }
+  Meteor {
+    x: 3454.0928
+    y: 3108.7576
+    type: Brown_med3 
+  }
+  Meteor {
+    x: 4127.9771
+    y: 3032.2964
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 3387.8855
+    y: 3969.3464
+    type: Brown_big2 
+  }
+  Meteor {
+    x: 2364.7571
+    y: 4136.5967
+    type: Brown_big3 
+  }
+  Meteor {
+    x: 2284.8623
+    y: 4771.5679
+    type: Brown_big4 
+  }
+  Meteor {
+    x: 2211.2549
+    y: 3654.5356
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 3213.58805
+    y: 4714.1235
+    type: Brown_big2 
+  }
+  Meteor {
+    x: 3807.542
+    y: 4380.521
+    type: Brown_big1 
+  }
+  Meteor {
+    x: 4005.3147
+    y: 3534.0798
+    type: Grey_big1 
+  }
+  Meteor {
+    x: 4669.9155
+    y: 3403.873
+    type: Grey_big2 
+  }
+  Meteor {
+    x: 4567.6182
+    y: 2848.1802
+    type: Grey_big3 
+  }
+  Meteor {
+    x: 4355.2734
+    y: 4262.5386
+    type: Grey_big1 
+  }
+  Meteor {
+    x: 4349.2656
+    y: 4640.4546
+    type: Grey_big2 
+  }
+  Meteor {
+    x: 4589.8496
+    y: 3901.2505
+    type: Grey_big3 
+  }
+  Meteor {
+    x: 1267.1343
+    y: 4643.2598
+    type: Grey_big1 
+  }
+  Meteor {
+    x: 1690.5332
+    y: 4470.0981
+    type: Grey_big4 
+  }
+  Meteor {
+    x: 1763.8354
+    y: 3830.9749
+    type: Grey_big1 
+  }
+  Meteor {
+    x: 1648.7435
+    y: 3319.0637
+    type: Grey_big4 
+  }
+  Meteor {
+    x: 4382.4214
+    y: 2407.1875
+    type: Brown_big4 
+  }
+  Meteor {
+    x: 4620.0151
+    y: 2023.168
+    type: Brown_big2 
   }
 }
