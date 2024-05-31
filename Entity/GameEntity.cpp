@@ -1,5 +1,7 @@
 #include "GameEntity.hpp"
 
+size_t GameEntity::sNextId = 0;
+
 void GameEntity::drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition,
                              SDL_Texture *texture) {
   SDL_Rect rect;

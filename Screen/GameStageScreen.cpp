@@ -251,17 +251,30 @@ void GameStageScreen::onUpdate() {
           //          SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Aneh");
           continue;
         }
+
         entity->onHit(otherEntity);
+        otherEntity->onHit(entity);
+
         if (entity->collisionResponse !=
                 GameEntity::CollisionResponse::RejectBoth &&
             otherEntity->collisionResponse !=
                 GameEntity::CollisionResponse::RejectBoth) {
+
           entity->position.add(collision.normal, -collision.depth / 2);
           entity->updateBoundingBox();
+
+          otherEntity->position.add(collision.normal, collision.depth / 2);
+          otherEntity->updateBoundingBox();
+
           if (dynamic_cast<Meteor*>(entity) != nullptr) {
             mPathFinder.moveObstacle(entity);
           }
           mSAP.move(entity);
+
+          if (dynamic_cast<Meteor*>(otherEntity) != nullptr) {
+            mPathFinder.moveObstacle(otherEntity);
+          }
+          mSAP.move(otherEntity);
         }
       }
     }

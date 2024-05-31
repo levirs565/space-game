@@ -1,47 +1,66 @@
 #include "SAP.hpp"
 #include <iostream>
 
-void SAPDimension::swapCallback(std::shared_ptr<Item> &item2, std::shared_ptr<Item> &item1) {
-    GameEntity *entity1 = item1->entity;
-    GameEntity *entity2 = item2->entity;
+namespace SAPCollisionMapHelper {
+void orderEntityForKey(GameEntity *&entity1, GameEntity *&entity2) {
+  if (entity1->getId() > entity2->getId()) {
+    std::swap(entity1, entity2);
+  }
+}
 
-    if (item1->interval == 0 && item2->interval == 1) {
-      // 0      1      0        1
-      // [item2 item2][item1 item1]
-      // 0      1      2        1]
-      // [item2 [item1 item2] item1]
+void removeCollision(SAPCollisionMap &map, GameEntity *entity1,
+                    GameEntity *entity2) {
+  orderEntityForKey(entity1, entity2);
+  map[entity1].erase(entity2);
+}
 
-      setPair(entity1, entity2);
+void addCollision(SAPCollisionMap &map, GameEntity *entity1,
+                  GameEntity *entity2) {
+  orderEntityForKey(entity1, entity2);
+  map[entity1].insert(entity2);
+}
+} // namespace SAPCollisionMapHelper
 
-      item2->stabs++;
-      item1->stabs++;
-    } else if (item1->interval == 1 && item2->interval == 0) {
-      // 0      1      2      1
-      // [item1 [item2 item1] item2]
-      // 0      1      0      1
-      // [item1 item1] [item2 item2
+void SAPDimension::swapCallback(std::shared_ptr<Item> &item2,
+                                std::shared_ptr<Item> &item1) {
+  GameEntity *entity1 = item1->entity;
+  GameEntity *entity2 = item2->entity;
 
-      (*mCollisionMap)[entity1].erase(entity2);
-      (*mCollisionMap)[entity2].erase(entity1);
+  if (item1->interval == 0 && item2->interval == 1) {
+    // 0      1      0        1
+    // [item2 item2][item1 item1]
+    // 0      1      2        1]
+    // [item2 [item1 item2] item1]
 
-      item2->stabs--;
-      item1->stabs--;
-    } else {
-      // First possibility
-      // 0      1
-      // [item2 [item1
-      // 0      1
-      // [item1 [item2
+    setPair(entity1, entity2);
 
-      // Second possibility
-      // n      n - 1
-      // item2] item1]
-      // n      n - 1
-      // item1] item2]
+    item2->stabs++;
+    item1->stabs++;
+  } else if (item1->interval == 1 && item2->interval == 0) {
+    // 0      1      2      1
+    // [item1 [item2 item1] item2]
+    // 0      1      0      1
+    // [item1 item1] [item2 item2
 
+    SAPCollisionMapHelper::removeCollision(*mCollisionMap, entity1, entity2);
 
-      std::swap(item1->stabs, item2->stabs);
-    }
+    item2->stabs--;
+    item1->stabs--;
+  } else {
+    // First possibility
+    // 0      1
+    // [item2 [item1
+    // 0      1
+    // [item1 [item2
+
+    // Second possibility
+    // n      n - 1
+    // item2] item1]
+    // n      n - 1
+    // item1] item2]
+
+    std::swap(item1->stabs, item2->stabs);
+  }
 }
 
 void SAPDimension::setStabs(size_t i) {
@@ -60,8 +79,7 @@ void SAPDimension::setStabs(size_t i) {
 void SAPDimension::setPair(GameEntity *entity1, GameEntity *entity2) {
   if (entity1->x0 < entity2->x1 && entity1->x1 > entity2->x0 &&
       entity1->y0 < entity2->y1 && entity1->y1 > entity2->y0) {
-    (*mCollisionMap)[entity1].insert(entity2);
-    (*mCollisionMap)[entity2].insert(entity1);
+    SAPCollisionMapHelper::addCollision(*mCollisionMap, entity1, entity2);
   }
 }
 
@@ -244,8 +262,9 @@ std::pair<int, int> SAPDimension::binarySearch(double value) {
   return {lower, upper};
 }
 
-SAPRayDimension::SAPRayDimension(SAPDimension *dimension, double from, double to,
-                std::unordered_map<GameEntity *, int> *hitMap)
+SAPRayDimension::SAPRayDimension(SAPDimension *dimension, double from,
+                                 double to,
+                                 std::unordered_map<GameEntity *, int> *hitMap)
     : startValue{from}, currentDimension{dimension}, hitMap{hitMap} {
   deltaValue = to - from;
   auto [lower, upper] = dimension->binarySearch(from);
@@ -266,8 +285,7 @@ SAPRayDimension::SAPRayDimension(SAPDimension *dimension, double from, double to
 
 void SAPRayDimension::recalculateDRatio() {
   double value =
-      currentIndex >= 0 &&
-              currentIndex < currentDimension->intervalList.size()
+      currentIndex >= 0 && currentIndex < currentDimension->intervalList.size()
           ? currentDimension->intervalList[currentIndex]->value
           : std::copysign(std::numeric_limits<double>::infinity(), step);
   dRatio = (value - startValue) / deltaValue;
@@ -341,8 +359,7 @@ void SAP::add(GameEntity *entity) {
   Item item{.x0 = std::make_shared<SAPDimension::Item>(entity->x0, 0, entity),
             .y0 = std::make_shared<SAPDimension::Item>(entity->y0, 0, entity),
             .x1 = std::make_shared<SAPDimension::Item>(entity->x1, 1, entity),
-            .y1 =
-                std::make_shared<SAPDimension::Item>(entity->y1, 1, entity)};
+            .y1 = std::make_shared<SAPDimension::Item>(entity->y1, 1, entity)};
 
   dimensionX.bufferList.push_back(item.x0);
   dimensionX.bufferList.push_back(item.x1);
@@ -392,7 +409,7 @@ void SAP::update() {
 }
 
 std::vector<GameEntity *> SAP::queryArea(double x0, double y0, double x1,
-                                    double y1, bool enclosed) {
+                                         double y1, bool enclosed) {
   int minScore = enclosed ? 3 : 0;
   auto [_xl, xi] = dimensionX.binarySearch(x0);
   auto [_yl, yi] = dimensionY.binarySearch(y0);
@@ -419,8 +436,7 @@ std::vector<GameEntity *> SAP::queryArea(double x0, double y0, double x1,
 
   std::vector<GameEntity *> result;
   for (auto [entity, xScore] : xSet) {
-    if (ySet.contains(entity) && xScore > minScore &&
-        ySet[entity] > minScore) {
+    if (ySet.contains(entity) && xScore > minScore && ySet[entity] > minScore) {
       result.push_back(entity);
     }
   }

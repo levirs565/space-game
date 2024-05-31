@@ -8,9 +8,12 @@
 #include "../Math/Vec2.hpp"
 
 class GameEntity {
+private:
+  size_t mId;
+  static size_t sNextId;
+
 public:
-  enum class CollisionResponse {
-    Repel, RejectBoth };
+  enum class CollisionResponse { Repel, RejectBoth };
 
   CollisionResponse collisionResponse;
   SDL_Texture *texture;
@@ -22,7 +25,7 @@ public:
   double x0, y0, x1, y1;
 
   GameEntity(const Vec2 &position, double angle)
-      : position(position), angle(angle) {}
+      : position(position), angle(angle), mId(sNextId++) {}
   virtual ~GameEntity() = default;
 
   SDL_Rect getRect() const;
@@ -34,6 +37,8 @@ public:
   virtual void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition);
   virtual void onHit(GameEntity *other) {}
   void updateBoundingBox();
+
+  size_t getId() { return mId; };
 };
 
 #endif // SPACE_GAMEENTITY_HPP
