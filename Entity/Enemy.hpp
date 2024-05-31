@@ -20,7 +20,7 @@ public:
 
   void onTick(IGameStage *stage) override;
   void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) override;
-  void onHit(GameEntity *other) override;
+  void onHit(IGameStage *stage, GameEntity *other) override;
 };
 
 #endif // SPACE_ENEMY_HPP

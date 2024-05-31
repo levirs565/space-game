@@ -35,7 +35,7 @@ public:
   void drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition,
                    SDL_Texture *texture);
   virtual void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition);
-  virtual void onHit(GameEntity *other) {}
+  virtual void onHit(IGameStage *stage, GameEntity *other) {}
   void updateBoundingBox();
 
   size_t getId() { return mId; };

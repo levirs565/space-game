@@ -7,7 +7,7 @@ PowerUpHealth::PowerUpHealth(const Vec2 &position) : GameEntity(position, 0) {
   texture = TextureManager::getInstance()->load("PNG/Power-ups/pill_blue.png");
   updateBoundingBox();
 }
-void PowerUpHealth::onHit(GameEntity *other) {
+void PowerUpHealth::onHit(IGameStage *stage, GameEntity *other) {
   if (dynamic_cast<PlayerShip*>(other) != nullptr)
     mustGone = true;
 }

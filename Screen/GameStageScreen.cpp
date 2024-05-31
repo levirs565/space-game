@@ -171,6 +171,15 @@ void GameStageScreen::spawnHealth() {
 }
 
 void GameStageScreen::onUpdate() {
+  if (mLastGameTickUpdate == 0) {
+    mLastGameTickUpdate = SDL_GetTicks();
+    return;
+  }
+
+  Uint32 currentTick = SDL_GetTicks();
+  mGameTick += currentTick - mLastGameTickUpdate;
+  mLastGameTickUpdate = currentTick;
+
   mPlayerShip->setDirection(mIsUp     ? PlayerShip::DIRECTION_UP
                             : mIsDown ? PlayerShip::DIRECTION_DOWN
                                       : PlayerShip::DIRECTION_NONE,
@@ -191,21 +200,21 @@ void GameStageScreen::onUpdate() {
     // terhadap entity sehingga entity berada dalam keadaan invalid
   }
 
-  if (SDL_GetTicks() - mEnemyLastSpawn >= mEnemySpawnDelay) {
+  if (getTick() - mEnemyLastSpawn >= mEnemySpawnDelay) {
     spawnEnemy();
-    mEnemyLastSpawn = SDL_GetTicks();
+    mEnemyLastSpawn = getTick();
     mSpawnedCount++;
   }
 
-  if (SDL_GetTicks() - mEnemyLastSpawnMultiplier >= 10000 &&
+  if (getTick() - mEnemyLastSpawnMultiplier >= 10000 &&
       mEnemySpawnDelay >= 1000) {
     mEnemySpawnDelay -= 200;
-    mEnemyLastSpawnMultiplier = SDL_GetTicks();
+    mEnemyLastSpawnMultiplier = getTick();
   }
 
-  if (SDL_GetTicks() - mHealthLastSpawn >= mHealthSpawnDelay) {
+  if (getTick() - mHealthLastSpawn >= mHealthSpawnDelay) {
     spawnHealth();
-    mHealthLastSpawn = SDL_GetTicks();
+    mHealthLastSpawn = getTick();
   }
 
   for (std::unique_ptr<GameEntity> &entity : mEntityList) {
@@ -237,8 +246,6 @@ void GameStageScreen::onUpdate() {
 
   mSAP.update();
 
-  calculateCamera();
-
   if (mIsFire)
     mPlayerShip->doFire(this);
 
@@ -252,8 +259,8 @@ void GameStageScreen::onUpdate() {
           continue;
         }
 
-        entity->onHit(otherEntity);
-        otherEntity->onHit(entity);
+        entity->onHit(this, otherEntity);
+        otherEntity->onHit(this, entity);
 
         if (entity->collisionResponse !=
                 GameEntity::CollisionResponse::RejectBoth &&
@@ -281,6 +288,7 @@ void GameStageScreen::onUpdate() {
   }
 
   mSAP.update();
+  calculateCamera();
 
   if (mPlayerShip->healthCount <= 0)
     mCallback(Event::GameOver);

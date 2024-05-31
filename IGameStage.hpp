@@ -25,6 +25,8 @@ public:
   virtual const Vec2& getCameraPosition() = 0;
 
   virtual const Vec2& getCameraSize() = 0;
+
+  virtual Uint32 getTick() const = 0;
 };
 
 #endif // SPACE_IGAMESTAGE_HPP

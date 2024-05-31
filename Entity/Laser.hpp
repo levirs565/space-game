@@ -11,7 +11,7 @@ public:
 
   Laser(const Vec2 &position, double angle, const std::string & textureName);
   void onTick(IGameStage *stage) override;
-  void onHit(GameEntity *other) override;
+  void onHit(IGameStage *stage, GameEntity *other) override;
 };
 
 #endif // SPACE_LASER_HPP

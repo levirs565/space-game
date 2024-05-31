@@ -16,7 +16,7 @@ public:
   Vec2 directionVector{0, 0};
   Uint32 lastFire = 0;
   int healthCount = 4;
-  Uint32 shieldActivationTime = SDL_GetTicks();
+  Uint32 shieldActivationTime = 0;
   Uint32 shieldDeactivationTIme = 0;
   bool hasShield = true;
   std::vector<SDL_Texture *> damagedTexture;
@@ -25,7 +25,7 @@ public:
   explicit PlayerShip(const Vec2 &position);
   void setDirection(Direction direction, Rotation rotation);
   void onTick(IGameStage *stage) override;
-  void onHit(GameEntity *other) override;
+  void onHit(IGameStage *stage, GameEntity *other) override;
   void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) override;
   void doFire(IGameStage *stage);
 };

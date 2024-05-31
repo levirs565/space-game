@@ -48,13 +48,13 @@ void PlayerShip::onTick(IGameStage *stage) {
 
   updateBoundingBox();
 
-  if (hasShield && SDL_GetTicks() - shieldActivationTime >= 5000) {
+  if (hasShield && stage->getTick() - shieldActivationTime >= 5000) {
     hasShield = false;
-    shieldDeactivationTIme = SDL_GetTicks();
+    shieldDeactivationTIme = stage->getTick();
   }
 }
 
-void PlayerShip::onHit(GameEntity *other) {
+void PlayerShip::onHit(IGameStage *stage, GameEntity *other) {
   if (dynamic_cast<PowerUpHealth *>(other) != nullptr) {
     healthCount = 4;
     return;
@@ -63,9 +63,9 @@ void PlayerShip::onHit(GameEntity *other) {
       laser != nullptr && !hasShield) {
     healthCount--;
 
-    if (SDL_GetTicks() - shieldDeactivationTIme >= 1000) {
+    if (stage->getTick() - shieldDeactivationTIme >= 1000) {
       hasShield = true;
-      shieldActivationTime = SDL_GetTicks();
+      shieldActivationTime = stage->getTick();
     }
   }
 }
@@ -81,12 +81,12 @@ void PlayerShip::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
 }
 
 void PlayerShip::doFire(IGameStage *stage) {
-  if ((SDL_GetTicks() - lastFire >= 500)) {
+  if ((stage->getTick() - lastFire >= 500)) {
     SDL_Rect rect = getRect();
     Vec2 laserPos(0, -rect.h);
     laserPos.rotate(angle * M_PI / 180.0);
     laserPos.add(position, 1);
     stage->addLaser(laserPos, angle, "laserBlue01");
-    lastFire = SDL_GetTicks();
+    lastFire = stage->getTick();
   }
 }

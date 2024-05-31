@@ -183,14 +183,14 @@ void Enemy::onTick(IGameStage *stage) {
 
   angle = smoothedDirection.getRotation() * 180.0 / M_PI - 90;
 
-  if (SDL_GetTicks() - lastFire >= 1000 && canAttack) {
+  if (stage->getTick() - lastFire >= 1000 && canAttack) {
     SDL_Rect enemyRect = getRect();
     Vec2 laserPos(0, enemyRect.h);
     double laserAngle = direction.getRotation() * 180.0 / M_PI - 90;
     laserPos.rotate((laserAngle)*M_PI / 180.0);
     laserPos.add(position, 1);
     stage->addLaser(laserPos, laserAngle - 180, "laserRed01");
-    lastFire = SDL_GetTicks();
+    lastFire = stage->getTick();
   }
 
   updateBoundingBox();
@@ -212,7 +212,7 @@ void Enemy::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
                      steeringLine.x, steeringLine.y);
 }
 
-void Enemy::onHit(GameEntity *other) {
+void Enemy::onHit(IGameStage *stage, GameEntity *other) {
   if (Laser *laser = dynamic_cast<Laser *>(other); laser != nullptr) {
     mustGone = true;
   } else if (dynamic_cast<Meteor *>(other) != nullptr) {

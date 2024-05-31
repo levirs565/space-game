@@ -56,6 +56,11 @@ class GameStageScreen : public IScreen, public IGameStage {
   Label mScoreLabel{"0"};
   void layoutScoreLabel();
 
+  Uint32 mLastGameTickUpdate = 0;
+  Uint32 mGameTick = 0;
+
+  bool mPause = true;
+
 public:
   enum class Event { GameOver };
 
@@ -73,6 +78,10 @@ public:
 
   void addEntity(std::unique_ptr<GameEntity> &&entity);
 
+  void resetLastUpdateTime() {
+    mLastGameTickUpdate = 0;
+  }
+
   GameEntity *getPlayerEntity() override { return mPlayerShip; }
   void addLaser(const Vec2 &position, double angle,
                 const std::string &textureName) override;
@@ -81,6 +90,7 @@ public:
   const Vec2 &getWorldSize() override { return mWordSize; }
   FlowField *getFlowField() override { return &mPathFinder; }
   SAP *getSAP() override { return &mSAP; }
+  Uint32 getTick() const override { return mGameTick; }
 
   int getScore() { return mScore; }
 };

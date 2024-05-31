@@ -9,6 +9,7 @@ void GameScreen::onSDLEvent(const SDL_Event &event) {
   if (event.type == SDL_KEYDOWN) {
     if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
       mIsPause = !mIsPause;
+      mStageScreen.resetLastUpdateTime();
     }
   }
 
@@ -46,9 +47,10 @@ void GameScreen::onPostDraw() {
 GameScreen::GameScreen(std::function<void(Event)> callback)
     : mCallback(std::move(callback)),
       mPauseScreen([this](GamePauseScreen::Event event) {
-        if (event == GamePauseScreen::Event::Resume)
+        if (event == GamePauseScreen::Event::Resume) {
           mIsPause = false;
-        else if (event == GamePauseScreen::Event::Quit)
+          mStageScreen.resetLastUpdateTime();
+        } else if (event == GamePauseScreen::Event::Quit)
           mCallback(Event::Quit);
       }),
       mStageScreen([this](GameStageScreen::Event event) {

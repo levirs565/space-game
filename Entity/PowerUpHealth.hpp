@@ -9,7 +9,7 @@ public:
 
   void onTick(IGameStage *stage) override {}
 
-  void onHit(GameEntity *other) override;
+  void onHit(IGameStage *stage, GameEntity *other) override;
 };
 
 #endif // SPACE_POWERUPHEALTH_HPP

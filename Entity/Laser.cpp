@@ -26,7 +26,7 @@ void Laser::onTick(IGameStage *stage) {
     mustGone = true;
 }
 
-void Laser::onHit(GameEntity *other) {
+void Laser::onHit(IGameStage *stage, GameEntity *other) {
   if (dynamic_cast<Laser *>(other) != nullptr)
     return;
   if (dynamic_cast<PowerUpHealth *>(other) != nullptr)
