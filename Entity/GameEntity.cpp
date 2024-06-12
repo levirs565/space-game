@@ -12,8 +12,8 @@ void GameEntity::drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition,
   rect.y = int(position.y - cameraPosition.y - double(rect.h) / 2);
 
   SDL_RenderCopyEx(renderer, texture, nullptr, &rect,
-                   rad2Deg(smoothedDirection.getRotation() - drawRotationShift), nullptr,
-                   SDL_FLIP_NONE);
+                   rad2Deg(smoothedDirection.getRotation() - drawRotationShift),
+                   nullptr, SDL_FLIP_NONE);
 }
 
 SDL_Rect GameEntity::getRect() const {
@@ -71,13 +71,23 @@ void GameEntity::onUpdatePhysic() {
     acceleration.scale(maxAccelerationLength);
   }
 
+  position.add(addVelocity(acceleration, angularAcceleration), 1);
+
+  Vec2 deltaDirection{direction};
+  deltaDirection.substract(smoothedDirection);
+  smoothedDirection.add(deltaDirection, 0.15);
+
+  updateBoundingBox();
+}
+
+Vec2 GameEntity::addVelocity(Vec2 extraVelocity, double extraAngleVelocity) {
   Vec2 newVelocity{getVelocity()};
-  newVelocity.add(acceleration, 1);
+  newVelocity.add(extraVelocity, 1);
 
   double newSpeed = std::min(newVelocity.length(), maxSpeed);
 
   Vec2 newDirection = newSpeed != 0 ? newVelocity : direction;
-  newDirection.rotate(angularAcceleration);
+  newDirection.rotate(extraAngleVelocity);
   newDirection.normalize();
 
   if (maxAngularSpeed != 0) {
@@ -95,14 +105,8 @@ void GameEntity::onUpdatePhysic() {
     newVelocity.scale(newSpeed);
   }
 
-  position.add(newVelocity, 1);
-
   speed = newSpeed;
   direction = newDirection;
 
-  Vec2 deltaDirection{direction};
-  deltaDirection.substract(smoothedDirection);
-  smoothedDirection.add(deltaDirection, 0.15);
-
-  updateBoundingBox();
+  return newVelocity;
 }

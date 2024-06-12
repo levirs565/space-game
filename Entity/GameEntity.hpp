@@ -27,6 +27,7 @@ public:
   Vec2 acceleration;
   double maxAccelerationLength = 0;
   double angularAcceleration = 0;
+  double mass = 1;
 
   bool mustGone = false;
   std::vector<Vec2> boundingBox;
@@ -54,6 +55,8 @@ public:
     velocity.scale(speed);
     return velocity;
   }
+
+  Vec2 addVelocity(Vec2 extraVelocity, double extraAngleVelocity);
 
   void onUpdatePhysic();
   void updateBoundingBox();

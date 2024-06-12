@@ -202,7 +202,7 @@ void GameStageScreen::onUpdate() {
     // terhadap entity sehingga entity berada dalam keadaan invalid
   }
 
-  for (auto& entity : mEntityList)
+  for (auto &entity : mEntityList)
     entity->onUpdatePhysic();
 
   if (getTick() - mEnemyLastSpawn >= mEnemySpawnDelay) {
@@ -272,18 +272,36 @@ void GameStageScreen::onUpdate() {
             otherEntity->collisionResponse !=
                 GameEntity::CollisionResponse::RejectBoth) {
 
+          Vec2 relativeVelocity{otherEntity->getVelocity()};
+          relativeVelocity.substract(entity->getVelocity());
+
           entity->position.add(collision.normal, -collision.depth / 2);
           entity->updateBoundingBox();
 
           otherEntity->position.add(collision.normal, collision.depth / 2);
           otherEntity->updateBoundingBox();
 
-          if (dynamic_cast<Meteor*>(entity) != nullptr) {
+          double e = 0.5;
+          double j = -(1.0 + e) * relativeVelocity.dot(collision.normal) /
+                     ((1 / entity->mass) + (1 / otherEntity->mass));
+
+          Vec2 impulse{collision.normal};
+          impulse.scale(j);
+
+          Vec2 entityExtraVelocity{impulse};
+          entityExtraVelocity.scale(- 1.0 / entity->mass);
+          entity->addVelocity(entityExtraVelocity, 0);
+
+          Vec2 otherEntityExtraVelocity(impulse);
+          otherEntityExtraVelocity.scale(1.0 / entity->mass);
+          otherEntity->addVelocity(otherEntityExtraVelocity , 0);
+
+          if (dynamic_cast<Meteor *>(entity) != nullptr) {
             mPathFinder.moveObstacle(entity);
           }
           mSAP.move(entity);
 
-          if (dynamic_cast<Meteor*>(otherEntity) != nullptr) {
+          if (dynamic_cast<Meteor *>(otherEntity) != nullptr) {
             mPathFinder.moveObstacle(otherEntity);
           }
           mSAP.move(otherEntity);
@@ -331,7 +349,7 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
   }
 
   mScoreLabel.draw(renderer);
-//  mPathFinder.drawGrid(renderer, mCameraPosition, mCameraSize);
+  //  mPathFinder.drawGrid(renderer, mCameraPosition, mCameraSize);
 }
 
 void GameStageScreen::onPostDraw() {
