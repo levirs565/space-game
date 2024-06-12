@@ -9,8 +9,13 @@
 #include "PlayerShip.hpp"
 #include "PowerUpHealth.hpp"
 
-Enemy::Enemy(const Vec2 &position) : GameEntity(position, 0) {
+Enemy::Enemy(const Vec2 &position) : GameEntity(position, Vec2(1, 0)) {
   collisionResponse = CollisionResponse::Repel;
+  maxSpeed = 2;
+  maxAngularSpeed = deg2Rad(5);
+  maxAccelerationLength = 0.1;
+  drawRotationShift = std::numbers::pi / 2;
+
   texture = TextureManager::getInstance()->load("PNG/Enemies/enemyBlack1.png");
   updateBoundingBox();
 }
@@ -22,9 +27,6 @@ void Enemy::onTick(IGameStage *stage) {
 
   contextSteering.clear();
 
-  Vec2 velocity = direction;
-  velocity.scale(speed);
-
   bool canAttack = false;
   Vec2 extraRotation{0, 0};
 
@@ -35,7 +37,6 @@ void Enemy::onTick(IGameStage *stage) {
   const double clampedRadius = 2 * boundingRadius + 25;
   const double minRayLength = 1 * boundingRadius + 25;
   const double maxRayLength = 2 * boundingRadius;
-  const double minCos = std::cos(45.0 * M_PI / 180.0);
 
   for (GameEntity *entity : nearEntity) {
     if (entity == this)
@@ -131,69 +132,29 @@ void Enemy::onTick(IGameStage *stage) {
     extraRotation = distanceNormalized;
   }
 
+  if (stage->getTick() - lastFire >= 1000 && canAttack) {
+    SDL_Rect enemyRect = getRect();
+    Vec2 laserPos(enemyRect.w, 0);
+    double laserAngle = direction.getRotation();
+    laserPos.rotate(laserAngle);
+    laserPos.add(position, 1);
+    stage->addLaser(laserPos, laserAngle, "laserRed01");
+    lastFire = stage->getTick();
+  }
+
   contextSteeringResult = contextSteering.getResult();
 
   Vec2 desiredVelocity{contextSteeringResult};
   desiredVelocity.normalize();
-  desiredVelocity.scale(2);
-  desiredVelocity.substract(velocity);
-  if (desiredVelocity.length() > 0.1) {
-    desiredVelocity.normalize();
-    desiredVelocity.scale(0.1);
-  }
+  desiredVelocity.scale(maxSpeed);
 
   acceleration = desiredVelocity;
+  acceleration.substract(getVelocity());
 
-  Vec2 newVelocity{velocity};
-  newVelocity.add(acceleration, 1);
-
-  double newSpeed = std::min(newVelocity.length(), 2.0);
-
-  Vec2 newDirection = newSpeed != 0 ? newVelocity : direction;
-
-  if (extraRotation.length() > 0 && contextSteeringResult.length() == 0) {
-    newDirection.rotate(newDirection.orientedAngleTo(extraRotation));
-  }
-
-  newDirection.normalize();
-
-  const double maxDeltaAngle = 5.0 / 180.0 * M_PI;
-  const double deltaAngle = direction.orientedAngleTo(newDirection);
-  const double absDeltaAngle = abs(deltaAngle);
-
-  if (absDeltaAngle > maxDeltaAngle) {
-    newDirection = direction;
-    newDirection.rotate(std::copysign(maxDeltaAngle, deltaAngle));
-
-    newSpeed = std::copysign(abs(newVelocity.dot(newDirection)), newSpeed);
-  }
-
-  newVelocity = newDirection;
-  newVelocity.scale(newSpeed);
-
-  position.add(newVelocity, 1);
-
-  speed = newSpeed;
-  direction = newDirection;
-
-  Vec2 last = smoothedDirection;
-  Vec2 deltaDirection{direction};
-  deltaDirection.substract(smoothedDirection);
-  smoothedDirection.add(deltaDirection, 0.15);
-
-  angle = smoothedDirection.getRotation() * 180.0 / M_PI - 90;
-
-  if (stage->getTick() - lastFire >= 1000 && canAttack) {
-    SDL_Rect enemyRect = getRect();
-    Vec2 laserPos(0, enemyRect.h);
-    double laserAngle = direction.getRotation() * 180.0 / M_PI - 90;
-    laserPos.rotate((laserAngle)*M_PI / 180.0);
-    laserPos.add(position, 1);
-    stage->addLaser(laserPos, laserAngle - 180, "laserRed01");
-    lastFire = stage->getTick();
-  }
-
-  updateBoundingBox();
+  angularAcceleration =
+      extraRotation.length() > 0 && contextSteeringResult.length() == 0
+          ? direction.orientedAngleTo(extraRotation)
+          : 0;
 }
 
 void Enemy::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {

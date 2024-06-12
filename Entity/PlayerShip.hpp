@@ -13,7 +13,6 @@ public:
 
   enum Rotation { ROTATION_LEFT, ROTATION_RIGHT, ROTATION_NONE };
 
-  Vec2 directionVector{0, 0};
   Uint32 lastFire = 0;
   int healthCount = 4;
   Uint32 shieldActivationTime = 0;

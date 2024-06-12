@@ -1,20 +1,16 @@
 #include "Laser.hpp"
 #include "PowerUpHealth.hpp"
 
-Laser::Laser(const Vec2 &position, double angle, const std::string &textureName)
-    : GameEntity(position, angle) {
+Laser::Laser(const Vec2 &position, const Vec2& direction, const std::string &textureName)
+    : GameEntity(position, direction) {
   collisionResponse = CollisionResponse::RejectBoth;
-  texture =
-      TextureManager::getInstance()->load("PNG/Lasers/" + textureName + ".png");
-  directionVector.rotate(angle * M_PI / 180.0);
+  texture = TextureManager::getInstance()->load("PNG/Lasers/" + textureName + ".png");
+  maxSpeed = speed = 7.5;
+  drawRotationShift = - std::numbers::pi / 2;
   updateBoundingBox();
 }
 
 void Laser::onTick(IGameStage *stage) {
-  position.add(directionVector, 7.5);
-
-  updateBoundingBox();
-
   Vec2 cameraSize = stage->getCameraSize();
   Vec2 cameraStart{stage->getCameraPosition()};
   Vec2 cameraEnd{cameraStart};

@@ -18,14 +18,26 @@ public:
   CollisionResponse collisionResponse;
   SDL_Texture *texture;
   Vec2 position;
-  double angle;
+  Vec2 direction;
+  Vec2 smoothedDirection;
+  double speed = 0;
+  double maxSpeed = 0;
+  double maxAngularSpeed = 0;
+
+  Vec2 acceleration;
+  double maxAccelerationLength = 0;
+  double angularAcceleration = 0;
+
   bool mustGone = false;
   std::vector<Vec2> boundingBox;
   double boundingRadius = 0;
   double x0, y0, x1, y1;
 
-  GameEntity(const Vec2 &position, double angle)
-      : position(position), angle(angle), mId(sNextId++) {}
+  double drawRotationShift = 0;
+
+  GameEntity(const Vec2 &position, const Vec2 &direction)
+      : position(position), direction(direction),
+        smoothedDirection(direction), mId(sNextId++) {}
   virtual ~GameEntity() = default;
 
   SDL_Rect getRect() const;
@@ -36,6 +48,14 @@ public:
                    SDL_Texture *texture);
   virtual void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition);
   virtual void onHit(IGameStage *stage, GameEntity *other) {}
+
+  inline Vec2 getVelocity() {
+    Vec2 velocity{direction};
+    velocity.scale(speed);
+    return velocity;
+  }
+
+  void onUpdatePhysic();
   void updateBoundingBox();
 
   size_t getId() { return mId; };

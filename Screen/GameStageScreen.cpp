@@ -56,8 +56,10 @@ void GameStageScreen::processKeyUp(const SDL_KeyboardEvent &key) {
 }
 void GameStageScreen::addLaser(const Vec2 &position, double angle,
                                const std::string &textureName) {
+  Vec2 direction{1, 0};
+  direction.rotate(angle);
   std::unique_ptr<Laser> laser =
-      std::make_unique<Laser>(position, angle, textureName);
+      std::make_unique<Laser>(position, direction, textureName);
   addEntity(std::move(laser));
   Mix_PlayChannel(1, mLaserSound, 0);
 }
@@ -199,6 +201,9 @@ void GameStageScreen::onUpdate() {
     // penambahan elemen ke mEntityList yang menyebabkan operasi std::move
     // terhadap entity sehingga entity berada dalam keadaan invalid
   }
+
+  for (auto& entity : mEntityList)
+    entity->onUpdatePhysic();
 
   if (getTick() - mEnemyLastSpawn >= mEnemySpawnDelay) {
     spawnEnemy();

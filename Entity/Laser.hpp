@@ -7,9 +7,7 @@
 
 class Laser : public GameEntity {
 public:
-  Vec2 directionVector{0, -1};
-
-  Laser(const Vec2 &position, double angle, const std::string & textureName);
+  Laser(const Vec2 &position, const Vec2& direction, const std::string & textureName);
   void onTick(IGameStage *stage) override;
   void onHit(IGameStage *stage, GameEntity *other) override;
 };

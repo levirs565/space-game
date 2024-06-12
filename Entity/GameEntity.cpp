@@ -1,4 +1,5 @@
 #include "GameEntity.hpp"
+#include "../Math/Helper.hpp"
 
 size_t GameEntity::sNextId = 0;
 
@@ -10,7 +11,8 @@ void GameEntity::drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition,
   rect.x = int(position.x - cameraPosition.x - double(rect.w) / 2);
   rect.y = int(position.y - cameraPosition.y - double(rect.h) / 2);
 
-  SDL_RenderCopyEx(renderer, texture, nullptr, &rect, angle, nullptr,
+  SDL_RenderCopyEx(renderer, texture, nullptr, &rect,
+                   rad2Deg(smoothedDirection.getRotation() - drawRotationShift), nullptr,
                    SDL_FLIP_NONE);
 }
 
@@ -41,7 +43,7 @@ void GameEntity::updateBoundingBox() {
   Vec2 bottomLeft{position.x - halfWidth, position.y + halfHeight};
   Vec2 topLeft{position.x - halfWidth, position.y - halfHeight};
 
-  double radianAngle = angle * M_PI / 180.0;
+  double radianAngle = smoothedDirection.getRotation() - drawRotationShift;
   topRight.rotateAround(radianAngle, position);
   bottomRight.rotateAround(radianAngle, position);
   bottomLeft.rotateAround(radianAngle, position);
@@ -62,4 +64,45 @@ void GameEntity::updateBoundingBox() {
   x1 = maxX->x;
   y0 = minY->y;
   y1 = maxY->y;
+}
+void GameEntity::onUpdatePhysic() {
+  if (acceleration.length() > maxAccelerationLength) {
+    acceleration.normalize();
+    acceleration.scale(maxAccelerationLength);
+  }
+
+  Vec2 newVelocity{getVelocity()};
+  newVelocity.add(acceleration, 1);
+
+  double newSpeed = std::min(newVelocity.length(), maxSpeed);
+
+  Vec2 newDirection = newSpeed != 0 ? newVelocity : direction;
+  newDirection.rotate(angularAcceleration);
+  newDirection.normalize();
+
+  if (maxAngularSpeed != 0) {
+    const double deltaAngle = direction.orientedAngleTo(newDirection);
+    const double absDeltaAngle = abs(deltaAngle);
+
+    if (absDeltaAngle > maxAngularSpeed) {
+      newDirection = direction;
+      newDirection.rotate(std::copysign(maxAngularSpeed, deltaAngle));
+
+      newSpeed = std::copysign(abs(newVelocity.dot(newDirection)), newSpeed);
+    }
+
+    newVelocity = newDirection;
+    newVelocity.scale(newSpeed);
+  }
+
+  position.add(newVelocity, 1);
+
+  speed = newSpeed;
+  direction = newDirection;
+
+  Vec2 deltaDirection{direction};
+  deltaDirection.substract(smoothedDirection);
+  smoothedDirection.add(deltaDirection, 0.15);
+
+  updateBoundingBox();
 }

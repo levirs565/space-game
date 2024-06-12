@@ -1,9 +1,11 @@
 #include "PlayerShip.hpp"
 #include "../AssetManager.hpp"
+#include "../Math/Helper.hpp"
 #include "Meteor.hpp"
 #include "PowerUpHealth.hpp"
 
-PlayerShip::PlayerShip(const Vec2 &position) : GameEntity(position, 25) {
+PlayerShip::PlayerShip(const Vec2 &position)
+    : GameEntity(position, Vec2(1, 0)) {
   collisionResponse = CollisionResponse::Repel;
   TextureManager *manager = TextureManager::getInstance();
   texture = manager->load("PNG/playerShip3_blue.png");
@@ -14,34 +16,34 @@ PlayerShip::PlayerShip(const Vec2 &position) : GameEntity(position, 25) {
   damagedTexture.push_back(manager->load("PNG/"
                                          "Damage/playerShip3_damage3.png"));
 
+  maxSpeed = 5;
+  maxAccelerationLength = 0.1;
+  maxAngularSpeed = deg2Rad(5);
+  drawRotationShift = -std::numbers::pi / 2;
+
   shieldTexture = manager->load("PNG/Effects/shield3.png");
   updateBoundingBox();
 }
 
 void PlayerShip::setDirection(Direction direction, Rotation rotation) {
   if (direction == DIRECTION_UP) {
-    directionVector.y = -1;
-    directionVector.x = 0;
-  } else if (direction == DIRECTION_DOWN) {
-    directionVector.x = 0;
-    directionVector.y = 1;
+    acceleration = this->direction;
+  } else if (direction == DIRECTION_DOWN && speed > 0) {
+    acceleration = this->direction;
+    acceleration.scale(-speed);
   } else {
-    directionVector.x = 0;
-    directionVector.y = 0;
+    acceleration = {0, 0};
   }
 
   if (rotation == ROTATION_LEFT)
-    angle -= 5;
-
-  if (rotation == ROTATION_RIGHT)
-    angle += 5;
-
-  directionVector.rotate(angle * M_PI / 180.0);
+    angularAcceleration = -maxAngularSpeed;
+  else if (rotation == ROTATION_RIGHT)
+    angularAcceleration = maxAngularSpeed;
+  else
+    angularAcceleration = 0;
 }
 
 void PlayerShip::onTick(IGameStage *stage) {
-  position.add(directionVector, 5);
-
   const Vec2 &worldSize = stage->getWorldSize();
   position.x = SDL_clamp(position.x, 0, worldSize.x);
   position.y = SDL_clamp(position.y, 0, worldSize.y);
@@ -83,10 +85,10 @@ void PlayerShip::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
 void PlayerShip::doFire(IGameStage *stage) {
   if ((stage->getTick() - lastFire >= 500)) {
     SDL_Rect rect = getRect();
-    Vec2 laserPos(0, -rect.h);
-    laserPos.rotate(angle * M_PI / 180.0);
+    Vec2 laserPos(rect.w, 0);
+    laserPos.rotate(direction.getRotation());
     laserPos.add(position, 1);
-    stage->addLaser(laserPos, angle, "laserBlue01");
+    stage->addLaser(laserPos, direction.getRotation(), "laserBlue01");
     lastFire = stage->getTick();
   }
 }
