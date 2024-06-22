@@ -1,11 +1,11 @@
 #ifndef SPACE_ENEMY_HPP
 #define SPACE_ENEMY_HPP
 
-#include "GameEntity.hpp"
+#include "Ship.hpp"
 #include "../AssetManager.hpp"
 #include "../AI/ContextSteering.hpp"
 
-class Enemy : public GameEntity {
+class Enemy : public Ship {
 public:
   Uint32 lastFire = 0;
   ContextSteering contextSteering;

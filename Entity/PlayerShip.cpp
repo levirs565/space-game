@@ -5,7 +5,7 @@
 #include "PowerUpHealth.hpp"
 
 PlayerShip::PlayerShip(const Vec2 &position)
-    : GameEntity(position, Vec2(1, 0)) {
+    : Ship(position, Vec2(1, 0)) {
   collisionResponse = CollisionResponse::Repel;
   TextureManager *manager = TextureManager::getInstance();
   texture = manager->load("PNG/playerShip3_blue.png");
@@ -26,21 +26,25 @@ PlayerShip::PlayerShip(const Vec2 &position)
 }
 
 void PlayerShip::setDirection(Direction direction, Rotation rotation) {
-  if (direction == DIRECTION_UP) {
-    acceleration = this->direction;
-  } else if (direction == DIRECTION_DOWN && speed > 0) {
-    acceleration = this->direction;
-    acceleration.scale(-speed);
-  } else {
-    acceleration = {0, 0};
+  if (rotation != ROTATION_NONE) {
+    Vec2 desiredRotation{this->direction};
+    if (rotation == ROTATION_LEFT)
+      desiredRotation.rotate(-maxAngularSpeed);
+    else if (rotation == ROTATION_RIGHT)
+      desiredRotation.rotate(maxAngularSpeed);
+    applyAngularSteering(desiredRotation);
   }
 
-  if (rotation == ROTATION_LEFT)
-    angularAcceleration = -maxAngularSpeed;
-  else if (rotation == ROTATION_RIGHT)
-    angularAcceleration = maxAngularSpeed;
-  else
-    angularAcceleration = 0;
+  if (direction != DIRECTION_NONE) {
+    Vec2 desiredVelocity;
+    if (direction == DIRECTION_UP) {
+      desiredVelocity = this->direction;
+      desiredVelocity.scale(maxSpeed);
+    } else if (direction == DIRECTION_DOWN) {
+      desiredVelocity = {0, 0};
+    }
+    applyLinearSteering(desiredVelocity);
+  }
 }
 
 void PlayerShip::onTick(IGameStage *stage) {

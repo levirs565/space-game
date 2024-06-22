@@ -6,8 +6,9 @@
 #include "../AssetManager.hpp"
 #include "GameEntity.hpp"
 #include "Laser.hpp"
+#include "Ship.hpp"
 
-class PlayerShip : public GameEntity {
+class PlayerShip : public Ship {
 public:
   enum Direction { DIRECTION_UP, DIRECTION_DOWN, DIRECTION_NONE };
 

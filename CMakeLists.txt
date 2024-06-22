@@ -73,6 +73,8 @@ add_executable(space
         UI/LRLabel.hpp
         Screen/ScoreListScreen.cpp
         Screen/ScoreListScreen.hpp
+        Entity/Ship.cpp
+        Entity/Ship.hpp
 )
 
 if(TARGET SDL2::SDL2main)

@@ -5,7 +5,9 @@ Laser::Laser(const Vec2 &position, const Vec2& direction, const std::string &tex
     : GameEntity(position, direction) {
   collisionResponse = CollisionResponse::RejectBoth;
   texture = TextureManager::getInstance()->load("PNG/Lasers/" + textureName + ".png");
-  maxSpeed = speed = 7.5;
+  maxSpeed = 7.5;
+  velocity = direction;
+  velocity.scale(maxSpeed);
   drawRotationShift = - std::numbers::pi / 2;
   updateBoundingBox();
 }

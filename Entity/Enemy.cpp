@@ -9,7 +9,7 @@
 #include "PlayerShip.hpp"
 #include "PowerUpHealth.hpp"
 
-Enemy::Enemy(const Vec2 &position) : GameEntity(position, Vec2(1, 0)) {
+Enemy::Enemy(const Vec2 &position) : Ship(position, Vec2(1, 0)) {
   collisionResponse = CollisionResponse::Repel;
   maxSpeed = 2;
   maxAngularSpeed = deg2Rad(5);
@@ -148,13 +148,15 @@ void Enemy::onTick(IGameStage *stage) {
   desiredVelocity.normalize();
   desiredVelocity.scale(maxSpeed);
 
-  acceleration = desiredVelocity;
-  acceleration.substract(getVelocity());
+  if (contextSteeringResult.length() != 0) {
+    Vec2 desiredDirection(contextSteeringResult);
+    desiredDirection.normalize();
+    applyAngularSteering(desiredDirection);
+  } else if (extraRotation.length() != 0) {
+    applyAngularSteering(extraRotation);
+  }
 
-  angularAcceleration =
-      extraRotation.length() > 0 && contextSteeringResult.length() == 0
-          ? direction.orientedAngleTo(extraRotation)
-          : 0;
+  applyLinearSteering(desiredVelocity);
 }
 
 void Enemy::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {

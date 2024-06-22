@@ -19,14 +19,11 @@ public:
   SDL_Texture *texture;
   Vec2 position;
   Vec2 direction;
+  Vec2 velocity;
   Vec2 smoothedDirection;
-  double speed = 0;
   double maxSpeed = 0;
   double maxAngularSpeed = 0;
 
-  Vec2 acceleration;
-  double maxAccelerationLength = 0;
-  double angularAcceleration = 0;
   double mass = 1;
 
   bool mustGone = false;
@@ -49,14 +46,6 @@ public:
                    SDL_Texture *texture);
   virtual void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition);
   virtual void onHit(IGameStage *stage, GameEntity *other) {}
-
-  inline Vec2 getVelocity() {
-    Vec2 velocity{direction};
-    velocity.scale(speed);
-    return velocity;
-  }
-
-  Vec2 addVelocity(Vec2 extraVelocity, double extraAngleVelocity);
 
   void onUpdatePhysic();
   void updateBoundingBox();

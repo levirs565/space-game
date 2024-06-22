@@ -272,8 +272,8 @@ void GameStageScreen::onUpdate() {
             otherEntity->collisionResponse !=
                 GameEntity::CollisionResponse::RejectBoth) {
 
-          Vec2 relativeVelocity{otherEntity->getVelocity()};
-          relativeVelocity.substract(entity->getVelocity());
+          Vec2 relativeVelocity{otherEntity->velocity};
+          relativeVelocity.substract(entity->velocity);
 
           entity->position.add(collision.normal, -collision.depth / 2);
           entity->updateBoundingBox();
@@ -290,11 +290,11 @@ void GameStageScreen::onUpdate() {
 
           Vec2 entityExtraVelocity{impulse};
           entityExtraVelocity.scale(- 1.0 / entity->mass);
-          entity->addVelocity(entityExtraVelocity, 0);
+          entity->velocity.add(entityExtraVelocity, 1);
 
           Vec2 otherEntityExtraVelocity(impulse);
           otherEntityExtraVelocity.scale(1.0 / entity->mass);
-          otherEntity->addVelocity(otherEntityExtraVelocity , 0);
+          otherEntity->velocity.add(otherEntityExtraVelocity , 1);
 
           if (dynamic_cast<Meteor *>(entity) != nullptr) {
             mPathFinder.moveObstacle(entity);

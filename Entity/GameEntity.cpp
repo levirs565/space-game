@@ -66,47 +66,11 @@ void GameEntity::updateBoundingBox() {
   y1 = maxY->y;
 }
 void GameEntity::onUpdatePhysic() {
-  if (acceleration.length() > maxAccelerationLength) {
-    acceleration.normalize();
-    acceleration.scale(maxAccelerationLength);
-  }
-
-  position.add(addVelocity(acceleration, angularAcceleration), 1);
+  position.add(velocity, 1);
 
   Vec2 deltaDirection{direction};
   deltaDirection.substract(smoothedDirection);
   smoothedDirection.add(deltaDirection, 0.15);
 
   updateBoundingBox();
-}
-
-Vec2 GameEntity::addVelocity(Vec2 extraVelocity, double extraAngleVelocity) {
-  Vec2 newVelocity{getVelocity()};
-  newVelocity.add(extraVelocity, 1);
-
-  double newSpeed = std::min(newVelocity.length(), maxSpeed);
-
-  Vec2 newDirection = newSpeed != 0 ? newVelocity : direction;
-  newDirection.rotate(extraAngleVelocity);
-  newDirection.normalize();
-
-  if (maxAngularSpeed != 0) {
-    const double deltaAngle = direction.orientedAngleTo(newDirection);
-    const double absDeltaAngle = abs(deltaAngle);
-
-    if (absDeltaAngle > maxAngularSpeed) {
-      newDirection = direction;
-      newDirection.rotate(std::copysign(maxAngularSpeed, deltaAngle));
-
-      newSpeed = std::copysign(abs(newVelocity.dot(newDirection)), newSpeed);
-    }
-
-    newVelocity = newDirection;
-    newVelocity.scale(newSpeed);
-  }
-
-  speed = newSpeed;
-  direction = newDirection;
-
-  return newVelocity;
 }
