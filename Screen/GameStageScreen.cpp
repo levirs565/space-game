@@ -151,24 +151,33 @@ GameStageScreen::GameStageScreen(std::function<void(Event)> callback)
 }
 
 void GameStageScreen::spawnEnemy() {
-  int angle = mRandomAngle(mRandomAngleEngine);
-  Vec2 direction(1, 0);
-  direction.rotate(double(angle) * M_PI / 180);
-  direction.scale(800);
-  Vec2 enemyPosition(mPlayerShip->position);
-  enemyPosition.add(direction, 1);
+  Vec2 enemyPosition;
+  do {
+    int angle = mRandomAngle(mRandomAngleEngine);
+    Vec2 direction(1, 0);
+    direction.rotate(double(angle) * M_PI / 180);
+    direction.scale(800);
+    enemyPosition = mPlayerShip->position;
+    enemyPosition.add(direction, 1);
+  } while (enemyPosition.x < 0 || enemyPosition.y < 0 ||
+           enemyPosition.x > mWordSize.x || enemyPosition.y > mWordSize.y);
   addEntity(std::move(std::make_unique<Enemy>(enemyPosition)));
 }
 
 void GameStageScreen::spawnHealth() {
-  int angle = mRandomAngle(mRandomAngleEngine);
-  int distance = mRandomHealth(mRandomHealthEngine);
-  Vec2 direction(1, 0);
-  direction.rotate(double(angle) * M_PI / 180);
-  direction.scale(100 + distance);
-  Vec2 healthPosition(mPlayerShip->position);
-  healthPosition.add(direction, 1);
+  Vec2 healthPosition;
+  do {
+    int angle = mRandomAngle(mRandomAngleEngine);
+    int distance = mRandomHealth(mRandomHealthEngine);
+    Vec2 direction(1, 0);
+    direction.rotate(double(angle) * M_PI / 180);
+    direction.scale(100 + distance);
 
+    healthPosition = mPlayerShip->position;
+    healthPosition.add(direction, 1);
+
+  } while (healthPosition.x < 0 || healthPosition.y < 0 ||
+           healthPosition.x > mWordSize.x || healthPosition.y > mWordSize.y);
   addEntity(std::move(std::make_unique<PowerUpHealth>(healthPosition)));
 }
 
@@ -289,12 +298,12 @@ void GameStageScreen::onUpdate() {
           impulse.scale(j);
 
           Vec2 entityExtraVelocity{impulse};
-          entityExtraVelocity.scale(- 1.0 / entity->mass);
+          entityExtraVelocity.scale(-1.0 / entity->mass);
           entity->velocity.add(entityExtraVelocity, 1);
 
           Vec2 otherEntityExtraVelocity(impulse);
           otherEntityExtraVelocity.scale(1.0 / entity->mass);
-          otherEntity->velocity.add(otherEntityExtraVelocity , 1);
+          otherEntity->velocity.add(otherEntityExtraVelocity, 1);
 
           if (dynamic_cast<Meteor *>(entity) != nullptr) {
             mPathFinder.moveObstacle(entity);
