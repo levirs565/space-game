@@ -75,6 +75,10 @@ add_executable(space
         Screen/ScoreListScreen.hpp
         Entity/Ship.cpp
         Entity/Ship.hpp
+        Particle/Particle.hpp
+        Particle/Particle.cpp
+        Particle/Explosion.cpp
+        Particle/Explosion.hpp
 )
 
 if(TARGET SDL2::SDL2main)

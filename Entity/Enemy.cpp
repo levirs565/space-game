@@ -8,6 +8,7 @@
 #include "Meteor.hpp"
 #include "PlayerShip.hpp"
 #include "PowerUpHealth.hpp"
+#include "../Particle/Particle.hpp"
 
 Enemy::Enemy(const Vec2 &position) : Ship(position, Vec2(1, 0)) {
   collisionResponse = CollisionResponse::Repel;
@@ -177,6 +178,14 @@ void Enemy::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
 
 void Enemy::onHit(IGameStage *stage, GameEntity *other) {
   if (Laser *laser = dynamic_cast<Laser *>(other); laser != nullptr) {
+    if (!hasExplode) {
+      std::unique_ptr<Particle> particle = std::make_unique<Particle>();
+      particle->texture = TextureManager::getInstance()->load("Explosion/explosion00.png");
+      particle->position = position;
+      particle->scale = 0.5;
+      stage->addParticle(std::move(particle));
+      hasExplode = true;
+    }
     mustGone = true;
   } else if (dynamic_cast<Meteor *>(other) != nullptr) {
     // mustGone = true;

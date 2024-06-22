@@ -9,10 +9,12 @@
 class FlowField;
 class GameEntity;
 class SAP;
+class Particle;
 
 class IGameStage {
 public:
-  virtual void addLaser(const Vec2 &position, double angle, const std::string&textureName) = 0;
+  virtual void addLaser(const Vec2 &position, double angle,
+                        const std::string &textureName) = 0;
 
   virtual const Vec2 &getWorldSize() = 0;
 
@@ -22,11 +24,13 @@ public:
 
   virtual GameEntity *getPlayerEntity() = 0;
 
-  virtual const Vec2& getCameraPosition() = 0;
+  virtual const Vec2 &getCameraPosition() = 0;
 
-  virtual const Vec2& getCameraSize() = 0;
+  virtual const Vec2 &getCameraSize() = 0;
 
   virtual Uint32 getTick() const = 0;
+
+  virtual void addParticle(std::unique_ptr<Particle> &&particle) = 0;
 };
 
 #endif // SPACE_IGAMESTAGE_HPP

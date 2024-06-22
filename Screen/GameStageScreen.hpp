@@ -8,6 +8,7 @@
 #include "../IGameStage.hpp"
 #include "../SAP.hpp"
 #include "../UI/Label.hpp"
+#include "../Particle/Particle.hpp"
 #include "IScreen.hpp"
 #include <functional>
 #include <random>
@@ -17,11 +18,13 @@ class GameStageScreen : public IScreen, public IGameStage {
   SDL_Texture *mPlayerLifeTexture;
   PlayerShip *mPlayerShip;
   std::vector<std::unique_ptr<GameEntity>> mEntityList;
+  std::vector<std::unique_ptr<Particle>> mParticleList;
   FlowField mPathFinder;
   Vec2 mCameraSize;
   Vec2 mCameraPosition;
   Vec2 mWordSize{5000, 5000};
   Mix_Chunk *mLaserSound;
+  Mix_Chunk *mExplosionSound;
   bool mIsUp = false;
   bool mIsLeft = false;
   bool mIsDown = false;
@@ -91,6 +94,7 @@ public:
   FlowField *getFlowField() override { return &mPathFinder; }
   SAP *getSAP() override { return &mSAP; }
   Uint32 getTick() const override { return mGameTick; }
+  void addParticle(std::unique_ptr<Particle> &&particle) override;
 
   int getScore() { return mScore; }
 };

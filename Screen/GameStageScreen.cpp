@@ -122,6 +122,8 @@ GameStageScreen::GameStageScreen(std::function<void(Event)> callback)
   std::string laserSoundPath =
       AssetManager::getInstance()->getAsset("Bonus/sfx_laser1.ogg").string();
   mLaserSound = Mix_LoadWAV(laserSoundPath.c_str());
+  std::string explosionSoundPath = AssetManager::getInstance()->getAsset("Audio/explosion-5981.mp3").string();
+  mExplosionSound = Mix_LoadWAV(explosionSoundPath.c_str());
 
   std::unique_ptr<PlayerShip> playerShip =
       std::make_unique<PlayerShip>(Vec2(400, 700));
@@ -197,6 +199,13 @@ void GameStageScreen::onUpdate() {
                             mIsLeft    ? PlayerShip::ROTATION_LEFT
                             : mIsRight ? PlayerShip::ROTATION_RIGHT
                                        : PlayerShip::ROTATION_NONE);
+
+  for (auto &particle : mParticleList)
+    particle->onUpdate();
+
+  for (auto it = mParticleList.begin(); it != mParticleList.end(); it++)
+    if (!(*it)->isActive)
+      it = mParticleList.erase(it) - 1;
 
   for (auto &entity : mEntityList) {
     entity->onPreTick();
@@ -330,6 +339,9 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
 
   drawBackground(renderer);
 
+  for (auto& particle : mParticleList)
+    particle->onDraw(renderer, mCameraPosition);
+
   for (GameEntity *entity :
        mSAP.queryArea(mCameraPosition.x, mCameraPosition.y,
                       mCameraPosition.x + mCameraSize.x,
@@ -369,7 +381,13 @@ void GameStageScreen::onSizeChanged(const Vec2 &size) {
   mCameraSize = size;
   layoutScoreLabel();
 }
+
 void GameStageScreen::layoutScoreLabel() {
   Vec2 size = mScoreLabel.getLayoutSize();
   mScoreLabel.setCenterPosition({mCameraSize.x - size.x / 2, size.y / 2});
+}
+
+void GameStageScreen::addParticle(std::unique_ptr<Particle> &&particle) {
+  mParticleList.push_back(std::move(particle));
+  Mix_PlayChannel(2, mExplosionSound, 0);
 }

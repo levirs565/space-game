@@ -11,6 +11,7 @@ public:
   ContextSteering contextSteering;
   Vec2 contextSteeringResult{0, 0};
   std::vector<GameEntity *> nearEntity;
+  bool hasExplode = false;
 
   Enemy(const Vec2 &position);
 
