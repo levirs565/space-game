@@ -6,5 +6,9 @@
     "C/C++ Include Guard.Prefix": "SPACE_",
     "C/C++ Include Guard.Remove Extension": false,
     "C/C++ Include Guard.Comment Style": "Line",
-    "C_Cpp.autoAddFileAssociations": false
+    "C_Cpp.autoAddFileAssociations": false,
+    "cmake.configureArgs": ["-DCMAKE_PREFIX_PATH=./.deps/debug-mingw"],
+    "cmake.environment": {
+        "PATH": "C:\\SDK\\Mingw-w64\\12.2.0-ucrt\\bin;${sourceDirectory}\\.deps\\debug-mingw\\x86_64-w64-mingw32\\bin;${env.PATH}"
+    }
 }

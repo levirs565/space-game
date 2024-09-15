@@ -1,5 +1,6 @@
 #include "SAP.hpp"
 #include <iostream>
+#include <algorithm>
 
 namespace SAPCollisionMapHelper {
 void orderEntityForKey(GameEntity *&entity1, GameEntity *&entity2) {

@@ -4,6 +4,8 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <string>
+#include <stdexcept>
 
 namespace DF {
 struct Value {
@@ -23,6 +25,11 @@ struct Object : Value {
       throw std::runtime_error("Field has invalid value: " + name);
     return result;
   }
+  
+  Object() {}
+  Object(const Object&) = delete;
+  Object(Object&&) = default;
+  Object& operator=(Object&&) = default;
 };
 
 struct String : Value {

@@ -1,5 +1,6 @@
 #include "Ship.hpp"
 #include "../Math/Helper.hpp"
+#include <algorithm>
 
 void Ship::applyAngularSteering(const Vec2 &desiredDirection) {
   const double deltaAngle =

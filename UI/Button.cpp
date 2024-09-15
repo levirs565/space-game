@@ -1,6 +1,7 @@
 #include "Button.hpp"
 #include "../AssetManager.hpp"
 #include "../SDLHelper.hpp"
+#include <algorithm>
 
 Button::Button(std::string text)
     : mTextRenderer(

@@ -1,4 +1,5 @@
 #include "ContextSteering.hpp"
+#include <algorithm>
 
 void ContextSteeringMap::addVector(const Vec2 &vector, double minCos) {
   Vec2 normalizedVector{vector};

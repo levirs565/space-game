@@ -12,9 +12,7 @@
 #include "AI/FlowField.hpp"
 #include "Entity/Enemy.hpp"
 #include "Entity/PlayerShip.hpp"
-#include "Math/Polygon.hpp"
-#include "SAP.hpp"
-#include "Screen/GameOverScreen.hpp"
+#include "Screen/AboutScreen.hpp"
 #include "Screen/GamePauseScreen.hpp"
 #include "Screen/ScoreListScreen.hpp"
 #include "Screen/GameScreen.hpp"
@@ -70,6 +68,8 @@ public:
           mNextScreen = createGameScreen();
         } else if (event == MainScreen::Event::ScoreList) {
           mNextScreen = createScoreListScreen();
+        } else if (event == MainScreen::Event::About) {
+          mNextScreen = createAboutScreen();
         }
       });
   }
@@ -86,6 +86,14 @@ public:
     return std::make_unique<GameScreen>([this] (auto event) {
       if (event == GameScreen::Event::Quit)
         mNextScreen = createMain();
+    });
+  }
+
+  std::unique_ptr<IScreen> createAboutScreen() {
+    return std::make_unique<AboutScreen>([this] (auto event) {
+      if (event == AboutScreen::Event::Close) {
+        mNextScreen = createMain();
+      }
     });
   }
 

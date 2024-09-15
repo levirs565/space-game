@@ -17,7 +17,7 @@ Map Map::fromAsset() {
   if (!dataStream.is_open())
     throw std::runtime_error("Cannot open map");
 
-  DF::Object object = DF::parseObject(dataStream);
+  DF::Object object = std::move(DF::parseObject(dataStream));
 
   auto *widthValue = object.getField<DF::String>("width");
   auto *heightValue = object.getField<DF::String>("height");

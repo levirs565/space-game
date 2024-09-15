@@ -1,5 +1,6 @@
 #include "GameEntity.hpp"
 #include "../Math/Helper.hpp"
+#include <algorithm>
 
 size_t GameEntity::sNextId = 0;
 

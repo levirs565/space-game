@@ -86,10 +86,11 @@ foreach ($dep in $SDLDepsList) {
     if ($libProfile -eq 1) {
         foreach ($children in Get-ChildItem "$destDir\*\*") {
             if (Test-Path -PathType Container $children.FullName) {
-                Move-Item $children $depsLibsDir
+                Copy-Item -Recurse -Force $children $depsLibsDir
             }
         }
     } else {
-        Move-Item -Exclude "README.txt" "$destDir\*" $depsLibsDir
+        Copy-Item -Recurse -Force -Exclude "README.txt" "$destDir\*" $depsLibsDir
     }
+    Remove-Item -Recurse $destDir
 }

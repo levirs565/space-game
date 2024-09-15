@@ -203,9 +203,10 @@ void GameStageScreen::onUpdate() {
   for (auto &particle : mParticleList)
     particle->onUpdate();
 
-  for (auto it = mParticleList.begin(); it != mParticleList.end(); it++)
-    if (!(*it)->isActive)
-      it = mParticleList.erase(it) - 1;
+  for (auto it = mParticleList.begin(); it != mParticleList.end();)
+      if (!(*it)->isActive)
+          it = mParticleList.erase(it);
+      else it++;
 
   for (auto &entity : mEntityList) {
     entity->onPreTick();
@@ -348,17 +349,17 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
                       mCameraPosition.y + mCameraSize.y, false)) {
     entity->onDraw(renderer, mCameraPosition);
 
-    for (size_t i = 0; i < entity->boundingBox.size(); i++) {
-      Vec2 current = entity->boundingBox[i];
-      Vec2 next = entity->boundingBox[(i + 1) % entity->boundingBox.size()];
+    //for (size_t i = 0; i < entity->boundingBox.size(); i++) {
+    //  Vec2 current = entity->boundingBox[i];
+    //  Vec2 next = entity->boundingBox[(i + 1) % entity->boundingBox.size()];
 
-      current.substract(mCameraPosition);
-      next.substract(mCameraPosition);
+    //  current.substract(mCameraPosition);
+    //  next.substract(mCameraPosition);
 
-      SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-      SDL_RenderDrawLine(renderer, int(current.x), int(current.y), int(next.x),
-                         int(next.y));
-    }
+    //  SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    //  SDL_RenderDrawLine(renderer, int(current.x), int(current.y), int(next.x),
+    //                     int(next.y));
+    //}
   }
 
   SDL_Rect lifeIcon = {.x = 4, .y = 4};

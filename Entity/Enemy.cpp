@@ -165,15 +165,15 @@ void Enemy::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
 
   Vec2 onCameraPosition{position};
   onCameraPosition.substract(cameraPosition);
-  contextSteering.draw(renderer, onCameraPosition, boundingRadius);
+  //contextSteering.draw(renderer, onCameraPosition, boundingRadius);
 
   Vec2 steeringLine{contextSteeringResult};
   steeringLine.normalize();
   steeringLine.scale(boundingRadius * 1.5);
   steeringLine.add(onCameraPosition, 1);
-  SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-  SDL_RenderDrawLine(renderer, onCameraPosition.x, onCameraPosition.y,
-                     steeringLine.x, steeringLine.y);
+  //SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+  //SDL_RenderDrawLine(renderer, onCameraPosition.x, onCameraPosition.y,
+                     //steeringLine.x, steeringLine.y);
 }
 
 void Enemy::onHit(IGameStage *stage, GameEntity *other) {

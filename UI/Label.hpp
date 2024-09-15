@@ -8,6 +8,7 @@ class Label : public View {
   TextRenderer mTextRenderer;
 public:
   explicit Label(std::string text);
+  Label(): Label("") {}
 
   void setText(std::string text);
 

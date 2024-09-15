@@ -2,6 +2,7 @@
 #include "DataFormat.hpp"
 #include <fstream>
 #include <optional>
+#include <algorithm>
 
 std::string scoreListFileName = "score-list.data";
 

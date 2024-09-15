@@ -16,21 +16,21 @@
 
 class MainScreen : public IScreen {
 public:
-  enum class Event { Exit, Start, ScoreList };
+  enum class Event { Exit, Start, ScoreList, About };
 
 private:
   Vec2 mSize;
-  Label mTitle {"Space"};
-  Label mDeveloper{"Kelompok 1"};
-  std::array<LRLabel, 5> mNamaArray;
+  Label mTitle {"Space Game"};
   Button mStartButton{"Start"};
   Button mExitButton{"Exit"};
   Button mScoreListButton{"Score List"};
+  Button mAboutButton{"About"};
   Column mColumn;
   std::map<View*, Event> mEventMap = {
       {&mStartButton, Event::Start},
       {&mScoreListButton, Event::ScoreList},
-      {&mExitButton, Event::Exit}
+      {&mExitButton, Event::Exit},
+    {&mAboutButton, Event::About}
   };
 
   std::function<void(Event)> mEventHandler;

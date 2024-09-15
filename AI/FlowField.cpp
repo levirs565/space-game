@@ -1,6 +1,7 @@
 #include "FlowField.hpp"
 #include "../TextRenderer.hpp"
 #include "../AssetManager.hpp"
+#include <algorithm>
 
 void FlowField::init(const Vec2 &worldSize, int entitySize) {
   mRowCount = ceil(worldSize.y / entitySize);

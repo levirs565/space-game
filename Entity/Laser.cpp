@@ -1,5 +1,6 @@
 #include "Laser.hpp"
 #include "PowerUpHealth.hpp"
+#include <numbers>
 
 Laser::Laser(const Vec2 &position, const Vec2& direction, const std::string &textureName)
     : GameEntity(position, direction) {
