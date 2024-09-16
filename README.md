@@ -13,3 +13,7 @@ Controls:
 ## Credits
 
 Assets is created by [KENNEY](https://kenney.nl/)
+
+## License
+
+The software is released under the GNU General Public License (GPL) which can be found in the file [LICENSE](./LICENSE) in the same directory as this file.
