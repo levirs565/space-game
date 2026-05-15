@@ -7,7 +7,7 @@ ScoreListScreen::ScoreListScreen(std::function<void(Event)> callback)
 
   auto list = ScoreListManager::getList();
 
-  for (int i = 0; LRLabel & label : mScoreLabel) {
+  for (int i = 0; LRLabel &label : mScoreLabel) {
     mColumn.viewList.push_back(&label);
     if (i < list.size()) {
       label.setText(list[i].name, std::to_string(list[i].score));
@@ -27,8 +27,9 @@ void ScoreListScreen::onSizeChanged(const Vec2 &size) {
   }
 }
 void ScoreListScreen::onSDLEvent(const SDL_Event &event) {
-  if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-    View* view = mColumn.findByPoint({event.button.x, event.button.y});
+  if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+      event.button.button == SDL_BUTTON_LEFT) {
+    View *view = mColumn.findByPoint({event.button.x, event.button.y});
     if (view == &mBackButton) {
       mCallback(Event::Back);
     }

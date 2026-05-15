@@ -6,22 +6,22 @@ size_t GameEntity::sNextId = 0;
 
 void GameEntity::drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition,
                              SDL_Texture *texture) {
-  SDL_Rect rect;
+  SDL_FRect rect;
 
-  SDL_QueryTexture(texture, nullptr, nullptr, &rect.w, &rect.h);
-  rect.x = int(position.x - cameraPosition.x - double(rect.w) / 2);
-  rect.y = int(position.y - cameraPosition.y - double(rect.h) / 2);
+  SDL_GetTextureSize(texture, &rect.w, &rect.h);
+  rect.x = position.x - cameraPosition.x - double(rect.w) / 2;
+  rect.y = position.y - cameraPosition.y - double(rect.h) / 2;
 
-  SDL_RenderCopyEx(renderer, texture, nullptr, &rect,
+  SDL_RenderTextureRotated(renderer, texture, nullptr, &rect,
                    rad2Deg(smoothedDirection.getRotation() - drawRotationShift),
                    nullptr, SDL_FLIP_NONE);
 }
 
-SDL_Rect GameEntity::getRect() const {
-  SDL_Rect r;
-  SDL_QueryTexture(texture, nullptr, nullptr, &r.w, &r.h);
-  r.x = int(position.x - r.w / 2);
-  r.y = int(position.y - r.h / 2);
+SDL_FRect GameEntity::getRect() const {
+  SDL_FRect r;
+  SDL_GetTextureSize(texture, &r.w, &r.h);
+  r.x = position.x - r.w / 2;
+  r.y = position.y - r.h / 2;
   return r;
 }
 
@@ -32,8 +32,8 @@ void GameEntity::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
 void GameEntity::updateBoundingBox() {
   boundingBox.clear();
 
-  int width, height;
-  SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
+  float width, height;
+  SDL_GetTextureSize(texture, &width, &height);
   double halfWidth = double(width) / 2;
   double halfHeight = double(height) / 2;
 

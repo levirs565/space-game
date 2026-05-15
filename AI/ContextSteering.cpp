@@ -1,4 +1,5 @@
 #include "ContextSteering.hpp"
+#include <numbers>
 #include <algorithm>
 
 void ContextSteeringMap::addVector(const Vec2 &vector, double minCos) {
@@ -29,7 +30,7 @@ void ContextSteeringMap::draw(SDL_Renderer *renderer, const Vec2 &position, doub
   end.scale(value * radius);
   end.add(position, 1);
 
-  SDL_RenderDrawLine(renderer, position.x, position.y, end.x, end.y);
+  SDL_RenderLine(renderer, position.x, position.y, end.x, end.y);
 }
 
 void ContextSteering::clear() {
@@ -53,7 +54,7 @@ Vec2 ContextSteering::getResult() {
 }
 
 void ContextSteering::draw(SDL_Renderer *renderer, const Vec2 &position, double radius) {
-  static const double angleDeviation = 2.0 / 180.0 * M_PI;
+  static const double angleDeviation = 2.0 / 180.0 * std::numbers::pi;
   for (const auto [_, index] : interestMap.withIndex()) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
     resultMap.draw(renderer, position, radius, -angleDeviation, index);

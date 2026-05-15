@@ -1,7 +1,7 @@
 #ifndef SPACE_ISCREEN_HPP
 #define SPACE_ISCREEN_HPP
 
-#include "SDL.h"
+#include <SDL3/SDL.h>
 #include "../Math/Vec2.hpp"
 
 class IScreen {

@@ -6,8 +6,8 @@ void GameScreen::onSizeChanged(const Vec2 &size) {
   mGameOverScreen.onSizeChanged(size);
 }
 void GameScreen::onSDLEvent(const SDL_Event &event) {
-  if (event.type == SDL_KEYDOWN) {
-    if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+  if (event.type == SDL_EVENT_KEY_DOWN) {
+    if (event.key.scancode == SDL_SCANCODE_ESCAPE) {
       mIsPause = !mIsPause;
       mStageScreen.resetLastUpdateTime();
     }
@@ -44,8 +44,9 @@ void GameScreen::onPostDraw() {
     mPauseScreen.onPostDraw();
 }
 
-GameScreen::GameScreen(std::function<void(Event)> callback)
-    : mCallback(std::move(callback)),
+GameScreen::GameScreen(MIX_Mixer *mixer, SDL_Window *window,
+                       std::function<void(Event)> callback)
+    : mWindow(window), mCallback(std::move(callback)),
       mPauseScreen([this](GamePauseScreen::Event event) {
         if (event == GamePauseScreen::Event::Resume) {
           mIsPause = false;
@@ -53,13 +54,14 @@ GameScreen::GameScreen(std::function<void(Event)> callback)
         } else if (event == GamePauseScreen::Event::Quit)
           mCallback(Event::Quit);
       }),
-      mStageScreen([this](GameStageScreen::Event event) {
-        if (event == GameStageScreen::Event::GameOver) {
-          mGameOverScreen.setScore(mStageScreen.getScore());
-          mIsGameOver = true;
-        }
-      }),
-      mGameOverScreen([this](GameOverScreen::Event event) {
+      mStageScreen(mixer,
+                   [this](GameStageScreen::Event event) {
+                     if (event == GameStageScreen::Event::GameOver) {
+                       mGameOverScreen.setScore(mStageScreen.getScore());
+                       mIsGameOver = true;
+                     }
+                   }),
+      mGameOverScreen(mWindow, [this](GameOverScreen::Event event) {
         if (event == GameOverScreen::Event::Quit)
           mCallback(Event::Quit);
       }) {}

@@ -1,7 +1,7 @@
 #ifndef SPACE_GAMESTAGESCREEN_HPP
 #define SPACE_GAMESTAGESCREEN_HPP
 
-#include <SDL_mixer.h>
+#include <SDL3_mixer/SDL_mixer.h>
 
 #include "../AI/FlowField.hpp"
 #include "../Entity/PlayerShip.hpp"
@@ -23,8 +23,10 @@ class GameStageScreen : public IScreen, public IGameStage {
   Vec2 mCameraSize;
   Vec2 mCameraPosition;
   Vec2 mWordSize{5000, 5000};
-  Mix_Chunk *mLaserSound;
-  Mix_Chunk *mExplosionSound;
+  MIX_Track *mLaserTrack;
+  MIX_Audio *mLaserSound;
+  MIX_Track *mExplosionTrack;
+  MIX_Audio *mExplosionSound;
   bool mIsUp = false;
   bool mIsLeft = false;
   bool mIsDown = false;
@@ -71,7 +73,8 @@ private:
   std::function<void(Event)> mCallback;
 
 public:
-  GameStageScreen(std::function<void(Event)> callback);
+  GameStageScreen(MIX_Mixer* mixer, std::function<void(Event)> callback);
+  ~GameStageScreen();
 
   void onSDLEvent(const SDL_Event &event) override;
   void onSizeChanged(const Vec2 &size) override;

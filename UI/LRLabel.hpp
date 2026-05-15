@@ -12,7 +12,7 @@ public:
   void setText(const std::string &left, const std::string &right);
 
   Vec2 getLayoutSize() override;
-  SDL_Rect getRect() override;
+  SDL_FRect getRect() override;
   void update() override;
   void draw(SDL_Renderer *renderer) override;
 };

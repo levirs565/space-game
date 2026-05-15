@@ -2,17 +2,17 @@
 #include "../SDLHelper.hpp"
 
 Vec2 View::getTextureSize(SDL_Texture *texture) {
-  int width, height;
-  SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
+  float width, height;
+  SDL_GetTextureSize(texture, &width, &height);
   return { double(width), double(height) };
 }
-SDL_Rect View::calculateTextureRect(SDL_Texture *texture, double scale) {
+SDL_FRect View::calculateTextureRect(SDL_Texture *texture, double scale) {
   return SDLHelper::calculateTextureRectByCenter(texture, mCenterPosition, scale);
 }
-SDL_Rect View::calculateRect(const Vec2 &size) {
+SDL_FRect View::calculateRect(const Vec2 &size) {
   return SDLHelper::calculateRect(mCenterPosition, size);
 }
-bool View::isPointInside(SDL_Point point) {
-  SDL_Rect rect = getRect();
-  return SDL_PointInRect(&point, &rect) == SDL_TRUE;
+bool View::isPointInside(SDL_FPoint point) {
+  SDL_FRect rect = getRect();
+  return SDL_PointInRectFloat(&point, &rect);
 }

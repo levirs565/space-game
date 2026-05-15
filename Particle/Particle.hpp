@@ -2,7 +2,7 @@
 #define SPACE_PARTICLE_HPP
 
 #include "../Math/Vec2.hpp"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 class Particle {
 protected:

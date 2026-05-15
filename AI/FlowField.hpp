@@ -4,8 +4,8 @@
 #include "../Entity/GameEntity.hpp"
 #include "../Math/Vec2.hpp"
 #include "ContextSteering.hpp"
-#include <SDL.h>
-#include <SDL_ttf.h>
+#include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <set>
 #include <unordered_map>
 #include <vector>

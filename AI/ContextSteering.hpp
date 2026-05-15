@@ -2,13 +2,13 @@
 #define SPACE_CONTEXTSTEERING_HPP
 
 #include "../Math/Vec2.hpp"
-#include <SDL.h>
-#include <cmath>
+#include <SDL3/SDL.h>
+#include <numbers>
 #include <ranges>
 
 struct ContextSteeringMap {
   static constexpr int angleCount = 12;
-  static constexpr double deltaAngle = 2.0 * M_PI / angleCount;
+  static constexpr double deltaAngle = 2.0 * std::numbers::pi / angleCount;
   double data[angleCount] = {};
 
   static Vec2 directionBy(int index) {

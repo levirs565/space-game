@@ -11,6 +11,7 @@ public:
     Quit
   };
 private:
+  SDL_Window* mWindow;
   GameStageScreen mStageScreen;
   GamePauseScreen mPauseScreen;
   GameOverScreen mGameOverScreen;
@@ -18,7 +19,7 @@ private:
   bool mIsGameOver = false;
   std::function<void(Event)> mCallback;
 public:
-  GameScreen(std::function<void(Event)> callback);
+  GameScreen(MIX_Mixer* mixer, SDL_Window* window, std::function<void(Event)> callback);
 
   void onSizeChanged(const Vec2& size) override;
   void onSDLEvent(const SDL_Event& event) override;

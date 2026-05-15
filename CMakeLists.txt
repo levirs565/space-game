@@ -3,12 +3,12 @@ project(space)
 
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(SDL2 REQUIRED)
-find_package(SDL2_image REQUIRED)
-find_package(SDL2_mixer REQUIRED)
-find_package(SDL2_ttf REQUIRED)
+find_package(SDL3 REQUIRED)
+find_package(SDL3_image REQUIRED)
+find_package(SDL3_mixer REQUIRED)
+find_package(SDL3_ttf REQUIRED)
 
-find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
+#find_package(SDL3 REQUIRED CONFIG COMPONENTS SDL2main)
 
 add_executable(space
         main.cpp
@@ -83,8 +83,8 @@ add_executable(space
         Screen/AboutScreen.hpp
 )
 
-if(TARGET SDL2::SDL2main)
-    target_link_libraries(space PRIVATE SDL2::SDL2main)
-endif()
+# if(TARGET SDL2::SDL2main)
+#     target_link_libraries(space PRIVATE SDL2::SDL2main)
+# endif()
 
-target_link_libraries(space PRIVATE SDL2::SDL2 SDL2_image::SDL2_image SDL2_mixer::SDL2_mixer SDL2_ttf::SDL2_ttf)
+target_link_libraries(space PRIVATE SDL3::SDL3 SDL3_image::SDL3_image SDL3_mixer::SDL3_mixer SDL3_ttf::SDL3_ttf)

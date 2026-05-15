@@ -1,7 +1,7 @@
 #ifndef SPACE_PLAYERSHIP_HPP
 #define SPACE_PLAYERSHIP_HPP
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "../AssetManager.hpp"
 #include "GameEntity.hpp"

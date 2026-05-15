@@ -10,6 +10,7 @@
 #include <functional>
 
 class GameOverScreen : public IScreen {
+  SDL_Window* mWindow;
   Label mGameOverLabel{"Game Over"};
   Label mScoreLabel{"Score: "};
   Label mMessageLabel{"Enter  Your  Name"};
@@ -23,7 +24,8 @@ public:
   std::function<void(Event)> mCallback;
 
 public:
-  GameOverScreen(std::function<void(Event)> callback);
+  GameOverScreen(SDL_Window* window, std::function<void(Event)> callback);
+  ~GameOverScreen();
 
   void setScore(int score);
   void onSizeChanged(const Vec2 &size) override;

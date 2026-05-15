@@ -18,7 +18,7 @@ void TextRenderer::clear() {
     mTextTexture = nullptr;
   }
   if (mTextSurface != nullptr) {
-    SDL_FreeSurface(mTextSurface);
+    SDL_DestroySurface(mTextSurface);
     mTextSurface = nullptr;
   }
 }
@@ -29,7 +29,7 @@ SDL_Texture *TextRenderer::getTexture(SDL_Renderer *renderer) {
   return mTextTexture;
 }
 void TextRenderer::createSurface() {
-  mTextSurface = TTF_RenderUTF8_Solid(mFont, mText.c_str(), mColor);
+  mTextSurface = TTF_RenderText_Solid(mFont, mText.c_str(), mText.length(), mColor);
 }
 TextRenderer::TextRenderer(TTF_Font *font, SDL_Color color)
     : mFont(font), mColor(color) {
@@ -37,6 +37,6 @@ TextRenderer::TextRenderer(TTF_Font *font, SDL_Color color)
 }
 Vec2 TextRenderer::getSize() {
   int width, height;
-  TTF_SizeUTF8(mFont, mText.c_str(), &width, &height);
+  TTF_GetStringSize(mFont, mText.c_str(), mText.length(), &width, &height);
   return { double(width), double(height) };
 }

@@ -5,11 +5,11 @@ Vec2 Label::getLayoutSize() { return mTextRenderer.getSize(); }
 
 void Label::update() {}
 
-SDL_Rect Label::getRect() { return calculateRect(getLayoutSize()); }
+SDL_FRect Label::getRect() { return calculateRect(getLayoutSize()); }
 void Label::draw(SDL_Renderer *renderer) {
   SDL_Texture *texture = mTextRenderer.getTexture(renderer);
-  SDL_Rect rect = calculateTextureRect(texture, 1);
-  SDL_RenderCopy(renderer, texture, nullptr, &rect);
+  SDL_FRect rect = calculateTextureRect(texture, 1);
+  SDL_RenderTexture(renderer, texture, nullptr, &rect);
 }
 
 Label::Label(std::string text)

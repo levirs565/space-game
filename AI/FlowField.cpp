@@ -66,7 +66,7 @@ void FlowField::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
   int startX = -int(fmod(cameraPosition.x, mEntitySize));
   int startY = -int(fmod(cameraPosition.y, mEntitySize));
 
-  SDL_Rect r;
+  SDL_FRect r;
   r.w = mEntitySize;
   r.h = mEntitySize;
 
@@ -88,9 +88,9 @@ void FlowField::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 64);
       else
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 64);
-      SDL_RenderFillRect(renderer, &r);
+      SDL_RenderRect(renderer, &r);
       SDL_SetRenderDrawColor(renderer, 255, 255, 255, 192);
-      SDL_RenderDrawRect(renderer, &r);
+      SDL_RenderRect(renderer, &r);
 
       Vec2 direction = getDirection(NodePosition{row, column}, {0, 0});
       Vec2 arrowFrom = {r.x + mEntitySize / 2.0, r.y + mEntitySize / 2.0};
@@ -99,23 +99,23 @@ void FlowField::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
       arrowTo.add(direction, 1);
 
       SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-      SDL_RenderDrawLine(renderer, arrowFrom.x, arrowFrom.y, arrowTo.x,
+      SDL_RenderLine(renderer, arrowFrom.x, arrowFrom.y, arrowTo.x,
                          arrowTo.y);
 
       std::string text = node.cost != std::numeric_limits<int>::max()
                              ? std::to_string(node.cost)
                              : "INFTY";
-      SDL_Surface *sf = TTF_RenderText_Solid(font, text.data(), color);
+      SDL_Surface *sf = TTF_RenderText_Solid(font, text.data(), text.length(), color);
       SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, sf);
-      SDL_Rect textRect;
-      SDL_QueryTexture(texture, nullptr, nullptr, &textRect.w, &textRect.h);
+      SDL_FRect textRect;
+      SDL_GetTextureSize(texture, &textRect.w, &textRect.h);
       textRect.x = r.x;
       textRect.y = r.y;
 
-      SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+      SDL_RenderTexture(renderer, texture, nullptr, &textRect);
 
       SDL_DestroyTexture(texture);
-      SDL_FreeSurface(sf);
+      SDL_DestroySurface(sf);
     }
   }
 }

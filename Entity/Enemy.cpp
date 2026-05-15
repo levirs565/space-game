@@ -134,7 +134,7 @@ void Enemy::onTick(IGameStage *stage) {
   }
 
   if (stage->getTick() - lastFire >= 1000 && canAttack) {
-    SDL_Rect enemyRect = getRect();
+    SDL_FRect enemyRect = getRect();
     Vec2 laserPos(enemyRect.w, 0);
     double laserAngle = direction.getRotation();
     laserPos.rotate(laserAngle);

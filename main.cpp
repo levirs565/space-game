@@ -1,7 +1,7 @@
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_mixer.h>
-#include <SDL_ttf.h>
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
+#include <SDL3_mixer/SDL_mixer.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -14,42 +14,47 @@
 #include "Entity/PlayerShip.hpp"
 #include "Screen/AboutScreen.hpp"
 #include "Screen/GamePauseScreen.hpp"
-#include "Screen/ScoreListScreen.hpp"
 #include "Screen/GameScreen.hpp"
 #include "Screen/MainScreen.hpp"
+#include "Screen/ScoreListScreen.hpp"
 
 class App {
 public:
   App() {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO) == false) {
       std::cout << "Initializing SDL failed" << std::endl;
       exit(1);
     }
-    IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
-    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) == 1) {
-      std::cout << "Initializing mixer failed" << std::endl;
+
+    if (MIX_Init() == false) {
+      std::cout << "Initializing SDL_mixer failed" << std::endl;
+      exit(1);
+    }
+    mMixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
+    if (!mMixer) {
+      std::cout << "Failed to create Mixer device" << std::endl;
       exit(1);
     }
 
-    mWindow = SDL_CreateWindow("Space", SDL_WINDOWPOS_UNDEFINED,
-                               SDL_WINDOWPOS_UNDEFINED, mWindowSize.x,
-                               mWindowSize.y, 0);
+    float mainScale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
+    mainScale = 1;
+    mWindow = SDL_CreateWindow("Space", mWindowSize.x * mainScale,
+                               mWindowSize.y * mainScale,
+                               SDL_WINDOW_HIGH_PIXEL_DENSITY);
 
     if (!mWindow) {
       std::cout << "Initializing window failed" << std::endl;
       exit(1);
     }
 
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-
-    mRenderer = SDL_CreateRenderer(mWindow, -1, SDL_RENDERER_ACCELERATED);
+    mRenderer = SDL_CreateRenderer(mWindow, nullptr);
 
     if (!mRenderer) {
       std::cout << "Initializing renderer failed" << std::endl;
       exit(1);
     }
 
-    if (TTF_Init() < 0) {
+    if (TTF_Init() == false) {
       std::cout << "TTF Init failed" << std::endl;
       exit(1);
     }
@@ -61,21 +66,21 @@ public:
   }
 
   std::unique_ptr<IScreen> createMain() {
-    return std::make_unique<MainScreen>([this] (auto event) {
-        if (event == MainScreen::Event::Exit) {
-          this->mIsExit = true;
-        } else if (event == MainScreen::Event::Start) {
-          mNextScreen = createGameScreen();
-        } else if (event == MainScreen::Event::ScoreList) {
-          mNextScreen = createScoreListScreen();
-        } else if (event == MainScreen::Event::About) {
-          mNextScreen = createAboutScreen();
-        }
-      });
+    return std::make_unique<MainScreen>([this](auto event) {
+      if (event == MainScreen::Event::Exit) {
+        this->mIsExit = true;
+      } else if (event == MainScreen::Event::Start) {
+        mNextScreen = createGameScreen();
+      } else if (event == MainScreen::Event::ScoreList) {
+        mNextScreen = createScoreListScreen();
+      } else if (event == MainScreen::Event::About) {
+        mNextScreen = createAboutScreen();
+      }
+    });
   }
 
   std::unique_ptr<IScreen> createScoreListScreen() {
-    return std::make_unique<ScoreListScreen>([this] (auto event) {
+    return std::make_unique<ScoreListScreen>([this](auto event) {
       if (event == ScoreListScreen::Event::Back) {
         mNextScreen = createMain();
       }
@@ -83,14 +88,14 @@ public:
   }
 
   std::unique_ptr<IScreen> createGameScreen() {
-    return std::make_unique<GameScreen>([this] (auto event) {
+    return std::make_unique<GameScreen>(mMixer, mWindow, [this](auto event) {
       if (event == GameScreen::Event::Quit)
         mNextScreen = createMain();
     });
   }
 
   std::unique_ptr<IScreen> createAboutScreen() {
-    return std::make_unique<AboutScreen>([this] (auto event) {
+    return std::make_unique<AboutScreen>([this](auto event) {
       if (event == AboutScreen::Event::Close) {
         mNextScreen = createMain();
       }
@@ -106,7 +111,7 @@ public:
     SDL_Event event;
 
     while (SDL_PollEvent(&event)) {
-      if (event.type == SDL_QUIT) {
+      if (event.type == SDL_EVENT_QUIT) {
         mIsExit = true;
         return;
       }
@@ -145,6 +150,7 @@ public:
 private:
   SDL_Renderer *mRenderer;
   SDL_Window *mWindow;
+  MIX_Mixer *mMixer;
   std::unique_ptr<IScreen> mScreen;
   std::unique_ptr<IScreen> mNextScreen;
   bool mIsExit = false;
@@ -164,7 +170,7 @@ int main(int argc, char **argv) {
   assetPath /= relativeAssetPath;
   AssetManager::getInstance()->setRootPath(assetPath);
 
-  SDL_CaptureMouse(SDL_FALSE);
+  SDL_CaptureMouse(false);
 
   App app;
   app.run();

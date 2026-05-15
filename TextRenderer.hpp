@@ -1,7 +1,7 @@
 #ifndef SPACE_TEXTRENDERER_HPP
 #define SPACE_TEXTRENDERER_HPP
 
-#include <SDL_ttf.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <string>
 #include "Math/Vec2.hpp"
 

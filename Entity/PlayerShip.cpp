@@ -88,7 +88,7 @@ void PlayerShip::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
 
 void PlayerShip::doFire(IGameStage *stage) {
   if ((stage->getTick() - lastFire >= 500)) {
-    SDL_Rect rect = getRect();
+    SDL_FRect rect = getRect();
     Vec2 laserPos(rect.w, 0);
     laserPos.rotate(direction.getRotation());
     laserPos.add(position, 1);

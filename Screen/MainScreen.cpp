@@ -15,7 +15,7 @@ void MainScreen::onSizeChanged(const Vec2 &size) {
   mColumn.layout(size);
 }
 void MainScreen::onSDLEvent(const SDL_Event &event) {
-  if (event.type == SDL_MOUSEBUTTONDOWN &&
+  if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
       event.button.button == SDL_BUTTON_LEFT) {
     View* clickedView = mColumn.findByPoint({event.button.x, event.button.y});
     if (clickedView != nullptr) {

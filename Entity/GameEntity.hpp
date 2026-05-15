@@ -1,7 +1,7 @@
 #ifndef SPACE_GAMEENTITY_HPP
 #define SPACE_GAMEENTITY_HPP
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <vector>
 
 #include "../IGameStage.hpp"
@@ -38,7 +38,7 @@ public:
         smoothedDirection(direction), mId(sNextId++) {}
   virtual ~GameEntity() = default;
 
-  SDL_Rect getRect() const;
+  SDL_FRect getRect() const;
 
   virtual void onPreTick() {}
   virtual void onTick(IGameStage *stage) = 0;

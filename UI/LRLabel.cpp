@@ -3,7 +3,7 @@
 Vec2 LRLabel::getLayoutSize() {
   return {500, std::max(mLeft.getLayoutSize().y, mRight.getLayoutSize().y)};
 }
-SDL_Rect LRLabel::getRect() { return calculateRect(getLayoutSize()); }
+SDL_FRect LRLabel::getRect() { return calculateRect(getLayoutSize()); }
 void LRLabel::update() {
   mLeft.update();
   mRight.update();

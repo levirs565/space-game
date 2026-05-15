@@ -33,12 +33,12 @@ Vec2 Column::getLayoutSize() {
   return {maxWidth, height};
 }
 
-SDL_Rect Column::getRect() { return calculateRect(getLayoutSize()); }
+SDL_FRect Column::getRect() { return calculateRect(getLayoutSize()); }
 void Column::update() {
   for (View *view : viewList)
     view->update();
 }
-View *Column::findByPoint(SDL_Point point) {
+View *Column::findByPoint(SDL_FPoint point) {
   for (View* view : viewList) {
     if (view->isPointInside(point)) {
       return view;

@@ -4,29 +4,25 @@
 #include "../Entity/PowerUpHealth.hpp"
 #include "../Map.hpp"
 #include "../Math/Polygon.hpp"
+#include <numbers>
 
 void GameStageScreen::processKeyDown(const SDL_KeyboardEvent &key) {
   if (key.repeat != 0)
     return;
 
-  if (key.keysym.scancode == SDL_SCANCODE_UP ||
-      key.keysym.scancode == SDL_SCANCODE_W)
+  if (key.scancode == SDL_SCANCODE_UP || key.scancode == SDL_SCANCODE_W)
     mIsUp = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_DOWN ||
-      key.keysym.scancode == SDL_SCANCODE_S)
+  if (key.scancode == SDL_SCANCODE_DOWN || key.scancode == SDL_SCANCODE_S)
     mIsDown = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LEFT ||
-      key.keysym.scancode == SDL_SCANCODE_A)
+  if (key.scancode == SDL_SCANCODE_LEFT || key.scancode == SDL_SCANCODE_A)
     mIsLeft = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_RIGHT ||
-      key.keysym.scancode == SDL_SCANCODE_D)
+  if (key.scancode == SDL_SCANCODE_RIGHT || key.scancode == SDL_SCANCODE_D)
     mIsRight = true;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LCTRL ||
-      key.keysym.scancode == SDL_SCANCODE_SPACE)
+  if (key.scancode == SDL_SCANCODE_LCTRL || key.scancode == SDL_SCANCODE_SPACE)
     mIsFire = true;
 }
 
@@ -34,24 +30,19 @@ void GameStageScreen::processKeyUp(const SDL_KeyboardEvent &key) {
   if (key.repeat != 0)
     return;
 
-  if (key.keysym.scancode == SDL_SCANCODE_UP ||
-      key.keysym.scancode == SDL_SCANCODE_W)
+  if (key.scancode == SDL_SCANCODE_UP || key.scancode == SDL_SCANCODE_W)
     mIsUp = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_DOWN ||
-      key.keysym.scancode == SDL_SCANCODE_S)
+  if (key.scancode == SDL_SCANCODE_DOWN || key.scancode == SDL_SCANCODE_S)
     mIsDown = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LEFT ||
-      key.keysym.scancode == SDL_SCANCODE_A)
+  if (key.scancode == SDL_SCANCODE_LEFT || key.scancode == SDL_SCANCODE_A)
     mIsLeft = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_RIGHT ||
-      key.keysym.scancode == SDL_SCANCODE_D)
+  if (key.scancode == SDL_SCANCODE_RIGHT || key.scancode == SDL_SCANCODE_D)
     mIsRight = false;
 
-  if (key.keysym.scancode == SDL_SCANCODE_LCTRL ||
-      key.keysym.scancode == SDL_SCANCODE_SPACE)
+  if (key.scancode == SDL_SCANCODE_LCTRL || key.scancode == SDL_SCANCODE_SPACE)
     mIsFire = false;
 }
 void GameStageScreen::addLaser(const Vec2 &position, double angle,
@@ -61,7 +52,8 @@ void GameStageScreen::addLaser(const Vec2 &position, double angle,
   std::unique_ptr<Laser> laser =
       std::make_unique<Laser>(position, direction, textureName);
   addEntity(std::move(laser));
-  Mix_PlayChannel(1, mLaserSound, 0);
+  MIX_SetTrackAudio(mLaserTrack, mLaserSound);
+  MIX_PlayTrack(mLaserTrack, 0);
 }
 void GameStageScreen::addEntity(std::unique_ptr<GameEntity> &&entity) {
   GameEntity *ptr = entity.get();
@@ -71,13 +63,13 @@ void GameStageScreen::addEntity(std::unique_ptr<GameEntity> &&entity) {
 
 void GameStageScreen::onSDLEvent(const SDL_Event &event) {
   switch (event.type) {
-  case SDL_QUIT:
+  case SDL_EVENT_QUIT:
     exit(0);
     break;
-  case SDL_KEYDOWN:
+  case SDL_EVENT_KEY_DOWN:
     processKeyDown(event.key);
     break;
-  case SDL_KEYUP:
+  case SDL_EVENT_KEY_UP:
     processKeyUp(event.key);
     break;
   default:
@@ -85,8 +77,8 @@ void GameStageScreen::onSDLEvent(const SDL_Event &event) {
   }
 }
 void GameStageScreen::drawBackground(SDL_Renderer *renderer) {
-  SDL_Rect rect;
-  SDL_QueryTexture(mBackgroundTexture, nullptr, nullptr, &rect.w, &rect.h);
+  SDL_FRect rect;
+  SDL_GetTextureSize(mBackgroundTexture, &rect.w, &rect.h);
 
   double backgroundStartY = -fmod(mCameraPosition.y, double(rect.h));
   double backgroundStartX = -fmod(mCameraPosition.x, double(rect.w));
@@ -99,9 +91,9 @@ void GameStageScreen::drawBackground(SDL_Renderer *renderer) {
        backgroundRow++) {
     for (int backgroundColumn = 0; backgroundColumn < backgroundCountX;
          backgroundColumn++) {
-      rect.x = int(backgroundStartX + backgroundColumn * rect.w);
-      rect.y = int(backgroundStartY + backgroundRow * rect.h);
-      SDL_RenderCopy(renderer, mBackgroundTexture, nullptr, &rect);
+      rect.x = backgroundStartX + backgroundColumn * rect.w;
+      rect.y = backgroundStartY + backgroundRow * rect.h;
+      SDL_RenderTexture(renderer, mBackgroundTexture, nullptr, &rect);
     }
   }
 }
@@ -111,7 +103,8 @@ void GameStageScreen::calculateCamera() {
   mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2, 0,
                                 mWordSize.y - mCameraSize.y);
 }
-GameStageScreen::GameStageScreen(std::function<void(Event)> callback)
+GameStageScreen::GameStageScreen(MIX_Mixer *mixer,
+                                 std::function<void(Event)> callback)
     : mCallback(std::move(callback)), mRandomAngleEngine(mRandomAngleDevice()),
       mRandomHealthEngine(mRandomHealthDevice()) {
   mBackgroundTexture =
@@ -119,11 +112,17 @@ GameStageScreen::GameStageScreen(std::function<void(Event)> callback)
   mPlayerLifeTexture =
       TextureManager::getInstance()->load("PNG/UI/playerLife3_blue.png");
 
+  mLaserTrack = MIX_CreateTrack(mixer);
+  mExplosionTrack = MIX_CreateTrack(mixer);
+
   std::string laserSoundPath =
       AssetManager::getInstance()->getAsset("Bonus/sfx_laser1.ogg").string();
-  mLaserSound = Mix_LoadWAV(laserSoundPath.c_str());
-  std::string explosionSoundPath = AssetManager::getInstance()->getAsset("Audio/explosion-5981.mp3").string();
-  mExplosionSound = Mix_LoadWAV(explosionSoundPath.c_str());
+
+  mLaserSound = MIX_LoadAudio(mixer, laserSoundPath.c_str(), true);
+  std::string explosionSoundPath = AssetManager::getInstance()
+                                       ->getAsset("Audio/explosion-5981.mp3")
+                                       .string();
+  mExplosionSound = MIX_LoadAudio(mixer, explosionSoundPath.c_str(), true);
 
   std::unique_ptr<PlayerShip> playerShip =
       std::make_unique<PlayerShip>(Vec2(400, 700));
@@ -151,13 +150,19 @@ GameStageScreen::GameStageScreen(std::function<void(Event)> callback)
 
   mPathFinder.generateHeatmap(mPlayerShip->position);
 }
+GameStageScreen::~GameStageScreen() {
+  MIX_DestroyTrack(mLaserTrack);
+  MIX_DestroyTrack(mExplosionTrack);
+  MIX_DestroyAudio(mLaserSound);
+  MIX_DestroyAudio(mExplosionSound);
+}
 
 void GameStageScreen::spawnEnemy() {
   Vec2 enemyPosition;
   do {
     int angle = mRandomAngle(mRandomAngleEngine);
     Vec2 direction(1, 0);
-    direction.rotate(double(angle) * M_PI / 180);
+    direction.rotate(double(angle) * std::numbers::pi / 180);
     direction.scale(800);
     enemyPosition = mPlayerShip->position;
     enemyPosition.add(direction, 1);
@@ -172,7 +177,7 @@ void GameStageScreen::spawnHealth() {
     int angle = mRandomAngle(mRandomAngleEngine);
     int distance = mRandomHealth(mRandomHealthEngine);
     Vec2 direction(1, 0);
-    direction.rotate(double(angle) * M_PI / 180);
+    direction.rotate(double(angle) *  std::numbers::pi / 180);
     direction.scale(100 + distance);
 
     healthPosition = mPlayerShip->position;
@@ -204,9 +209,10 @@ void GameStageScreen::onUpdate() {
     particle->onUpdate();
 
   for (auto it = mParticleList.begin(); it != mParticleList.end();)
-      if (!(*it)->isActive)
-          it = mParticleList.erase(it);
-      else it++;
+    if (!(*it)->isActive)
+      it = mParticleList.erase(it);
+    else
+      it++;
 
   for (auto &entity : mEntityList) {
     entity->onPreTick();
@@ -340,7 +346,7 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
 
   drawBackground(renderer);
 
-  for (auto& particle : mParticleList)
+  for (auto &particle : mParticleList)
     particle->onDraw(renderer, mCameraPosition);
 
   for (GameEntity *entity :
@@ -349,24 +355,24 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
                       mCameraPosition.y + mCameraSize.y, false)) {
     entity->onDraw(renderer, mCameraPosition);
 
-    //for (size_t i = 0; i < entity->boundingBox.size(); i++) {
-    //  Vec2 current = entity->boundingBox[i];
-    //  Vec2 next = entity->boundingBox[(i + 1) % entity->boundingBox.size()];
+    // for (size_t i = 0; i < entity->boundingBox.size(); i++) {
+    //   Vec2 current = entity->boundingBox[i];
+    //   Vec2 next = entity->boundingBox[(i + 1) % entity->boundingBox.size()];
 
     //  current.substract(mCameraPosition);
     //  next.substract(mCameraPosition);
 
     //  SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-    //  SDL_RenderDrawLine(renderer, int(current.x), int(current.y), int(next.x),
+    //  SDL_RenderDrawLine(renderer, int(current.x), int(current.y),
+    //  int(next.x),
     //                     int(next.y));
     //}
   }
 
-  SDL_Rect lifeIcon = {.x = 4, .y = 4};
-  SDL_QueryTexture(mPlayerLifeTexture, nullptr, nullptr, &lifeIcon.w,
-                   &lifeIcon.h);
+  SDL_FRect lifeIcon = {.x = 4, .y = 4};
+  SDL_GetTextureSize(mPlayerLifeTexture, &lifeIcon.w, &lifeIcon.h);
   for (int i = 1; i <= mPlayerShip->healthCount; i++) {
-    SDL_RenderCopy(renderer, mPlayerLifeTexture, nullptr, &lifeIcon);
+    SDL_RenderTexture(renderer, mPlayerLifeTexture, nullptr, &lifeIcon);
     lifeIcon.x += lifeIcon.w + 4;
   }
 
@@ -390,5 +396,6 @@ void GameStageScreen::layoutScoreLabel() {
 
 void GameStageScreen::addParticle(std::unique_ptr<Particle> &&particle) {
   mParticleList.push_back(std::move(particle));
-  Mix_PlayChannel(2, mExplosionSound, 0);
+  MIX_SetTrackAudio(mExplosionTrack, mExplosionSound);
+  MIX_PlayTrack(mExplosionTrack, 0);
 }

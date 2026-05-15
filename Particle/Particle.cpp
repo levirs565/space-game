@@ -3,19 +3,20 @@
 
 void Particle::drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition,
                            SDL_Texture *texture) {
-  SDL_Rect rect;
+  SDL_FRect rect;
 
-  SDL_QueryTexture(texture, nullptr, nullptr, &rect.w, &rect.h);
+  SDL_GetTextureSize(texture, &rect.w, &rect.h);
   rect.w = floor(rect.w * scale);
   rect.h = floor(rect.h * scale);
-  rect.x = int(position.x - cameraPosition.x - double(rect.w) / 2);
-  rect.y = int(position.y - cameraPosition.y - double(rect.h) / 2);
+  rect.x = position.x - cameraPosition.x - double(rect.w) / 2;
+  rect.y = position.y - cameraPosition.y - double(rect.h) / 2;
   SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
   SDL_SetTextureAlphaMod(texture, alpha);
-  SDL_RenderCopyEx(renderer, texture, nullptr, &rect,
+  SDL_RenderTextureRotated(renderer, texture, nullptr, &rect,
                    0,
                    nullptr, SDL_FLIP_NONE);
 }
+
 void Particle::onUpdate() {
   position.add(velocity, 1);
   if (alpha < 5)
