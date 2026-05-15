@@ -12,7 +12,7 @@ Vec2 findPolygonCenter(const std::vector<Vec2> &polygon) {
 std::pair<double, double>
 findPolygonProjectionMinMax(std::vector<Vec2> &polygon, Vec2 target) {
   double minProjection = std::numeric_limits<double>::max();
-  double maxProjection = std::numeric_limits<double>::min();
+  double maxProjection = std::numeric_limits<double>::lowest();
 
   for (const Vec2 &vertex : polygon) {
     const double projection = vertex.dot(target);
