@@ -37,7 +37,6 @@ public:
     }
 
     float mainScale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
-    mainScale = 1;
     mWindow = SDL_CreateWindow("Space", mWindowSize.x * mainScale,
                                mWindowSize.y * mainScale,
                                SDL_WINDOW_HIGH_PIXEL_DENSITY);
@@ -53,6 +52,9 @@ public:
       std::cout << "Initializing renderer failed" << std::endl;
       exit(1);
     }
+
+    SDL_SetRenderLogicalPresentation(mRenderer, mWindowSize.x, mWindowSize.y,
+                                     SDL_LOGICAL_PRESENTATION_LETTERBOX);
 
     if (TTF_Init() == false) {
       std::cout << "TTF Init failed" << std::endl;
@@ -111,6 +113,7 @@ public:
     SDL_Event event;
 
     while (SDL_PollEvent(&event)) {
+      SDL_ConvertEventToRenderCoordinates(mRenderer, &event);
       if (event.type == SDL_EVENT_QUIT) {
         mIsExit = true;
         return;

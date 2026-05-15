@@ -12,12 +12,15 @@ Button::Button(std::string text)
   assert(mButtonTexture != nullptr);
   mTextRenderer.setText(std::move(text));
 }
-Vec2 Button::getLayoutSize() {
-  return getTextureSize(mButtonTexture);
-}
+Vec2 Button::getLayoutSize() { return getTextureSize(mButtonTexture); }
 void Button::update() {
+  if (mRenderer == nullptr)
+    return;
+
   SDL_FPoint mouse;
   SDL_GetMouseState(&mouse.x, &mouse.y);
+  SDL_RenderCoordinatesFromWindow(mRenderer, mouse.x, mouse.y, &mouse.x,
+                                  &mouse.y);
   setFocus(isPointInside(mouse));
 
   double targetScale = mFocus ? mFocusScale : 1;
@@ -25,6 +28,8 @@ void Button::update() {
   mScale = std::clamp(mScale, 1.0, mFocusScale);
 }
 void Button::draw(SDL_Renderer *renderer) {
+  mRenderer = renderer;
+
   SDL_FRect rect = calculateTextureRect(mButtonTexture, mScale);
   SDL_RenderTexture(renderer, mButtonTexture, nullptr, &rect);
 

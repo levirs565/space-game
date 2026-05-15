@@ -10,6 +10,7 @@ class Button : public View {
 
   TextRenderer mTextRenderer;
   SDL_Texture *mButtonTexture;
+  SDL_Renderer *mRenderer = nullptr;
 
   static constexpr double mFocusScale = 1.05;
 
