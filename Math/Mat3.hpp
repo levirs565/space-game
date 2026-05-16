@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cmath>
+#include <stdexcept>
 
 struct Mat3 {
   std::array<std::array<double, 3>, 3> values;
@@ -49,6 +50,36 @@ struct Mat3 {
                       (*this)[1][0] * (*this)[1][0]),
             std::sqrt((*this)[0][1] * (*this)[0][1] +
                       (*this)[1][1] * (*this)[1][1])};
+  }
+
+  [[nodiscard]] Mat3 affineInverse() const {
+    double a = (*this)[0][0];
+    double b = (*this)[0][1];
+    double c = (*this)[1][0];
+    double d = (*this)[1][1];
+    double tx = (*this)[0][2];
+    double ty = (*this)[1][2];
+
+    double det = a * d - b * c;
+
+    if (std::abs(det) < 1e-7) {
+      throw std::invalid_argument("Inverse not found");
+    }
+
+    double invDet = 1.0 / det;
+
+    double ia =  d * invDet;
+    double ib = -b * invDet;
+    double ic = -c * invDet;
+    double id =  a * invDet;
+
+    // clang-format off
+    return {
+      ia, ib, -(ia*tx + ib*ty),
+      ic, id, -(ic*tx + id*ty),
+      0, 0, 1
+    };
+    // clang-format on
   }
 
   static Mat3 identity() {

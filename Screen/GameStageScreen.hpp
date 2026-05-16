@@ -55,6 +55,7 @@ class GameStageScreen : public IScreen, public IGameStage {
 
   void drawBackground(SDL_Renderer *renderer);
   void calculateCamera();
+  void updateViewMatrix();
   void spawnEnemy();
   void spawnHealth();
 

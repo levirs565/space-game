@@ -80,8 +80,12 @@ void GameStageScreen::drawBackground(SDL_Renderer *renderer) {
   SDL_FRect rect;
   SDL_GetTextureSize(mBackgroundTexture, &rect.w, &rect.h);
 
-  double backgroundStartY = -fmod(mCameraPosition.y, double(rect.h));
-  double backgroundStartX = -fmod(mCameraPosition.x, double(rect.w));
+  Vec2 scaling = mViewMatrix.getScale();
+  rect.w *= scaling.x;
+  rect.h *= scaling.y;
+
+  double backgroundStartY = -fmod(mCameraPosition.y * scaling.y, double(rect.h));
+  double backgroundStartX = -fmod(mCameraPosition.x * scaling.x, double(rect.w));
   int backgroundCountY =
       int(ceil((mCameraSize.y - backgroundStartY) / double(rect.h)));
   int backgroundCountX =
@@ -97,19 +101,26 @@ void GameStageScreen::drawBackground(SDL_Renderer *renderer) {
     }
   }
 }
+
 void GameStageScreen::calculateCamera() {
   mCameraPosition.x = SDL_clamp(mPlayerShip->position.x - mCameraSize.x / 2, 0,
                                 mWordSize.x - mCameraSize.x);
   mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2, 0,
                                 mWordSize.y - mCameraSize.y);
-  mViewMatrix = Mat3::translation(Vec2(0, 0) - mCameraPosition);
+  updateViewMatrix();
 }
+
+void GameStageScreen::updateViewMatrix() {
+  mViewMatrix =
+      Mat3::scale(0.5) * Mat3::translation(Vec2(0, 0) - mCameraPosition);
+}
+
 GameStageScreen::GameStageScreen(MIX_Mixer *mixer,
                                  std::function<void(Event)> callback)
     : mCallback(std::move(callback)), mRandomAngleEngine(mRandomAngleDevice()),
       mRandomHealthEngine(mRandomHealthDevice()) {
   mBackgroundTexture =
-      TextureManager::getInstance()->load("Backgrounds/black.png");
+      TextureManager::getInstance()->load("Backgrounds/purple.png");
   mPlayerLifeTexture =
       TextureManager::getInstance()->load("PNG/UI/playerLife3_blue.png");
 
@@ -150,7 +161,10 @@ GameStageScreen::GameStageScreen(MIX_Mixer *mixer,
   }
 
   mPathFinder.generateHeatmap(mPlayerShip->position);
+
+  updateViewMatrix();
 }
+
 GameStageScreen::~GameStageScreen() {
   MIX_DestroyTrack(mLaserTrack);
   MIX_DestroyTrack(mExplosionTrack);
@@ -178,7 +192,7 @@ void GameStageScreen::spawnHealth() {
     int angle = mRandomAngle(mRandomAngleEngine);
     int distance = mRandomHealth(mRandomHealthEngine);
     Vec2 direction(1, 0);
-    direction.rotate(double(angle) *  std::numbers::pi / 180);
+    direction.rotate(double(angle) * std::numbers::pi / 180);
     direction.scale(100 + distance);
 
     healthPosition = mPlayerShip->position;
@@ -348,12 +362,14 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
   drawBackground(renderer);
 
   for (auto &particle : mParticleList)
-    particle->onDraw(renderer, mCameraPosition);
+    particle->onDraw(renderer, mViewMatrix);
 
-  for (GameEntity *entity :
-       mSAP.queryArea(mCameraPosition.x, mCameraPosition.y,
-                      mCameraPosition.x + mCameraSize.x,
-                      mCameraPosition.y + mCameraSize.y, false)) {
+  Mat3 inverse = mViewMatrix.affineInverse();
+  Vec3 topLeft = inverse * Vec2(0, 0);
+  Vec3 bottomRight = inverse * Vec2(mCameraSize);
+
+  for (GameEntity *entity : mSAP.queryArea(topLeft.x, topLeft.y, bottomRight.x,
+                                           bottomRight.y, false)) {
     entity->onDraw(renderer, mViewMatrix);
 
     // for (size_t i = 0; i < entity->boundingBox.size(); i++) {
@@ -387,6 +403,7 @@ void GameStageScreen::onPostDraw() {
 
 void GameStageScreen::onSizeChanged(const Vec2 &size) {
   mCameraSize = size;
+  updateViewMatrix();
   layoutScoreLabel();
 }
 
