@@ -87,9 +87,9 @@ void GameStageScreen::drawBackground(SDL_Renderer *renderer) {
   double backgroundStartY = -fmod(mCameraPosition.y * scaling.y, double(rect.h));
   double backgroundStartX = -fmod(mCameraPosition.x * scaling.x, double(rect.w));
   int backgroundCountY =
-      int(ceil((mCameraSize.y - backgroundStartY) / double(rect.h)));
+      int(ceil((mViewSize.y - backgroundStartY) / double(rect.h)));
   int backgroundCountX =
-      int(ceil((mCameraSize.x - backgroundStartX) / double(rect.w)));
+      int(ceil((mViewSize.x - backgroundStartX) / double(rect.w)));
 
   for (int backgroundRow = 0; backgroundRow < backgroundCountY;
        backgroundRow++) {
@@ -112,7 +112,7 @@ void GameStageScreen::calculateCamera() {
 
 void GameStageScreen::updateViewMatrix() {
   mViewMatrix =
-      Mat3::scale(0.5) * Mat3::translation(Vec2(0, 0) - mCameraPosition);
+      Mat3::scale( mCameraZoom) * Mat3::translation(Vec2(0, 0) - mCameraPosition);
 }
 
 GameStageScreen::GameStageScreen(MIX_Mixer *mixer,
@@ -178,7 +178,7 @@ void GameStageScreen::spawnEnemy() {
     int angle = mRandomAngle(mRandomAngleEngine);
     Vec2 direction(1, 0);
     direction.rotate(double(angle) * std::numbers::pi / 180);
-    direction.scale(800);
+    direction.scale(std::max(mCameraSize.x, mCameraSize.y));
     enemyPosition = mPlayerShip->position;
     enemyPosition.add(direction, 1);
   } while (enemyPosition.x < 0 || enemyPosition.y < 0 ||
@@ -366,7 +366,7 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
 
   Mat3 inverse = mViewMatrix.affineInverse();
   Vec3 topLeft = inverse * Vec2(0, 0);
-  Vec3 bottomRight = inverse * Vec2(mCameraSize);
+  Vec3 bottomRight = inverse * Vec2(mViewSize);
 
   for (GameEntity *entity : mSAP.queryArea(topLeft.x, topLeft.y, bottomRight.x,
                                            bottomRight.y, false)) {
@@ -402,14 +402,18 @@ void GameStageScreen::onPostDraw() {
 }
 
 void GameStageScreen::onSizeChanged(const Vec2 &size) {
-  mCameraSize = size;
-  updateViewMatrix();
+  mViewSize = size;
+
+  mCameraSize = mViewSize;
+  mCameraSize.scale(1.0 / mCameraZoom);
+
+  calculateCamera();
   layoutScoreLabel();
 }
 
 void GameStageScreen::layoutScoreLabel() {
   Vec2 size = mScoreLabel.getLayoutSize();
-  mScoreLabel.setCenterPosition({mCameraSize.x - size.x / 2, size.y / 2});
+  mScoreLabel.setCenterPosition({mViewSize.x - size.x / 2, size.y / 2});
 }
 
 void GameStageScreen::addParticle(std::unique_ptr<Particle> &&particle) {

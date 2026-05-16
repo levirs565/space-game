@@ -22,6 +22,8 @@ class GameStageScreen : public IScreen, public IGameStage {
   FlowField mPathFinder;
   Vec2 mCameraSize;
   Vec2 mCameraPosition;
+  double mCameraZoom{1.0};
+  Vec2 mViewSize;
   Mat3 mViewMatrix;
   Vec2 mWordSize{5000, 5000};
   MIX_Track *mLaserTrack;
