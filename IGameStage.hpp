@@ -1,11 +1,10 @@
 #ifndef SPACE_IGAMESTAGE_HPP
 #define SPACE_IGAMESTAGE_HPP
 
-#include <memory>
-#include <vector>
-#include <string>
+#include "Math/Mat3.hpp"
 
-#include "Math/Vec2.hpp"
+#include <memory>
+#include <string>
 
 class FlowField;
 class GameEntity;
@@ -14,6 +13,7 @@ class Particle;
 
 class IGameStage {
 public:
+  virtual ~IGameStage() = default;
   virtual void addLaser(const Vec2 &position, double angle,
                         const std::string &textureName) = 0;
 
@@ -29,7 +29,7 @@ public:
 
   virtual const Vec2 &getCameraSize() = 0;
 
-  virtual Uint32 getTick() const = 0;
+  [[nodiscard]] virtual Uint32 getTick() const = 0;
 
   virtual void addParticle(std::unique_ptr<Particle> &&particle) = 0;
 };

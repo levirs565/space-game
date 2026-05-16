@@ -22,6 +22,7 @@ class GameStageScreen : public IScreen, public IGameStage {
   FlowField mPathFinder;
   Vec2 mCameraSize;
   Vec2 mCameraPosition;
+  Mat3 mViewMatrix;
   Vec2 mWordSize{5000, 5000};
   MIX_Track *mLaserTrack;
   MIX_Audio *mLaserSound;
@@ -74,7 +75,7 @@ private:
 
 public:
   GameStageScreen(MIX_Mixer* mixer, std::function<void(Event)> callback);
-  ~GameStageScreen();
+  ~GameStageScreen() override;
 
   void onSDLEvent(const SDL_Event &event) override;
   void onSizeChanged(const Vec2 &size) override;
@@ -96,7 +97,7 @@ public:
   const Vec2 &getWorldSize() override { return mWordSize; }
   FlowField *getFlowField() override { return &mPathFinder; }
   SAP *getSAP() override { return &mSAP; }
-  Uint32 getTick() const override { return mGameTick; }
+  [[nodiscard]] Uint32 getTick() const override { return mGameTick; }
   void addParticle(std::unique_ptr<Particle> &&particle) override;
 
   int getScore() { return mScore; }

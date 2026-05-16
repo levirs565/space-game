@@ -3,12 +3,19 @@
 
 #include <cmath>
 
+struct Vec3;
+
 struct Vec2 {
   double x;
   double y;
 
-  Vec2() : Vec2(0,0 ) {}
+  Vec2() : Vec2(0, 0) {}
   Vec2(double x, double y) : x(x), y(y) {}
+
+  Vec2 operator-(const Vec2 &b) const { return {x - b.x, y - b.y}; }
+  Vec2 operator+(const Vec2 &b) const { return {x + b.x, y + b.y}; }
+
+  [[nodiscard]] Vec3 toHomogenous() const;
 
   void rotate(double radian) {
     double cos = std::cos(radian);
@@ -41,9 +48,9 @@ struct Vec2 {
     y *= factor;
   }
 
-  double length() const { return std::sqrt(x * x + y * y); }
+  [[nodiscard]] double length() const { return std::sqrt(x * x + y * y); }
 
-  double getRotation() { return std::atan2(y, x); }
+  [[nodiscard]] double getRotation() const { return std::atan2(y, x); }
 
   void normalize() {
     double l = length();
@@ -58,9 +65,11 @@ struct Vec2 {
     x *= -1;
   }
 
-  double dot(const Vec2 &other) const { return x * other.x + y * other.y; }
+  [[nodiscard]] double dot(const Vec2 &other) const {
+    return x * other.x + y * other.y;
+  }
 
-  Vec2 projectInto(const Vec2 &other, bool clamp) const {
+  [[nodiscard]] Vec2 projectInto(const Vec2 &other, bool clamp) const {
     Vec2 axis = other;
     axis.normalize();
     double projectionLength = dot(axis);
@@ -72,28 +81,29 @@ struct Vec2 {
     return axis;
   }
 
-  inline Vec2 parallelComponent(const Vec2 &basis) const {
+  [[nodiscard]] Vec2 parallelComponent(const Vec2 &basis) const {
     return projectInto(basis, false);
   }
 
-  Vec2 perpendicularComponent(const Vec2 &basis) const {
+  [[nodiscard]] Vec2 perpendicularComponent(const Vec2 &basis) const {
     Vec2 copy{*this};
     copy.substract(parallelComponent(basis));
     return copy;
   }
 
-  double angleBetween(const Vec2 &other) const {
+  [[nodiscard]] double angleBetween(const Vec2 &other) const {
     return std::acos(dot(other) / length() / other.length());
   }
 
-  double orientedAngleTo(const Vec2 &other) const {
+  [[nodiscard]] double orientedAngleTo(const Vec2 &other) const {
     return std::atan2(x * other.y - y * other.x, dot(other));
   }
 
   /**
    * basis must be vector with length 1
    */
-  Vec2 limitMaxDeviationCos(const Vec2 &basis, const double maxCos) {
+  [[nodiscard]] Vec2 limitMaxDeviationCos(const Vec2 &basis,
+                                          const double maxCos) const {
     Vec2 currentDirection{*this};
     currentDirection.normalize();
 
@@ -114,5 +124,20 @@ struct Vec2 {
     return result;
   }
 };
+
+struct Vec3 {
+  double x;
+  double y;
+  double z;
+
+  Vec3() : Vec3(0, 0, 0) {}
+  Vec3(double x, double y, double z) : x(x), y(y), z(z) {}
+
+  [[nodiscard]] Vec2 toCartesian() const {
+    return {x / z, y / z};
+  }
+};
+
+inline Vec3 Vec2::toHomogenous() const { return {x, y, 1}; }
 
 #endif // SPACE_VEC2_HPP

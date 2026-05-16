@@ -16,7 +16,7 @@ public:
   Enemy(const Vec2 &position);
 
   void onTick(IGameStage *stage) override;
-  void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) override;
+  void onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix) override;
   void onHit(IGameStage *stage, GameEntity *other) override;
 };
 

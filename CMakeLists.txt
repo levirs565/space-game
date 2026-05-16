@@ -81,6 +81,7 @@ add_executable(space
         Particle/Explosion.hpp
         Screen/AboutScreen.cpp
         Screen/AboutScreen.hpp
+        Math/Mat3.hpp
 )
 
 # if(TARGET SDL2::SDL2main)

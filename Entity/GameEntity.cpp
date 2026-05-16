@@ -4,17 +4,25 @@
 
 size_t GameEntity::sNextId = 0;
 
-void GameEntity::drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition,
+void GameEntity::drawTexture(SDL_Renderer *renderer, const Mat3 &viewMatrix,
                              SDL_Texture *texture) {
   SDL_FRect rect;
 
   SDL_GetTextureSize(texture, &rect.w, &rect.h);
-  rect.x = position.x - cameraPosition.x - double(rect.w) / 2;
-  rect.y = position.y - cameraPosition.y - double(rect.h) / 2;
 
-  SDL_RenderTextureRotated(renderer, texture, nullptr, &rect,
-                   rad2Deg(smoothedDirection.getRotation() - drawRotationShift),
-                   nullptr, SDL_FLIP_NONE);
+  Vec3 screenPosition = viewMatrix * position;
+  Vec2 scale = viewMatrix.getScale();
+
+  rect.w *= scale.x;
+  rect.h *= scale.y;
+
+  rect.x = screenPosition.x - rect.w / 2;
+  rect.y = screenPosition.y - rect.h / 2;
+
+  SDL_RenderTextureRotated(
+      renderer, texture, nullptr, &rect,
+      rad2Deg(smoothedDirection.getRotation() - drawRotationShift), nullptr,
+      SDL_FLIP_NONE);
 }
 
 SDL_FRect GameEntity::getRect() const {
@@ -25,8 +33,8 @@ SDL_FRect GameEntity::getRect() const {
   return r;
 }
 
-void GameEntity::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
-  drawTexture(renderer, cameraPosition, texture);
+void GameEntity::onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix) {
+  drawTexture(renderer, viewMatrix, texture);
 }
 
 void GameEntity::updateBoundingBox() {
@@ -39,21 +47,18 @@ void GameEntity::updateBoundingBox() {
 
   boundingRadius = hypot(halfWidth, halfHeight);
 
-  Vec2 topRight(position.x + halfWidth, position.y - halfHeight);
-  Vec2 bottomRight{position.x + halfWidth, position.y + halfHeight};
-  Vec2 bottomLeft{position.x - halfWidth, position.y + halfHeight};
-  Vec2 topLeft{position.x - halfWidth, position.y - halfHeight};
-
   double radianAngle = smoothedDirection.getRotation() - drawRotationShift;
-  topRight.rotateAround(radianAngle, position);
-  bottomRight.rotateAround(radianAngle, position);
-  bottomLeft.rotateAround(radianAngle, position);
-  topLeft.rotateAround(radianAngle, position);
+  Mat3 modelMatrix = Mat3::translation(position) * Mat3::rotation(radianAngle);
 
-  boundingBox.push_back(topRight);
-  boundingBox.push_back(bottomRight);
-  boundingBox.push_back(bottomLeft);
-  boundingBox.push_back(topLeft);
+  Vec2 topRight(halfWidth, -halfHeight);
+  Vec2 bottomRight{halfWidth, halfHeight};
+  Vec2 bottomLeft{-halfWidth, halfHeight};
+  Vec2 topLeft{-halfWidth, -halfHeight};
+
+  boundingBox.push_back((modelMatrix * topRight).toCartesian());
+  boundingBox.push_back((modelMatrix * bottomRight).toCartesian());
+  boundingBox.push_back((modelMatrix * bottomLeft).toCartesian());
+  boundingBox.push_back((modelMatrix * topLeft).toCartesian());
 
   auto [minX, maxX] = std::minmax_element(
       boundingBox.begin(), boundingBox.end(),

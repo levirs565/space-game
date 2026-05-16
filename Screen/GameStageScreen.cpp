@@ -102,6 +102,7 @@ void GameStageScreen::calculateCamera() {
                                 mWordSize.x - mCameraSize.x);
   mCameraPosition.y = SDL_clamp(mPlayerShip->position.y - mCameraSize.y / 2, 0,
                                 mWordSize.y - mCameraSize.y);
+  mViewMatrix = Mat3::translation(Vec2(0, 0) - mCameraPosition);
 }
 GameStageScreen::GameStageScreen(MIX_Mixer *mixer,
                                  std::function<void(Event)> callback)
@@ -353,7 +354,7 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
        mSAP.queryArea(mCameraPosition.x, mCameraPosition.y,
                       mCameraPosition.x + mCameraSize.x,
                       mCameraPosition.y + mCameraSize.y, false)) {
-    entity->onDraw(renderer, mCameraPosition);
+    entity->onDraw(renderer, mViewMatrix);
 
     // for (size_t i = 0; i < entity->boundingBox.size(); i++) {
     //   Vec2 current = entity->boundingBox[i];

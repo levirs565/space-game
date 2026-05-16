@@ -76,14 +76,14 @@ void PlayerShip::onHit(IGameStage *stage, GameEntity *other) {
   }
 }
 
-void PlayerShip::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
-  GameEntity::onDraw(renderer, cameraPosition);
+void PlayerShip::onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix) {
+  GameEntity::onDraw(renderer, viewMatrix);
   if (healthCount <= 3) {
     int index = std::min(4 - healthCount, int(damagedTexture.size())) - 1;
-    drawTexture(renderer, cameraPosition, damagedTexture[index]);
+    drawTexture(renderer, viewMatrix, damagedTexture[index]);
   }
   if (hasShield)
-    drawTexture(renderer, cameraPosition, shieldTexture);
+    drawTexture(renderer, viewMatrix, shieldTexture);
 }
 
 void PlayerShip::doFire(IGameStage *stage) {

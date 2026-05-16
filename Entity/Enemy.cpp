@@ -160,11 +160,10 @@ void Enemy::onTick(IGameStage *stage) {
   applyLinearSteering(desiredVelocity);
 }
 
-void Enemy::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
-  GameEntity::onDraw(renderer, cameraPosition);
+void Enemy::onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix) {
+  GameEntity::onDraw(renderer, viewMatrix);
 
-  Vec2 onCameraPosition{position};
-  onCameraPosition.substract(cameraPosition);
+  Vec2 onCameraPosition = (viewMatrix * position).toCartesian();
   //contextSteering.draw(renderer, onCameraPosition, boundingRadius);
 
   Vec2 steeringLine{contextSteeringResult};
@@ -177,9 +176,9 @@ void Enemy::onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition) {
 }
 
 void Enemy::onHit(IGameStage *stage, GameEntity *other) {
-  if (Laser *laser = dynamic_cast<Laser *>(other); laser != nullptr) {
+  if (auto laser = dynamic_cast<Laser *>(other); laser != nullptr) {
     if (!hasExplode) {
-      std::unique_ptr<Particle> particle = std::make_unique<Particle>();
+      auto particle = std::make_unique<Particle>();
       particle->texture = TextureManager::getInstance()->load("Explosion/explosion00.png");
       particle->position = position;
       particle->scale = 0.5;

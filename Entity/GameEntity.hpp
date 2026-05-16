@@ -11,7 +11,6 @@ class GameEntity {
 private:
   size_t mId;
   static size_t sNextId;
-
 public:
   enum class CollisionResponse { Repel, RejectBoth };
 
@@ -42,9 +41,9 @@ public:
 
   virtual void onPreTick() {}
   virtual void onTick(IGameStage *stage) = 0;
-  void drawTexture(SDL_Renderer *renderer, const Vec2 &cameraPosition,
+  void drawTexture(SDL_Renderer *renderer, const Mat3 &viewMatrix,
                    SDL_Texture *texture);
-  virtual void onDraw(SDL_Renderer *renderer, const Vec2 &cameraPosition);
+  virtual void onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix);
   virtual void onHit(IGameStage *stage, GameEntity *other) {}
 
   void onUpdatePhysic();
