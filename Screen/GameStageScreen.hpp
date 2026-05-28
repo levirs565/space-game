@@ -6,9 +6,9 @@
 #include "../AI/FlowField.hpp"
 #include "../Entity/PlayerShip.hpp"
 #include "../IGameStage.hpp"
+#include "../Particle/Particle.hpp"
 #include "../SAP.hpp"
 #include "../UI/Label.hpp"
-#include "../Particle/Particle.hpp"
 #include "IScreen.hpp"
 #include <functional>
 #include <random>
@@ -77,7 +77,7 @@ private:
   std::function<void(Event)> mCallback;
 
 public:
-  GameStageScreen(MIX_Mixer* mixer, std::function<void(Event)> callback);
+  GameStageScreen(MIX_Mixer *mixer, std::function<void(Event)> callback);
   ~GameStageScreen() override;
 
   void onSDLEvent(const SDL_Event &event) override;
@@ -88,13 +88,13 @@ public:
 
   void addEntity(std::unique_ptr<GameEntity> &&entity);
 
-  void resetLastUpdateTime() {
-    mLastGameTickUpdate = 0;
-  }
+  void resetLastUpdateTime() { mLastGameTickUpdate = 0; }
 
   GameEntity *getPlayerEntity() override { return mPlayerShip; }
   void addLaser(const Vec2 &position, double angle,
                 const std::string &textureName) override;
+  void addMissile(const Vec2 &position, double angle,
+                  const std::string &textureName) override;
   const Vec2 &getCameraPosition() override { return mCameraPosition; }
   const Vec2 &getCameraSize() override { return mCameraSize; }
   const Vec2 &getWorldSize() override { return mWordSize; }

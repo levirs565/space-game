@@ -3,12 +3,13 @@
 #include "../AI/FlowField.hpp"
 #include "../AssetManager.hpp"
 #include "../Math/Helper.hpp"
+#include "../Particle/Particle.hpp"
 #include "../SAP.hpp"
 #include "Laser.hpp"
 #include "Meteor.hpp"
+#include "Missile.hpp"
 #include "PlayerShip.hpp"
 #include "PowerUpHealth.hpp"
-#include "../Particle/Particle.hpp"
 
 Enemy::Enemy(const Vec2 &position) : Ship(position, Vec2(1, 0)) {
   collisionResponse = CollisionResponse::Repel;
@@ -118,6 +119,9 @@ void Enemy::onTick(IGameStage *stage) {
           if (dynamic_cast<Laser *>(ray.currentEntity) != nullptr) {
             continue;
           }
+          if (dynamic_cast<Missile *>(ray.currentEntity) != nullptr) {
+            continue;
+          }
           if (dynamic_cast<PowerUpHealth *>(ray.currentEntity) != nullptr) {
             continue;
           }
@@ -139,7 +143,7 @@ void Enemy::onTick(IGameStage *stage) {
     double laserAngle = direction.getRotation();
     laserPos.rotate(laserAngle);
     laserPos.add(position, 1);
-    stage->addLaser(laserPos, laserAngle, "laserRed01");
+    stage->addMissile(laserPos, laserAngle, "spaceMissiles_001");
     lastFire = stage->getTick();
   }
 

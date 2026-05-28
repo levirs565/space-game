@@ -1,6 +1,7 @@
 #include "GameStageScreen.hpp"
 #include "../Entity/Enemy.hpp"
 #include "../Entity/Meteor.hpp"
+#include "../Entity/Missile.hpp"
 #include "../Entity/PowerUpHealth.hpp"
 #include "../Map.hpp"
 #include "../Math/Polygon.hpp"
@@ -54,6 +55,14 @@ void GameStageScreen::addLaser(const Vec2 &position, double angle,
   addEntity(std::move(laser));
   MIX_SetTrackAudio(mLaserTrack, mLaserSound);
   MIX_PlayTrack(mLaserTrack, 0);
+}
+void GameStageScreen::addMissile(const Vec2 &position, double angle,
+                                 const std::string &textureName) {
+  Vec2 direction{1, 0};
+  direction.rotate(angle);
+  std::unique_ptr<Missile> laser =
+      std::make_unique<Missile>(position, direction, textureName);
+  addEntity(std::move(laser));
 }
 void GameStageScreen::addEntity(std::unique_ptr<GameEntity> &&entity) {
   GameEntity *ptr = entity.get();

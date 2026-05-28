@@ -1,4 +1,6 @@
 #include "Laser.hpp"
+
+#include "Missile.hpp"
 #include "PowerUpHealth.hpp"
 #include <numbers>
 
@@ -27,6 +29,8 @@ void Laser::onTick(IGameStage *stage) {
 
 void Laser::onHit(IGameStage *stage, GameEntity *other) {
   if (dynamic_cast<Laser *>(other) != nullptr)
+    return;
+  if (dynamic_cast<Missile*>(other) != nullptr)
     return;
   if (dynamic_cast<PowerUpHealth *>(other) != nullptr)
     return;

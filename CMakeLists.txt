@@ -82,6 +82,8 @@ add_executable(space
         Screen/AboutScreen.cpp
         Screen/AboutScreen.hpp
         Math/Mat3.hpp
+        Entity/Missile.cpp
+        Entity/Missile.hpp
 )
 
 # if(TARGET SDL2::SDL2main)

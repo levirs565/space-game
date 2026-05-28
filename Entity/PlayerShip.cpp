@@ -2,10 +2,10 @@
 #include "../AssetManager.hpp"
 #include "../Math/Helper.hpp"
 #include "Meteor.hpp"
+#include "Missile.hpp"
 #include "PowerUpHealth.hpp"
 
-PlayerShip::PlayerShip(const Vec2 &position)
-    : Ship(position, Vec2(1, 0)) {
+PlayerShip::PlayerShip(const Vec2 &position) : Ship(position, Vec2(1, 0)) {
   collisionResponse = CollisionResponse::Repel;
   TextureManager *manager = TextureManager::getInstance();
   texture = manager->load("PNG/playerShip3_blue.png");
@@ -65,8 +65,11 @@ void PlayerShip::onHit(IGameStage *stage, GameEntity *other) {
     healthCount = 4;
     return;
   }
-  if (Laser *laser = dynamic_cast<Laser *>(other);
-      laser != nullptr && !hasShield) {
+
+  Laser *laser = dynamic_cast<Laser *>(other);
+  Missile *missile = dynamic_cast<Missile *>(other);
+
+  if ((laser != nullptr || missile != nullptr) && !hasShield) {
     healthCount--;
 
     if (stage->getTick() - shieldDeactivationTIme >= 1000) {

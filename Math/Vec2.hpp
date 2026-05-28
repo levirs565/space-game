@@ -14,6 +14,7 @@ struct Vec2 {
 
   Vec2 operator-(const Vec2 &b) const { return {x - b.x, y - b.y}; }
   Vec2 operator+(const Vec2 &b) const { return {x + b.x, y + b.y}; }
+  friend Vec2 operator*(double a, const Vec2 &b) { return {a * b.x, a * b.y}; }
 
   [[nodiscard]] Vec3 toHomogenous() const;
 
@@ -133,9 +134,7 @@ struct Vec3 {
   Vec3() : Vec3(0, 0, 0) {}
   Vec3(double x, double y, double z) : x(x), y(y), z(z) {}
 
-  [[nodiscard]] Vec2 toCartesian() const {
-    return {x / z, y / z};
-  }
+  [[nodiscard]] Vec2 toCartesian() const { return {x / z, y / z}; }
 };
 
 inline Vec3 Vec2::toHomogenous() const { return {x, y, 1}; }

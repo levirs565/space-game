@@ -16,6 +16,8 @@ public:
   virtual ~IGameStage() = default;
   virtual void addLaser(const Vec2 &position, double angle,
                         const std::string &textureName) = 0;
+  virtual void addMissile(const Vec2 &position, double angle,
+                          const std::string &textureName) = 0;
 
   virtual const Vec2 &getWorldSize() = 0;
 
