@@ -31,6 +31,7 @@ public:
   double x0, y0, x1, y1;
 
   double drawRotationShift = 0;
+  float opacity = 1.0f;
 
   GameEntity(const Vec2 &position, const Vec2 &direction)
       : position(position), direction(direction),
@@ -42,7 +43,7 @@ public:
   virtual void onPreTick() {}
   virtual void onTick(IGameStage *stage) = 0;
   void drawTexture(SDL_Renderer *renderer, const Mat3 &viewMatrix,
-                   SDL_Texture *texture);
+                   SDL_Texture *texture, float alpha = 1.0f);
   virtual void onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix);
   virtual void onHit(IGameStage *stage, GameEntity *other) {}
 

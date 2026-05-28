@@ -5,7 +5,7 @@
 size_t GameEntity::sNextId = 0;
 
 void GameEntity::drawTexture(SDL_Renderer *renderer, const Mat3 &viewMatrix,
-                             SDL_Texture *texture) {
+                             SDL_Texture *texture, float alpha) {
   SDL_FRect rect;
 
   SDL_GetTextureSize(texture, &rect.w, &rect.h);
@@ -18,6 +18,10 @@ void GameEntity::drawTexture(SDL_Renderer *renderer, const Mat3 &viewMatrix,
 
   rect.x = screenPosition.x - rect.w / 2;
   rect.y = screenPosition.y - rect.h / 2;
+
+  // Default blend mode is blend
+  SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+  SDL_SetTextureAlphaModFloat(texture, alpha);
 
   SDL_RenderTextureRotated(
       renderer, texture, nullptr, &rect,
@@ -34,7 +38,7 @@ SDL_FRect GameEntity::getRect() const {
 }
 
 void GameEntity::onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix) {
-  drawTexture(renderer, viewMatrix, texture);
+  drawTexture(renderer, viewMatrix, texture, opacity);
 }
 
 void GameEntity::updateBoundingBox() {
