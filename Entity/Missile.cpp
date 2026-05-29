@@ -1,6 +1,5 @@
 #include "Missile.hpp"
 
-#include "../../../../../SDK/Mingw-w64/12.2.0-posix-ucrt/lib/gcc/x86_64-w64-mingw32/12.2.0/include/c++/ranges"
 #include "../AssetManager.hpp"
 #include "Laser.hpp"
 #include "PowerUpHealth.hpp"
@@ -11,11 +10,9 @@
 Vec2 Missile::getBezierPosition(double t) {
   const Vec2 &P0 = bezier[0], &P1 = bezier[1], &P2 = bezier[2], &P3 = bezier[3];
   double u = 1 - t;
-  double x = u * u * u * P0.x + 3 * u * u * t * P1.x + 3 * u * t * t * P2.x +
-             t * t * t * P3.x;
-  double y = u * u * u * P0.y + 3 * u * u * t * P1.y + 3 * u * t * t * P2.y +
-             t * t * t * P3.y;
-  return Vec2{x, y};
+  Vec2 result = u * u * u * P0 + 3 * u * u * t * P1 + 3 * u * t * t * P2 +
+             t * t * t * P3;
+  return result;
 }
 
 Missile::Missile(const Vec2 &position, const Vec2 &direction,
