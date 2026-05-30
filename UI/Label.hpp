@@ -7,7 +7,7 @@
 class Label : public View {
   TextRenderer mTextRenderer;
 public:
-  explicit Label(std::string text);
+  explicit Label(std::string text, int fontSize = 16);
   Label(): Label("") {}
 
   void setText(std::string text);

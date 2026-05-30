@@ -11,7 +11,7 @@
 class ScoreListScreen : public IScreen {
   Label mTitle{"Scores"};
   std::array<LRLabel, 10> mScoreLabel;
-  Button mBackButton{"Back"};
+  Button mBackButton{"Back", {.topLeft = 10, .bottomRight = 10}};
   Column mColumn;
   Vec2 mSize;
 public:

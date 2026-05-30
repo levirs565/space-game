@@ -15,7 +15,7 @@ class GameOverScreen : public IScreen {
   Label mScoreLabel{"Score: "};
   Label mMessageLabel{"Enter  Your  Name"};
   TextInput mNameInput;
-  Button mButton{"Save"};
+  Button mButton{"Save", {.topLeft = 10, .bottomRight = 10}};
   Column mColumn;
   Vec2 mFillSize;
   int mScore;

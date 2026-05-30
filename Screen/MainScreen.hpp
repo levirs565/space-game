@@ -20,9 +20,9 @@ public:
 
 private:
   Vec2 mSize;
-  Label mTitle {"Space Game"};
-  Button mStartButton{"Start"};
-  Button mExitButton{"Exit"};
+  Label mTitle {"Space Game", 24};
+  Button mStartButton{"Start", {.topLeft = 10}};
+  Button mExitButton{"Exit",  {.bottomRight = 10}, 0x060e20FF, 0xff0000FF};
   Button mScoreListButton{"Score List"};
   Button mAboutButton{"About"};
   Column mColumn;

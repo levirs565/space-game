@@ -13,8 +13,8 @@ public:
     Quit
   };
 private:
-  Button mResumeButton{"Resume"};
-  Button mQuitButton{"Quit"};
+  Button mResumeButton{"Resume", {.topLeft = 10}};
+  Button mQuitButton{"Quit", {.bottomRight = 10}};
   Column mColumn;
   std::function<void(Event)> mCallback;
   Vec2 mFillSize;

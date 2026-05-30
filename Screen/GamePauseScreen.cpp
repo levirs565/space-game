@@ -10,7 +10,7 @@ void GamePauseScreen::onSizeChanged(const Vec2 &size) {
   mFillSize = size;
 }
 void GamePauseScreen::onSDLEvent(const SDL_Event &event) {
-  if (event.type == SDL_EVENT_KEY_DOWN &&
+  if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
       event.button.button == SDL_BUTTON_LEFT) {
     View *clickedView = mColumn.findByPoint({event.button.x, event.button.y});
     if (clickedView == &mResumeButton)

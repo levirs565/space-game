@@ -12,9 +12,9 @@ void Label::draw(SDL_Renderer *renderer) {
   SDL_RenderTexture(renderer, texture, nullptr, &rect);
 }
 
-Label::Label(std::string text)
+Label::Label(std::string text, int fontSize)
     : mTextRenderer(
-          FontManager::getInstance()->load("Bonus/kenvector_future.ttf", 16),
+          FontManager::getInstance()->load("Bonus/kenvector_future.ttf", fontSize),
           {.r = 255, .g = 255, .b = 255, .a = 255}) {
   mTextRenderer.setText(std::move(text));
 }

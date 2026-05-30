@@ -14,7 +14,7 @@ public:
   enum class Event { Close };
 private:
   Column mColumn;
-  Button mCloseButton{"Close"};
+  Button mCloseButton{"Close", {.topLeft = 10, .bottomRight = 10}};
   std::array<Label, 7> mLabelArray;
   std::function<void(Event)> mCallback;
 public:

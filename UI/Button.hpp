@@ -1,21 +1,30 @@
 #ifndef SPACE_BUTTON_HPP
 #define SPACE_BUTTON_HPP
 
+#include "../SDLHelper.hpp"
 #include "../TextRenderer.hpp"
 #include "View.hpp"
 
 class Button : public View {
+  uint32_t mBaseColor, mOutlineColor;
   double mScale = 1;
+  double mHoverOpacity = 0;
   bool mFocus = false;
 
   TextRenderer mTextRenderer;
-  SDL_Texture *mButtonTexture;
+  SDL_Texture *mButtonTexture = nullptr;
+  SDL_Texture *mButtonOutlineTexture = nullptr;
+  SDL_Texture *mButtonHoverTexture = nullptr;
   SDL_Renderer *mRenderer = nullptr;
+  SDLHelper::Radius mRadius;
 
   static constexpr double mFocusScale = 1.05;
 
 public:
-  explicit Button(std::string text);
+  explicit Button(std::string text, SDLHelper::Radius radius = {},
+                  uint32_t baseColor = 0x131B2EFF,
+                  uint32_t outlineColor = 0x35B7EFFF);
+  ~Button() override;
 
   void setFocus(bool focus) { mFocus = focus; };
   Vec2 getLayoutSize() override;
