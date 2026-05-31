@@ -26,11 +26,6 @@ private:
   Button mSettingsButton{"Settings"};
   Button mAboutButton{"About"};
   Column mColumn;
-  std::map<View *, Event> mEventMap = {{&mStartButton, Event::Start},
-                                       {&mScoreListButton, Event::ScoreList},
-                                       {&mSettingsButton, Event::Settings},
-                                       {&mExitButton, Event::Exit},
-                                       {&mAboutButton, Event::About}};
 
   std::function<void(Event)> mEventHandler;
 

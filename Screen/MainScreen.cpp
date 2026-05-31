@@ -9,6 +9,31 @@ MainScreen::MainScreen(std::function<void(Event)> eventHandler)
   mColumn.viewList.push_back(&mSettingsButton);
   mColumn.viewList.push_back(&mAboutButton);
   mColumn.viewList.push_back(&mExitButton);
+
+  mStartButton.onClickHandler = [this](Button * button) {
+    mEventHandler(Event::Start);
+    return true;
+  };
+
+  mScoreListButton.onClickHandler = [this](Button * button) {
+    mEventHandler(Event::ScoreList);
+    return true;
+  };
+
+  mSettingsButton.onClickHandler = [this](Button * button) {
+    mEventHandler(Event::Settings);
+    return true;
+  };
+
+  mAboutButton.onClickHandler = [this](Button * button) {
+    mEventHandler(Event::About);
+    return true;
+  };
+
+  mExitButton.onClickHandler = [this](Button * button) {
+    mEventHandler(Event::Exit);
+    return true;
+  };
 }
 
 void MainScreen::onSizeChanged(const Vec2 &size) {
@@ -16,14 +41,7 @@ void MainScreen::onSizeChanged(const Vec2 &size) {
   mColumn.layout(size);
 }
 void MainScreen::onSDLEvent(const SDL_Event &event) {
-  if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
-      event.button.button == SDL_BUTTON_LEFT) {
-    View* clickedView = mColumn.findByPoint({event.button.x, event.button.y});
-    if (clickedView != nullptr) {
-      if (mEventMap.contains(clickedView))
-        mEventHandler(mEventMap[clickedView]);
-    }
-  }
+  mColumn.handleSDLEvent(event);
 }
 
 void MainScreen::onUpdate() {

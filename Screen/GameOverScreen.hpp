@@ -5,18 +5,21 @@
 #include "../UI/Button.hpp"
 #include "../UI/Column.hpp"
 #include "../UI/Label.hpp"
+#include "../UI/Panel.hpp"
 #include "../UI/TextInput.hpp"
 #include "IScreen.hpp"
+
 #include <functional>
 
 class GameOverScreen : public IScreen {
   SDL_Window* mWindow;
-  Label mGameOverLabel{"Game Over"};
+  Label mGameOverLabel{"Game Over", 24};
   Label mScoreLabel{"Score: "};
   Label mMessageLabel{"Enter  Your  Name"};
   TextInput mNameInput;
   Button mButton{"Save", {.topLeft = 10, .bottomRight = 10}};
-  Column mColumn;
+  Column mColumn, mInnerColumn;
+  Panel mPanel{&mInnerColumn};
   Vec2 mFillSize;
   int mScore;
 public:

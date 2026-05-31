@@ -1,10 +1,12 @@
 #ifndef SPACE_SCORELISTSCREEN_HPP
 #define SPACE_SCORELISTSCREEN_HPP
 
-#include "IScreen.hpp"
+#include "../UI/Button.hpp"
 #include "../UI/Column.hpp"
 #include "../UI/LRLabel.hpp"
-#include "../UI/Button.hpp"
+#include "../UI/Panel.hpp"
+#include "IScreen.hpp"
+
 #include <array>
 #include <functional>
 
@@ -12,7 +14,8 @@ class ScoreListScreen : public IScreen {
   Label mTitle{"Scores"};
   std::array<LRLabel, 10> mScoreLabel;
   Button mBackButton{"Back", {.topLeft = 10, .bottomRight = 10}};
-  Column mColumn;
+  Column mColumn, mInnerColumn;
+  Panel mPanel{&mInnerColumn};
   Vec2 mSize;
 public:
   enum class Event {
