@@ -6,6 +6,7 @@
 
 class IScreen {
 public:
+  virtual ~IScreen() = default;
   virtual void onSizeChanged(const Vec2& size) = 0;
   virtual void onSDLEvent(const SDL_Event& event) = 0;
   virtual void onUpdate() = 0;

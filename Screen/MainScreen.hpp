@@ -1,37 +1,36 @@
 #ifndef SPACE_MAINSCREEN_HPP
 #define SPACE_MAINSCREEN_HPP
 
+#include "../UI/Button.hpp"
+#include "../UI/Column.hpp"
+#include "../UI/LRLabel.hpp"
+#include "../UI/Label.hpp"
 #include "IScreen.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <array>
 #include <functional>
-#include <string>
 #include <map>
-#include "../UI/Button.hpp"
-#include "../UI/Column.hpp"
-#include "../UI/Label.hpp"
-#include "../UI/LRLabel.hpp"
-#include <array>
+#include <string>
 
 class MainScreen : public IScreen {
 public:
-  enum class Event { Exit, Start, ScoreList, About };
+  enum class Event { Exit, Start, ScoreList, Settings, About };
 
 private:
   Vec2 mSize;
-  Label mTitle {"Space Game", 24};
+  Label mTitle{"Space Game", 24};
   Button mStartButton{"Start", {.topLeft = 10}};
-  Button mExitButton{"Exit",  {.bottomRight = 10}, 0x060e20FF, 0xff0000FF};
+  Button mExitButton{"Exit", {.bottomRight = 10}, 0x060e20FF, 0xff0000FF};
   Button mScoreListButton{"Score List"};
+  Button mSettingsButton{"Settings"};
   Button mAboutButton{"About"};
   Column mColumn;
-  std::map<View*, Event> mEventMap = {
-      {&mStartButton, Event::Start},
-      {&mScoreListButton, Event::ScoreList},
-      {&mExitButton, Event::Exit},
-    {&mAboutButton, Event::About}
-  };
+  std::map<View *, Event> mEventMap = {{&mStartButton, Event::Start},
+                                       {&mScoreListButton, Event::ScoreList},
+                                       {&mSettingsButton, Event::Settings},
+                                       {&mExitButton, Event::Exit},
+                                       {&mAboutButton, Event::About}};
 
   std::function<void(Event)> mEventHandler;
 

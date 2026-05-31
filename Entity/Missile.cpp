@@ -1,5 +1,6 @@
 #include "Missile.hpp"
 
+#include "../AppSettings.hpp"
 #include "../AssetManager.hpp"
 #include "Laser.hpp"
 #include "PowerUpHealth.hpp"
@@ -23,8 +24,6 @@ Missile::Missile(const Vec2 &position, const Vec2 &direction,
                                                 ".png");
   startDirection = direction;
   maxSpeed = 7.5;
-  // velocity = direction;
-  // velocity.scale(maxSpeed);
   drawRotationShift = -std::numbers::pi / 2;
   updateBoundingBox();
 }
@@ -80,7 +79,7 @@ void Missile::onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix) {
   if (bezier.empty())
     return;
 
-  const bool debug = false;
+  const bool debug = getAppSettings()->debugMissile;
 
   if (!debug)
     return;

@@ -26,12 +26,20 @@ public:
                   uint32_t outlineColor = 0x35B7EFFF);
   ~Button() override;
 
-  void setFocus(bool focus) { mFocus = focus; };
+  bool isSelectable = false;
+  bool isSelected = false;
+  bool scaleWhenHovered = true;
+  double width = 222;
+  std::function<bool(Button *)> onClickHandler = [](Button *button) {
+    return false;
+  };
+
   Vec2 getLayoutSize() override;
   SDL_FRect getRect() override;
 
   void update() override;
   void draw(SDL_Renderer *renderer) override;
+  bool onClick(SDL_FPoint point) override;
 };
 
 #endif // SPACE_BUTTON_HPP

@@ -1,15 +1,18 @@
-#ifndef SPACE_COLUMN_HPP
-#define SPACE_COLUMN_HPP
-
-#include <vector>
+#ifndef SPACE_ROW_HPP
+#define SPACE_ROW_HPP
 #include "View.hpp"
+#include <vector>
 
-class Column : public View {
-  static constexpr double mGap = 20;
+class Row : public View {
+  double mGap;
+
+  double calculateGap() const;
 public:
-  std::vector<View*> viewList;
+  Row(double gap = 20);
 
-  View* findByPoint(SDL_FPoint point);
+  double spaceBetweenWidth = 0;
+
+  std::vector<View *> viewList;
 
   Vec2 getLayoutSize() override;
   SDL_FRect getRect() override;
@@ -20,4 +23,4 @@ public:
   bool onClick(SDL_FPoint point) override;
 };
 
-#endif // SPACE_COLUMN_HPP
+#endif // SPACE_ROW_HPP

@@ -17,6 +17,7 @@
 #include "Screen/GameScreen.hpp"
 #include "Screen/MainScreen.hpp"
 #include "Screen/ScoreListScreen.hpp"
+#include "Screen/SettingsScreen.hpp"
 
 class App {
 public:
@@ -75,6 +76,8 @@ public:
         mNextScreen = createGameScreen();
       } else if (event == MainScreen::Event::ScoreList) {
         mNextScreen = createScoreListScreen();
+      } else if (event == MainScreen::Event::Settings) {
+        mNextScreen = createSettingsScreen();
       } else if (event == MainScreen::Event::About) {
         mNextScreen = createAboutScreen();
       }
@@ -94,6 +97,11 @@ public:
       if (event == GameScreen::Event::Quit)
         mNextScreen = createMain();
     });
+  }
+
+  std::unique_ptr<IScreen> createSettingsScreen() {
+    return std::make_unique<SettingsScreen>(
+        [this](auto event) { mNextScreen = createMain(); });
   }
 
   std::unique_ptr<IScreen> createAboutScreen() {

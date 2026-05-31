@@ -1,4 +1,6 @@
 #include "GameStageScreen.hpp"
+
+#include "../AppSettings.hpp"
 #include "../Entity/Enemy.hpp"
 #include "../Entity/Meteor.hpp"
 #include "../Entity/Missile.hpp"
@@ -93,8 +95,10 @@ void GameStageScreen::drawBackground(SDL_Renderer *renderer) {
   rect.w *= scaling.x;
   rect.h *= scaling.y;
 
-  double backgroundStartY = -fmod(mCameraPosition.y * scaling.y, double(rect.h));
-  double backgroundStartX = -fmod(mCameraPosition.x * scaling.x, double(rect.w));
+  double backgroundStartY =
+      -fmod(mCameraPosition.y * scaling.y, double(rect.h));
+  double backgroundStartX =
+      -fmod(mCameraPosition.x * scaling.x, double(rect.w));
   int backgroundCountY =
       int(ceil((mViewSize.y - backgroundStartY) / double(rect.h)));
   int backgroundCountX =
@@ -120,8 +124,8 @@ void GameStageScreen::calculateCamera() {
 }
 
 void GameStageScreen::updateViewMatrix() {
-  mViewMatrix =
-      Mat3::scale( mCameraZoom) * Mat3::translation(Vec2(0, 0) - mCameraPosition);
+  mViewMatrix = Mat3::scale(mCameraZoom) *
+                Mat3::translation(Vec2(0, 0) - mCameraPosition);
 }
 
 GameStageScreen::GameStageScreen(MIX_Mixer *mixer,
@@ -171,6 +175,7 @@ GameStageScreen::GameStageScreen(MIX_Mixer *mixer,
 
   mPathFinder.generateHeatmap(mPlayerShip->position);
 
+  mCameraZoom = getAppSettings()->cameraScale;
   updateViewMatrix();
 }
 
@@ -377,22 +382,25 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
   Vec3 topLeft = inverse * Vec2(0, 0);
   Vec3 bottomRight = inverse * Vec2(mViewSize);
 
+  const bool debugBoundingBox = getAppSettings()->debugBoundingBox;
+
   for (GameEntity *entity : mSAP.queryArea(topLeft.x, topLeft.y, bottomRight.x,
                                            bottomRight.y, false)) {
     entity->onDraw(renderer, mViewMatrix);
 
-    // for (size_t i = 0; i < entity->boundingBox.size(); i++) {
-    //   Vec2 current = entity->boundingBox[i];
-    //   Vec2 next = entity->boundingBox[(i + 1) % entity->boundingBox.size()];
+    if (!debugBoundingBox)
+      continue;
 
-    //  current.substract(mCameraPosition);
-    //  next.substract(mCameraPosition);
+    for (size_t i = 0; i < entity->boundingBox.size(); i++) {
+      Vec2 current = entity->boundingBox[i];
+      Vec2 next = entity->boundingBox[(i + 1) % entity->boundingBox.size()];
 
-    //  SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-    //  SDL_RenderDrawLine(renderer, int(current.x), int(current.y),
-    //  int(next.x),
-    //                     int(next.y));
-    //}
+      current = (mViewMatrix * current).toCartesian();
+      next = (mViewMatrix * next).toCartesian();
+
+      SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+      SDL_RenderLine(renderer, current.x, current.y, next.x, next.y);
+    }
   }
 
   SDL_FRect lifeIcon = {.x = 4, .y = 4};
@@ -403,7 +411,9 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
   }
 
   mScoreLabel.draw(renderer);
-  //  mPathFinder.drawGrid(renderer, mCameraPosition, mCameraSize);
+
+  if (getAppSettings()->debugFlowField)
+    mPathFinder.drawGrid(renderer, mViewMatrix, mViewSize);
 }
 
 void GameStageScreen::onPostDraw() {

@@ -21,7 +21,7 @@ Button::~Button() {
   }
 }
 
-Vec2 Button::getLayoutSize() { return {222, 39}; }
+Vec2 Button::getLayoutSize() { return {width, 39}; }
 void Button::update() {
   if (mRenderer == nullptr)
     return;
@@ -30,13 +30,15 @@ void Button::update() {
   SDL_GetMouseState(&mouse.x, &mouse.y);
   SDL_RenderCoordinatesFromWindow(mRenderer, mouse.x, mouse.y, &mouse.x,
                                   &mouse.y);
-  setFocus(isPointInside(mouse));
+  mFocus = isPointInside(mouse);
 
-  double targetScale = mFocus ? mFocusScale : 1;
+  double targetScale = scaleWhenHovered ? mFocus ? mFocusScale : 1 : 1;
   mScale += (targetScale - mScale) * (1.0 - std::exp(-0.5));
   mScale = std::clamp(mScale, 1.0, mFocusScale);
 
-  double targetOpacity = mFocus ? 1.0 : 0.0;
+  double targetOpacity = mFocus ? isSelectable ? 0.25 : 1.0 : 0.0;
+  if (isSelectable && isSelected)
+    targetOpacity = 1.0;
   mHoverOpacity += (targetOpacity - mHoverOpacity) * (1.0 - std::exp(-0.5));
   mHoverOpacity = std::clamp(mHoverOpacity, 0.0, 1.0);
 }
@@ -73,4 +75,5 @@ void Button::draw(SDL_Renderer *renderer) {
   rect = calculateTextureRect(textTexture, mScale);
   SDL_RenderTexture(renderer, textTexture, nullptr, &rect);
 }
+bool Button::onClick(SDL_FPoint point) { return onClickHandler(this); }
 SDL_FRect Button::getRect() { return calculateRect(mScale * getLayoutSize()); }

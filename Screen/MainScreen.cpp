@@ -6,6 +6,7 @@ MainScreen::MainScreen(std::function<void(Event)> eventHandler)
   mColumn.viewList.push_back(&mTitle);
   mColumn.viewList.push_back(&mStartButton);
   mColumn.viewList.push_back(&mScoreListButton);
+  mColumn.viewList.push_back(&mSettingsButton);
   mColumn.viewList.push_back(&mAboutButton);
   mColumn.viewList.push_back(&mExitButton);
 }

@@ -1,4 +1,5 @@
 #include "SDLHelper.hpp"
+#include <algorithm>
 #include <array>
 
 SDL_FRect SDLHelper::calculateTextureRectByCenter(SDL_Texture *texture,
@@ -167,6 +168,22 @@ void drawLineThickness2(int x0, int y0, int x1, int y1, int wd,
       y0 += sy;
     }
   }
+}
+
+void drawCircle(int xm, int ym, int r,
+                const std::function<void(int x, int y)> &draw) {
+  int x = -r, y = 0, err = 2 - 2 * r;
+  do {
+    draw(xm - x, ym + y);
+    draw(xm - y, ym - x);
+    draw(xm + x, ym - y);
+    draw(xm + y, ym + x);
+    r = err;
+    if (r <= y)
+      err += ++y * 2 + 1;
+    if (r > x || err > y)
+      err += ++x * 2 + 1;
+  } while (x < 0);
 }
 
 std::vector<int> generateBresenhamX(int x0, int y0, int x1, int y1,
@@ -344,6 +361,147 @@ SDL_Texture *SDLHelper::createBeveledRectTextureOutline(
     drawLineThickness2(x0, y0, x1, y1, thickness, true, draw);
   }
 
+  SDL_UnlockTexture(texture);
+  return texture;
+}
+SDL_Texture *SDLHelper::createCircleTexture(
+    SDL_Renderer *renderer, int size,
+    const std::function<uint32_t(int x, int y)> &fillFunc) {
+  SDL_Texture *texture =
+      SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
+                        SDL_TEXTUREACCESS_STREAMING, size, size);
+  if (texture == nullptr) {
+    SDL_Log("Create rounded rect texture fail: %s", SDL_GetError());
+    return nullptr;
+  }
+
+  SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+
+  void *pixels = nullptr;
+  int pitch = 0;
+  if (!SDL_LockTexture(texture, nullptr, &pixels, &pitch)) {
+    SDL_Log("SDL_LockTexture failed: %s", SDL_GetError());
+    SDL_DestroyTexture(texture);
+    return nullptr;
+  }
+
+  uint32_t *pixelPtr = reinterpret_cast<uint32_t *>(pixels);
+  int pitchPixels = pitch / sizeof(uint32_t);
+
+  SDL_memset(pixels, 0, pitch * size);
+
+  std::vector<int> maxX(size, std::numeric_limits<int>::min());
+  std::vector<int> minX(size, std::numeric_limits<int>::max());
+
+  auto draw = [&](int x, int y) {
+    x = std::clamp(x, 0, size - 1);
+    y = std::clamp(y, 0, size - 1);
+
+    minX[y] = std::min(minX[y], x);
+    maxX[y] = std::max(maxX[y], x);
+  };
+
+  int center = size / 2;
+  int radius = size / 2 - 1;
+  drawCircle(center, center, radius, draw);
+
+  for (int y = 0; y < size; y++) {
+    if (minX[y] == std::numeric_limits<int>::max()) {
+      continue;
+    }
+    int startX = minX[y];
+    int endX = maxX[y];
+
+    for (int x = startX; x <= endX; x++) {
+      pixelPtr[y * pitchPixels + x] = fillFunc(x, y);
+    }
+  }
+
+  SDL_UnlockTexture(texture);
+  return texture;
+}
+SDL_Texture *SDLHelper::createCircleTextureOutline(
+    SDL_Renderer *renderer, int size, int thickness,
+    const std::function<uint32_t(int x, int y)> &fillFunc) {
+  SDL_Texture *texture =
+      SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
+                        SDL_TEXTUREACCESS_STREAMING, size, size);
+  if (texture == nullptr) {
+    SDL_Log("Create rounded rect texture fail: %s", SDL_GetError());
+    return nullptr;
+  }
+
+  SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+
+  void *pixels = nullptr;
+  int pitch = 0;
+  if (!SDL_LockTexture(texture, nullptr, &pixels, &pitch)) {
+    SDL_Log("SDL_LockTexture failed: %s", SDL_GetError());
+    SDL_DestroyTexture(texture);
+    return nullptr;
+  }
+
+  uint32_t *pixelPtr = reinterpret_cast<uint32_t *>(pixels);
+  int pitchPixels = pitch / sizeof(uint32_t);
+
+  SDL_memset(pixels, 0, pitch * size);
+
+  std::vector<int> maxX(size, std::numeric_limits<int>::min());
+  std::vector<int> minX(size, std::numeric_limits<int>::max());
+
+  std::vector<int> innerMaxX(size, std::numeric_limits<int>::min());
+  std::vector<int> innerMinX(size, std::numeric_limits<int>::max());
+
+  auto draw = [&](int x, int y) {
+    x = std::clamp(x, 0, size - 1);
+    y = std::clamp(y, 0, size - 1);
+
+    minX[y] = std::min(minX[y], x);
+    maxX[y] = std::max(maxX[y], x);
+  };
+
+  auto drawInner = [&](int x, int y) {
+    x = std::clamp(x, 0, size - 1);
+    y = std::clamp(y, 0, size - 1);
+
+    innerMinX[y] = std::min(innerMinX[y], x);
+    innerMaxX[y] = std::max(innerMaxX[y], x);
+  };
+
+  int center = size / 2;
+  int radius = size / 2 - 1;
+  drawCircle(center, center, radius, draw);
+  drawCircle(center, center, radius - thickness + 1, drawInner);
+
+  for (int t = 0; t < thickness; t++) {
+    drawCircle(center, center, radius - t, draw);
+  }
+
+  for (int y = 0; y < size; y++) {
+    // if (minX[y] == std::numeric_limits<int>::max()) {
+    //   continue;
+    // }
+    // for (int x = minX[y]; x <= std::min(innerMinX[y], maxX[y]); x++) {
+    //   pixelPtr[y * pitchPixels + x] = fillFunc(x, y);
+    // }
+    // if (innerMaxX[y] == std::numeric_limits<int>::min()) {
+    //   continue;
+    // }
+    // for (int x = innerMaxX[y]; x <=  maxX[y]; x++) {
+    //   pixelPtr[y * pitchPixels + x] = fillFunc(x, y);
+    // }
+    for (int x = 0; x < size; x++) {
+      int dx = std::abs(x - center);
+      int dy = std::abs(y - center);
+      float d = sqrt(dx*dx + dy*dy);
+
+      if (d >= radius - thickness &&
+          d <= radius)
+      {
+        pixelPtr[y * pitchPixels + x] = fillFunc(x, y);
+      }
+    }
+  }
   SDL_UnlockTexture(texture);
   return texture;
 }

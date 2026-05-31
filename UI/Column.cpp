@@ -1,22 +1,34 @@
 #include "Column.hpp"
 
-void Column::layout(Vec2 size) {
-  Vec2 layoutSize = getLayoutSize();
-  double centerX = size.x / 2;
-  double currentY = size.y / 2 - layoutSize.y / 2;
-
-  for (View *view : viewList) {
-    Vec2 viewSize = view->getLayoutSize();
-    Vec2 centerPosition{centerX,
-                        currentY + viewSize.y / 2};
-    view->setCenterPosition(centerPosition);
-    currentY += viewSize.y + mGap;
-  }
-}
+void Column::layout(Vec2 size) { setCenterPosition(0.5 * size); }
 void Column::draw(SDL_Renderer *renderer) {
   for (View *view : viewList)
     view->draw(renderer);
 }
+
+void Column::setCenterPosition(const Vec2 &centerPosition) {
+  View::setCenterPosition(centerPosition);
+
+  Vec2 layoutSize = getLayoutSize();
+  double centerX = centerPosition.x;
+  double currentY = centerPosition.y - layoutSize.y / 2;
+
+  for (View *view : viewList) {
+    Vec2 viewSize = view->getLayoutSize();
+    Vec2 childPosition{centerX, currentY + viewSize.y / 2};
+    view->setCenterPosition(childPosition);
+    currentY += viewSize.y + mGap;
+  }
+}
+bool Column::onClick(SDL_FPoint point) {
+  for (View *view : viewList) {
+    if (view->isPointInside(point)) {
+      return view->onClick(point);
+    }
+  }
+  return false;
+}
+
 Vec2 Column::getLayoutSize() {
   double maxWidth = 0;
   double height = 0;
@@ -39,7 +51,7 @@ void Column::update() {
     view->update();
 }
 View *Column::findByPoint(SDL_FPoint point) {
-  for (View* view : viewList) {
+  for (View *view : viewList) {
     if (view->isPointInside(point)) {
       return view;
     }

@@ -2,6 +2,7 @@
 #define SPACE_CONTEXTSTEERING_HPP
 
 #include "../Math/Vec2.hpp"
+#include "../Math/Mat3.hpp"
 #include <SDL3/SDL.h>
 #include <numbers>
 #include <ranges>
@@ -37,7 +38,7 @@ struct ContextSteeringMap {
     });
   }
 
-  void draw(SDL_Renderer *renderer, const Vec2 &position, double radius,
+  void draw(SDL_Renderer *renderer, const Mat3 &matrix, double radius,
             double angleDeviation, int index);
 };
 
@@ -46,7 +47,7 @@ struct ContextSteering {
 
   void clear();
   Vec2 getResult();
-  void draw(SDL_Renderer *renderer, const Vec2 &position, double radius);
+  void draw(SDL_Renderer *renderer, const Mat3 &matrix, double radius);
 };
 
 #endif // SPACE_CONTEXTSTEERING_HPP

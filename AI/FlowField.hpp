@@ -44,8 +44,8 @@ public:
   void addObstacle(GameEntity *entity);
   void moveObstacle(GameEntity *entity);
 
-  void drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
-                Vec2 &cameraSize);
+  void drawGrid(SDL_Renderer *renderer, const Mat3 &viewMatrix,
+                Vec2 &viewSize);
 
   inline NodePosition getNodePositionFromWorldPosition(const Vec2 &position) {
     return {std::clamp(int(position.y / mEntitySize), 0, mRowCount - 1),

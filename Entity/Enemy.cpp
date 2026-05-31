@@ -1,6 +1,7 @@
 #include "Enemy.hpp"
 
 #include "../AI/FlowField.hpp"
+#include "../AppSettings.hpp"
 #include "../AssetManager.hpp"
 #include "../Math/Helper.hpp"
 #include "../Particle/Particle.hpp"
@@ -167,23 +168,30 @@ void Enemy::onTick(IGameStage *stage) {
 void Enemy::onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix) {
   GameEntity::onDraw(renderer, viewMatrix);
 
-  Vec2 onCameraPosition = (viewMatrix * position).toCartesian();
-  //contextSteering.draw(renderer, onCameraPosition, boundingRadius);
+  if (!getAppSettings()->debugContextSteering) return;
+
+  Mat3 matrix = viewMatrix * Mat3::translation(position);
+
+  contextSteering.draw(renderer, matrix, boundingRadius);
+
+  Vec2 onCameraPosition = (matrix * Vec2(0, 0)).toCartesian();
 
   Vec2 steeringLine{contextSteeringResult};
   steeringLine.normalize();
   steeringLine.scale(boundingRadius * 1.5);
-  steeringLine.add(onCameraPosition, 1);
-  //SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-  //SDL_RenderDrawLine(renderer, onCameraPosition.x, onCameraPosition.y,
-                     //steeringLine.x, steeringLine.y);
+  steeringLine = (matrix * steeringLine).toCartesian();
+
+  SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+  SDL_RenderLine(renderer, onCameraPosition.x, onCameraPosition.y,
+                 steeringLine.x, steeringLine.y);
 }
 
 void Enemy::onHit(IGameStage *stage, GameEntity *other) {
   if (auto laser = dynamic_cast<Laser *>(other); laser != nullptr) {
     if (!hasExplode) {
       auto particle = std::make_unique<Particle>();
-      particle->texture = TextureManager::getInstance()->load("Explosion/explosion00.png");
+      particle->texture =
+          TextureManager::getInstance()->load("Explosion/explosion00.png");
       particle->position = position;
       particle->scale = 0.5;
       stage->addParticle(std::move(particle));

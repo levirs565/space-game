@@ -20,17 +20,20 @@ void ContextSteeringMap::addVector(const Vec2 &vector, double minCos) {
   }
 }
 
-void ContextSteeringMap::draw(SDL_Renderer *renderer, const Vec2 &position, double radius,
+void ContextSteeringMap::draw(SDL_Renderer *renderer, const Mat3 &matrix, double radius,
           double angleDeviation, int index) {
   double value = data[index];
   if (value == 0)
     return;
+
+  Vec2 start = (matrix * Vec2(0, 0)).toCartesian();
+
   Vec2 end{directionBy(index)};
   end.rotate(angleDeviation);
   end.scale(value * radius);
-  end.add(position, 1);
+  end = (matrix * end).toCartesian();
 
-  SDL_RenderLine(renderer, position.x, position.y, end.x, end.y);
+  SDL_RenderLine(renderer, start.x, start.y, end.x, end.y);
 }
 
 void ContextSteering::clear() {
@@ -53,13 +56,13 @@ Vec2 ContextSteering::getResult() {
   return result;
 }
 
-void ContextSteering::draw(SDL_Renderer *renderer, const Vec2 &position, double radius) {
+void ContextSteering::draw(SDL_Renderer *renderer, const Mat3 &matrix, double radius) {
   static const double angleDeviation = 2.0 / 180.0 * std::numbers::pi;
   for (const auto [_, index] : interestMap.withIndex()) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
-    resultMap.draw(renderer, position, radius, -angleDeviation, index);
+    resultMap.draw(renderer, matrix, radius, -angleDeviation, index);
   }
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   for (const auto [_, index] : dangerMap.withIndex())
-    dangerMap.draw(renderer, position, radius, angleDeviation, index);
+    dangerMap.draw(renderer, matrix, radius, angleDeviation, index);
 }

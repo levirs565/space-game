@@ -1,7 +1,8 @@
 #include "FlowField.hpp"
-#include "../TextRenderer.hpp"
 #include "../AssetManager.hpp"
+#include "../TextRenderer.hpp"
 #include <algorithm>
+#include <map>
 
 void FlowField::init(const Vec2 &worldSize, int entitySize) {
   mRowCount = ceil(worldSize.y / entitySize);
@@ -12,12 +13,7 @@ void FlowField::init(const Vec2 &worldSize, int entitySize) {
 }
 
 void FlowField::addObstacle(GameEntity *entity) {
-  mObstacleMap[entity] = {
-    .left = 0,
-    .right = 0,
-    .top = 0,
-    .bottom = 0
-  };
+  mObstacleMap[entity] = {.left = 0, .right = 0, .top = 0, .bottom = 0};
   moveObstacle(entity);
 }
 
@@ -46,29 +42,25 @@ void FlowField::moveObstacle(GameEntity *entity) {
   }
 }
 
-void FlowField::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
-                         Vec2 &cameraSize) {
+void FlowField::drawGrid(SDL_Renderer *renderer, const Mat3 &viewMatrix,
+                         Vec2 &viewSize) {
   static TTF_Font *font =
       FontManager::getInstance()->load("Bonus/kenvector_future.ttf", 16);
-  TextRenderer textRenderer(
-      font,
-      {.r = 255, .g = 255, .b = 255, .a = 255});
 
-  int left = floor(cameraPosition.x / mEntitySize);
-  int top = floor(cameraPosition.y / mEntitySize);
+  Mat3 inverse = viewMatrix.affineInverse();
+  Vec3 topLeft = inverse * Vec2(0, 0);
+  Vec3 bottomRight = inverse * Vec2(viewSize);
+
+  int left = floor(topLeft.x / mEntitySize);
+  int top = floor(topLeft.y / mEntitySize);
   int right =
-      std::min(int(ceil((cameraPosition.x + cameraSize.x) / mEntitySize)),
-               mColumnCount - 1);
-  int bottom =
-      std::min(int(ceil((cameraPosition.y + cameraSize.y) / mEntitySize)),
-               mRowCount - 1);
+      std::min(int(ceil(bottomRight.x / mEntitySize)), mColumnCount - 1);
+  int bottom = std::min(int(ceil(bottomRight.y / mEntitySize)), mRowCount - 1);
 
-  int startX = -int(fmod(cameraPosition.x, mEntitySize));
-  int startY = -int(fmod(cameraPosition.y, mEntitySize));
-
+  Vec2 scaling = viewMatrix.getScale();
   SDL_FRect r;
-  r.w = mEntitySize;
-  r.h = mEntitySize;
+  r.w = mEntitySize * scaling.x;
+  r.h = mEntitySize * scaling.y;
 
   SDL_Color color;
   color.r = 255;
@@ -77,11 +69,18 @@ void FlowField::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
   color.a = 192;
 
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+  std::map<std::string, std::unique_ptr<TextRenderer>> rendererMap;
+
   for (int row = top; row <= bottom; row++) {
     for (int column = left; column <= right; column++) {
       const Node &node = mGrid[row][column];
-      r.x = startX + (column - left) * mEntitySize;
-      r.y = startY + (row - top) * mEntitySize;
+
+      Vec2 worldPosition = Vec2(column * mEntitySize, row * mEntitySize);
+      Vec2 position = (viewMatrix * worldPosition).toCartesian();
+
+      r.x = position.x;
+      r.y = position.y;
       if (node.lineOfSight)
         SDL_SetRenderDrawColor(renderer, 255, 255, 0, 64);
       else if (node.isWalkable())
@@ -93,29 +92,35 @@ void FlowField::drawGrid(SDL_Renderer *renderer, const Vec2 &cameraPosition,
       SDL_RenderRect(renderer, &r);
 
       Vec2 direction = getDirection(NodePosition{row, column}, {0, 0});
-      Vec2 arrowFrom = {r.x + mEntitySize / 2.0, r.y + mEntitySize / 2.0};
-      direction.scale(mEntitySize / 3.0);
-      Vec2 arrowTo{arrowFrom};
-      arrowTo.add(direction, 1);
+      Vec2 arrowFromWorld =
+          worldPosition + 0.5 * Vec2(mEntitySize, mEntitySize);
+      Vec2 arrowToWorld = arrowFromWorld + mEntitySize / 3 * direction;
+
+      Vec2 arrowFrom = (viewMatrix * arrowFromWorld).toCartesian();
+      Vec2 arrowTo = (viewMatrix * arrowToWorld).toCartesian();
 
       SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-      SDL_RenderLine(renderer, arrowFrom.x, arrowFrom.y, arrowTo.x,
-                         arrowTo.y);
+      SDL_RenderLine(renderer, arrowFrom.x, arrowFrom.y, arrowTo.x, arrowTo.y);
 
       std::string text = node.cost != std::numeric_limits<int>::max()
                              ? std::to_string(node.cost)
                              : "INFTY";
-      SDL_Surface *sf = TTF_RenderText_Solid(font, text.data(), text.length(), color);
-      SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, sf);
+
+      if (!rendererMap.contains(text)) {
+        auto textRenderer = std::make_unique<TextRenderer>(font, SDL_Color{.r = 255, .g = 255, .b = 255, .a = 255});
+        textRenderer->setText(text);
+        rendererMap[text] = std::move(textRenderer);
+      }
+
+      SDL_Texture *texture = rendererMap[text]->getTexture(renderer);
       SDL_FRect textRect;
       SDL_GetTextureSize(texture, &textRect.w, &textRect.h);
+      textRect.w *= scaling.x;
+      textRect.h *= scaling.y;
       textRect.x = r.x;
       textRect.y = r.y;
 
       SDL_RenderTexture(renderer, texture, nullptr, &textRect);
-
-      SDL_DestroyTexture(texture);
-      SDL_DestroySurface(sf);
     }
   }
 }
