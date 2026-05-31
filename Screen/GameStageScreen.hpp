@@ -59,6 +59,7 @@ class GameStageScreen : public IScreen, public IGameStage {
   void processKeyDown(const SDL_KeyboardEvent &key);
   void processKeyUp(const SDL_KeyboardEvent &key);
 
+  void drawAimLine(SDL_Renderer *renderer);
   void drawBackground(SDL_Renderer *renderer);
   void calculateCamera();
   void updateViewMatrix();

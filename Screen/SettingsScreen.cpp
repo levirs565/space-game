@@ -22,7 +22,8 @@ SettingsScreen::SettingsScreen(std::function<void(Event)> eventHandler)
   mSettingRows[1].viewList.push_back(&mDebugContextSteering);
   mSettingRows[2].viewList.push_back(&mDebugBoundingBox);
   mSettingRows[3].viewList.push_back(&mDebugFlowField);
-  mSettingRows[4].viewList.push_back(&mScaleButtonRow);
+  mSettingRows[4].viewList.push_back(&mShowAimLine);
+  mSettingRows[5].viewList.push_back(&mScaleButtonRow);
 
   auto updateScaleButtons = [this]() {
     for (size_t index = 0; auto &button : mScaleButtons) {
@@ -55,6 +56,7 @@ SettingsScreen::SettingsScreen(std::function<void(Event)> eventHandler)
   mDebugContextSteering.value = settings->debugContextSteering;
   mDebugBoundingBox.value = settings->debugBoundingBox;
   mDebugFlowField.value = settings->debugFlowField;
+  mShowAimLine.value = settings->showAimLine;
   mScaleButtonsSelectedValue = settings->cameraScale;
   updateScaleButtons();
 
@@ -64,6 +66,7 @@ SettingsScreen::SettingsScreen(std::function<void(Event)> eventHandler)
     settings->debugContextSteering = mDebugContextSteering.value;
     settings->debugBoundingBox = mDebugBoundingBox.value;
     settings->debugFlowField = mDebugFlowField.value;
+    settings->showAimLine = mShowAimLine.value;
     settings->cameraScale = mScaleButtonsSelectedValue;
     saveAppSettings();
     mEventHandler(Close);

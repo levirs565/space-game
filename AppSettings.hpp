@@ -7,6 +7,7 @@ struct AppSettings {
   bool debugContextSteering;
   bool debugBoundingBox;
   bool debugMissile;
+  bool showAimLine;
   double cameraScale;
   std::string lastShipColor;
   int lastShip;

@@ -31,12 +31,12 @@ private:
                                       Button{"1.0", {.bottomRight = 10}}};
 
   SwitchButton mDebugFlowField, mDebugContextSteering, mDebugBoundingBox,
-      mDebugMissile;
-  std::array<Label, 5> mSettingLabels{
+      mDebugMissile, mShowAimLine;
+  std::array<Label, 6> mSettingLabels{
       Label{"Debug Missile"}, Label{"Debug Context Steering"},
-      Label{"Debug Bounding Box"}, Label{"Debug Flow Field"},
+      Label{"Debug Bounding Box"}, Label{"Debug Flow Field"}, Label{"Show Aim Line"},
       Label{"Camera Scale"}};
-  std::array<Row, 5> mSettingRows;
+  std::array<Row, 6> mSettingRows;
 
   std::function<void(Event)> mEventHandler;
 

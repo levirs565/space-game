@@ -6,6 +6,7 @@
 #include "../Entity/Missile.hpp"
 #include "../Entity/PowerUpHealth.hpp"
 #include "../Map.hpp"
+#include "../Math/Helper.hpp"
 #include "../Math/Polygon.hpp"
 #include <numbers>
 
@@ -48,6 +49,7 @@ void GameStageScreen::processKeyUp(const SDL_KeyboardEvent &key) {
   if (key.scancode == SDL_SCANCODE_LCTRL || key.scancode == SDL_SCANCODE_SPACE)
     mIsFire = false;
 }
+
 void GameStageScreen::addLaser(const Vec2 &position, double angle,
                                const std::string &textureName) {
   Vec2 direction{1, 0};
@@ -199,8 +201,10 @@ void GameStageScreen::spawnEnemy() {
   } while (enemyPosition.x < 0 || enemyPosition.y < 0 ||
            enemyPosition.x > mWordSize.x || enemyPosition.y > mWordSize.y);
   bool isMissile = mRandomEnemyType(mRandomEnemyTypeEngine) == 0;
-  if (!isMissile && !mParams.enemyWithLaser) isMissile = true;
-  if (isMissile && !mParams.enemyWithMissile) isMissile = false;
+  if (!isMissile && !mParams.enemyWithLaser)
+    isMissile = true;
+  if (isMissile && !mParams.enemyWithMissile)
+    isMissile = false;
   addEntity(std::move(std::make_unique<Enemy>(enemyPosition, isMissile)));
 }
 
@@ -375,8 +379,50 @@ void GameStageScreen::onUpdate() {
     mCallback(Event::GameOver);
 }
 
-void GameStageScreen::onDraw(SDL_Renderer *renderer) {
+void GameStageScreen::drawAimLine(SDL_Renderer *renderer) {
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 125);
+  Vec2 startPos = mPlayerShip->position;
+  Vec2 endPos =
+      startPos + mCameraSize.length() * mPlayerShip->smoothedDirection;
+  auto ray = mSAP.queryRay(startPos.x, startPos.y, endPos.x, endPos.y);
 
+  while (ray.next()) {
+    if (ray.currentEntity == mPlayerShip)
+      continue;
+    if (dynamic_cast<Laser *>(ray.currentEntity) != nullptr)
+      continue;
+    if (dynamic_cast<Missile *>(ray.currentEntity) != nullptr)
+      continue;
+    if (dynamic_cast<PowerUpHealth *>(ray.currentEntity) != nullptr)
+      continue;
+    auto intersection = rayCircleIntersection(
+        startPos, mPlayerShip->smoothedDirection, ray.currentEntity->position,
+        ray.currentEntity->boundingRadius);
+    if (intersection.has_value()) {
+      endPos = startPos + intersection.value();
+      break;
+      ;
+    }
+  }
+
+  startPos = (mViewMatrix * startPos).toCartesian();
+  endPos = (mViewMatrix * endPos).toCartesian();
+
+  double dashedLength = 10;
+  double gapLength = 5;
+  double step = dashedLength + gapLength;
+  double lineLength = (endPos - startPos).length();
+  for (double d = mPlayerShip->boundingRadius / 2; d <= lineLength; d += step) {
+    Vec2 currentStart = startPos + d * mPlayerShip->smoothedDirection;
+    Vec2 currentEnd =
+        startPos + (d + dashedLength) * mPlayerShip->smoothedDirection;
+    SDL_RenderLine(renderer, currentStart.x, currentStart.y, currentEnd.x,
+                   currentEnd.y);
+  }
+}
+
+void GameStageScreen::onDraw(SDL_Renderer *renderer) {
   drawBackground(renderer);
 
   for (auto &particle : mParticleList)
@@ -385,6 +431,9 @@ void GameStageScreen::onDraw(SDL_Renderer *renderer) {
   Mat3 inverse = mViewMatrix.affineInverse();
   Vec3 topLeft = inverse * Vec2(0, 0);
   Vec3 bottomRight = inverse * Vec2(mViewSize);
+
+  if (getAppSettings()->showAimLine)
+    drawAimLine(renderer);
 
   const bool debugBoundingBox = getAppSettings()->debugBoundingBox;
 

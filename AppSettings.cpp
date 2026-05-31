@@ -11,6 +11,7 @@ AppSettings currentAppSettings{
     .debugContextSteering = false,
     .debugBoundingBox = false,
     .debugMissile = false,
+    .showAimLine = true,
     .cameraScale = 1.0,
     .lastShipColor = "red",
     .lastShip = 1,
@@ -21,6 +22,7 @@ std::string debugFlowFieldKey = "debugFlowField";
 std::string debugContextSteeringKey = "debugContextSteering";
 std::string debugBoundingBoxKey = "debugBoundingBox";
 std::string debugMissileKey = "debugMissile";
+std::string showAimLineKey = "showAimLine";
 std::string cameraScaleKey = "cameraScale";
 std::string lastShipColorKey = "lastShipColor";
 std::string lastShipKey = "lastShip";
@@ -57,6 +59,8 @@ AppSettings *getAppSettings() {
           value.getField<DF::String>(debugBoundingBoxKey)->value == trueValue;
       auto debugMissile =
           value.getField<DF::String>(debugMissileKey)->value == trueValue;
+      auto showAimLine =
+          value.getField<DF::String>(showAimLineKey)->value == trueValue;
       auto cameraScale =
           std::stod(value.getField<DF::String>(cameraScaleKey)->value);
       auto lastShipColor = value.getField<DF::String>(lastShipColorKey)->value;
@@ -67,6 +71,7 @@ AppSettings *getAppSettings() {
       currentAppSettings.debugContextSteering = debugContextSteering;
       currentAppSettings.debugBoundingBox = debugBoundingBox;
       currentAppSettings.debugMissile = debugMissile;
+      currentAppSettings.showAimLine = showAimLine;
       currentAppSettings.cameraScale = cameraScale;
       currentAppSettings.lastShipColor = lastShipColor;
       currentAppSettings.lastShip = lastShip;
@@ -90,6 +95,8 @@ void saveAppSettings() {
       mapBooleanToString(currentAppSettings.debugBoundingBox);
   currentObject.field[debugMissileKey] =
       mapBooleanToString(currentAppSettings.debugMissile);
+  currentObject.field[showAimLineKey] =
+      mapBooleanToString(currentAppSettings.showAimLine);
   currentObject.field[cameraScaleKey] = std::make_unique<DF::String>(
       std::to_string(currentAppSettings.cameraScale));
   currentObject.field[lastShipColorKey] =
