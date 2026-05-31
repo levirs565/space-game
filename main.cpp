@@ -48,7 +48,7 @@ public:
       exit(1);
     }
 
-    mRenderer = SDL_CreateRenderer(mWindow, nullptr);
+    mRenderer = SDL_CreateRenderer(mWindow, "opengl");
 
     if (!mRenderer) {
       std::cout << "Initializing renderer failed" << std::endl;
