@@ -65,6 +65,7 @@ SettingsScreen::SettingsScreen(std::function<void(Event)> eventHandler)
     settings->debugBoundingBox = mDebugBoundingBox.value;
     settings->debugFlowField = mDebugFlowField.value;
     settings->cameraScale = mScaleButtonsSelectedValue;
+    saveAppSettings();
     mEventHandler(Close);
     return true;
   };

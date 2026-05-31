@@ -1,8 +1,15 @@
 #include "StartGameScreen.hpp"
 
+#include "../AppSettings.hpp"
 #include "../AssetManager.hpp"
-StartGameScreen::StartGameScreen(std::function<void(StartGameScreen*,Event)> eventHandler)
+StartGameScreen::StartGameScreen(
+    std::function<void(StartGameScreen *, Event)> eventHandler)
     : mEventHandler(std::move(eventHandler)) {
+  AppSettings *appSettings = getAppSettings();
+  selectedColor = appSettings->lastShipColor;
+  selectedShip = appSettings->lastShip;
+  selectedMode = appSettings->lastMode;
+
   mColumn.viewList.push_back(&mTitle);
   mColumn.viewList.push_back(&mHorizontalSlide);
 
@@ -110,6 +117,11 @@ StartGameScreen::StartGameScreen(std::function<void(StartGameScreen*,Event)> eve
   };
 
   mStartButton.onClickHandler = [this](Button *button) {
+    AppSettings *appSettings = getAppSettings();
+    appSettings->lastShipColor = selectedColor;
+    appSettings->lastShip = selectedShip;
+    appSettings->lastMode = selectedMode;
+    saveAppSettings();
     mEventHandler(this, Start);
     return true;
   };
