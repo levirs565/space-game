@@ -12,7 +12,8 @@
 #include "PlayerShip.hpp"
 #include "PowerUpHealth.hpp"
 
-Enemy::Enemy(const Vec2 &position) : Ship(position, Vec2(1, 0)) {
+Enemy::Enemy(const Vec2 &position, bool isMissile)
+    : Ship(position, Vec2(1, 0)), isMissile(isMissile) {
   collisionResponse = CollisionResponse::Repel;
   maxSpeed = 2;
   maxAngularSpeed = deg2Rad(5);
@@ -144,7 +145,11 @@ void Enemy::onTick(IGameStage *stage) {
     double laserAngle = direction.getRotation();
     laserPos.rotate(laserAngle);
     laserPos.add(position, 1);
-    stage->addMissile(laserPos, laserAngle, "spaceMissiles_001");
+    if (isMissile) {
+      stage->addMissile(laserPos, laserAngle, "spaceMissiles_001");
+    } else {
+      stage->addLaser(laserPos, laserAngle, "laserRed01");
+    }
     lastFire = stage->getTick();
   }
 
@@ -168,7 +173,8 @@ void Enemy::onTick(IGameStage *stage) {
 void Enemy::onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix) {
   GameEntity::onDraw(renderer, viewMatrix);
 
-  if (!getAppSettings()->debugContextSteering) return;
+  if (!getAppSettings()->debugContextSteering)
+    return;
 
   Mat3 matrix = viewMatrix * Mat3::translation(position);
 

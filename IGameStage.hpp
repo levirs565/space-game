@@ -6,6 +6,13 @@
 #include <memory>
 #include <string>
 
+struct GameParams {
+  int ship;
+  std::string color;
+  bool enemyWithMissile;
+  bool enemyWithLaser;
+};
+
 class FlowField;
 class GameEntity;
 class SAP;

@@ -12,8 +12,9 @@ public:
   Vec2 contextSteeringResult{0, 0};
   std::vector<GameEntity *> nearEntity;
   bool hasExplode = false;
+  bool isMissile = false;
 
-  Enemy(const Vec2 &position);
+  Enemy(const Vec2 &position, bool isMissile);
 
   void onTick(IGameStage *stage) override;
   void onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix) override;

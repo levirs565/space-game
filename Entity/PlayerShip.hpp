@@ -22,7 +22,7 @@ public:
   std::vector<SDL_Texture *> damagedTexture;
   SDL_Texture * shieldTexture;
 
-  explicit PlayerShip(const Vec2 &position);
+  explicit PlayerShip(const Vec2 &position, int ship, const std::string& color);
   void setDirection(Direction direction, Rotation rotation);
   void onTick(IGameStage *stage) override;
   void onHit(IGameStage *stage, GameEntity *other) override;

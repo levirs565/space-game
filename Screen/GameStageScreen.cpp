@@ -128,14 +128,15 @@ void GameStageScreen::updateViewMatrix() {
                 Mat3::translation(Vec2(0, 0) - mCameraPosition);
 }
 
-GameStageScreen::GameStageScreen(MIX_Mixer *mixer,
+GameStageScreen::GameStageScreen(GameParams params, MIX_Mixer *mixer,
                                  std::function<void(Event)> callback)
     : mCallback(std::move(callback)), mRandomAngleEngine(mRandomAngleDevice()),
-      mRandomHealthEngine(mRandomHealthDevice()) {
+      mRandomHealthEngine(mRandomHealthDevice()),
+      mRandomEnemyTypeEngine(mRandomEnemyTypeDevice()), mParams(params) {
   mBackgroundTexture =
       TextureManager::getInstance()->load("Backgrounds/purple.png");
-  mPlayerLifeTexture =
-      TextureManager::getInstance()->load("PNG/UI/playerLife3_blue.png");
+  mPlayerLifeTexture = TextureManager::getInstance()->load(
+      std::format("PNG/UI/playerLife{}_{}.png", params.ship, params.color));
 
   mLaserTrack = MIX_CreateTrack(mixer);
   mExplosionTrack = MIX_CreateTrack(mixer);
@@ -150,7 +151,7 @@ GameStageScreen::GameStageScreen(MIX_Mixer *mixer,
   mExplosionSound = MIX_LoadAudio(mixer, explosionSoundPath.c_str(), true);
 
   std::unique_ptr<PlayerShip> playerShip =
-      std::make_unique<PlayerShip>(Vec2(400, 700));
+      std::make_unique<PlayerShip>(Vec2(400, 700), params.ship, params.color);
   mPlayerShip = playerShip.get();
   addEntity(std::move(playerShip));
 
@@ -197,7 +198,10 @@ void GameStageScreen::spawnEnemy() {
     enemyPosition.add(direction, 1);
   } while (enemyPosition.x < 0 || enemyPosition.y < 0 ||
            enemyPosition.x > mWordSize.x || enemyPosition.y > mWordSize.y);
-  addEntity(std::move(std::make_unique<Enemy>(enemyPosition)));
+  bool isMissile = mRandomEnemyType(mRandomEnemyTypeEngine) == 0;
+  if (!isMissile && !mParams.enemyWithLaser) isMissile = true;
+  if (isMissile && !mParams.enemyWithMissile) isMissile = false;
+  addEntity(std::move(std::make_unique<Enemy>(enemyPosition, isMissile)));
 }
 
 void GameStageScreen::spawnHealth() {

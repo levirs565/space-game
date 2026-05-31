@@ -5,23 +5,23 @@
 #include "Missile.hpp"
 #include "PowerUpHealth.hpp"
 
-PlayerShip::PlayerShip(const Vec2 &position) : Ship(position, Vec2(1, 0)) {
+PlayerShip::PlayerShip(const Vec2 &position, int ship, const std::string& color) : Ship(position, Vec2(1, 0)) {
   collisionResponse = CollisionResponse::Repel;
   TextureManager *manager = TextureManager::getInstance();
-  texture = manager->load("PNG/playerShip3_blue.png");
-  damagedTexture.push_back(manager->load("PNG/"
-                                         "Damage/playerShip3_damage1.png"));
-  damagedTexture.push_back(manager->load("PNG/"
-                                         "Damage/playerShip3_damage2.png"));
-  damagedTexture.push_back(manager->load("PNG/"
-                                         "Damage/playerShip3_damage3.png"));
+  texture = manager->load(std::format("PNG/playerShip{}_{}.png", ship, color));
+  damagedTexture.push_back(manager->load(std::format("PNG/"
+                                         "Damage/playerShip{}_damage1.png", ship)));
+  damagedTexture.push_back(manager->load(std::format("PNG/"
+                                         "Damage/playerShip{}_damage2.png", ship)));
+  damagedTexture.push_back(manager->load(std::format("PNG/"
+                                         "Damage/playerShip{}_damage3.png", ship)));
 
   maxSpeed = 5;
   maxAccelerationLength = 0.1;
   maxAngularSpeed = deg2Rad(5);
   drawRotationShift = -std::numbers::pi / 2;
 
-  shieldTexture = manager->load("PNG/Effects/shield3.png");
+  shieldTexture = manager->load(std::format("PNG/Effects/shield{}.png", ship));
   updateBoundingBox();
 }
 

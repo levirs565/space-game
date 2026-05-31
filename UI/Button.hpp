@@ -30,6 +30,8 @@ public:
   bool isSelected = false;
   bool scaleWhenHovered = true;
   double width = 222;
+  double height = 39;
+  SDL_Texture* textureOverride = nullptr;
   std::function<bool(Button *)> onClickHandler = [](Button *button) {
     return false;
   };

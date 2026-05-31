@@ -44,7 +44,7 @@ void GameScreen::onPostDraw() {
     mPauseScreen.onPostDraw();
 }
 
-GameScreen::GameScreen(MIX_Mixer *mixer, SDL_Window *window,
+GameScreen::GameScreen(GameParams params, MIX_Mixer *mixer, SDL_Window *window,
                        std::function<void(Event)> callback)
     : mWindow(window), mCallback(std::move(callback)),
       mPauseScreen([this](GamePauseScreen::Event event) {
@@ -54,7 +54,7 @@ GameScreen::GameScreen(MIX_Mixer *mixer, SDL_Window *window,
         } else if (event == GamePauseScreen::Event::Quit)
           mCallback(Event::Quit);
       }),
-      mStageScreen(mixer,
+      mStageScreen(params, mixer,
                    [this](GameStageScreen::Event event) {
                      if (event == GameStageScreen::Event::GameOver) {
                        mGameOverScreen.setScore(mStageScreen.getScore());

@@ -94,6 +94,10 @@ add_executable(space
         UI/Row.hpp
         AppSettings.cpp
         AppSettings.hpp
+        Screen/StartGameScreen.cpp
+        Screen/StartGameScreen.hpp
+        UI/HorizontalSlide.cpp
+        UI/HorizontalSlide.hpp
 )
 
 # if(TARGET SDL2::SDL2main)

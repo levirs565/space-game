@@ -49,6 +49,10 @@ class GameStageScreen : public IScreen, public IGameStage {
   std::default_random_engine mRandomHealthEngine;
   std::uniform_int_distribution<int> mRandomHealth{0, 200};
 
+  std::random_device mRandomEnemyTypeDevice;
+  std::default_random_engine mRandomEnemyTypeEngine;
+  std::uniform_int_distribution<int> mRandomEnemyType{0, 1};
+
   Uint32 mHealthLastSpawn = 0;
   Uint32 mHealthSpawnDelay = 15000;
 
@@ -68,6 +72,8 @@ class GameStageScreen : public IScreen, public IGameStage {
   Uint32 mLastGameTickUpdate = 0;
   Uint32 mGameTick = 0;
 
+  GameParams mParams;
+
   bool mPause = true;
 
 public:
@@ -77,7 +83,7 @@ private:
   std::function<void(Event)> mCallback;
 
 public:
-  GameStageScreen(MIX_Mixer *mixer, std::function<void(Event)> callback);
+  GameStageScreen(GameParams params, MIX_Mixer *mixer, std::function<void(Event)> callback);
   ~GameStageScreen() override;
 
   void onSDLEvent(const SDL_Event &event) override;

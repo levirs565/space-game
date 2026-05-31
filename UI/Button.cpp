@@ -21,7 +21,7 @@ Button::~Button() {
   }
 }
 
-Vec2 Button::getLayoutSize() { return {width, 39}; }
+Vec2 Button::getLayoutSize() { return {width, height}; }
 void Button::update() {
   if (mRenderer == nullptr)
     return;
@@ -71,7 +71,9 @@ void Button::draw(SDL_Renderer *renderer) {
   SDL_FRect hoverRect = calculateTextureRect(mButtonHoverTexture, mScale);
   SDL_RenderTexture(renderer, mButtonHoverTexture, nullptr, &hoverRect);
 
-  SDL_Texture *textTexture = mTextRenderer.getTexture(renderer);
+  SDL_Texture *textTexture = textureOverride != nullptr
+                                 ? textureOverride
+                                 : mTextRenderer.getTexture(renderer);
   rect = calculateTextureRect(textTexture, mScale);
   SDL_RenderTexture(renderer, textTexture, nullptr, &rect);
 }

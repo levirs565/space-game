@@ -18,6 +18,7 @@
 #include "Screen/MainScreen.hpp"
 #include "Screen/ScoreListScreen.hpp"
 #include "Screen/SettingsScreen.hpp"
+#include "Screen/StartGameScreen.hpp"
 
 class App {
 public:
@@ -73,7 +74,7 @@ public:
       if (event == MainScreen::Event::Exit) {
         this->mIsExit = true;
       } else if (event == MainScreen::Event::Start) {
-        mNextScreen = createGameScreen();
+        mNextScreen = createStartGameScreen();
       } else if (event == MainScreen::Event::ScoreList) {
         mNextScreen = createScoreListScreen();
       } else if (event == MainScreen::Event::Settings) {
@@ -92,11 +93,23 @@ public:
     });
   }
 
-  std::unique_ptr<IScreen> createGameScreen() {
-    return std::make_unique<GameScreen>(mMixer, mWindow, [this](auto event) {
-      if (event == GameScreen::Event::Quit)
-        mNextScreen = createMain();
-    });
+  std::unique_ptr<IScreen> createStartGameScreen() {
+    return std::make_unique<StartGameScreen>(
+        [this](StartGameScreen *screen, auto event) {
+          if (event == StartGameScreen::Event::Back) {
+            mNextScreen = createMain();
+          } else if (event == StartGameScreen::Event::Start) {
+            mNextScreen = createGameScreen(screen->getGameParams());
+          }
+        });
+  }
+
+  std::unique_ptr<IScreen> createGameScreen(GameParams params) {
+    return std::make_unique<GameScreen>(params, mMixer, mWindow,
+                                        [this](auto event) {
+                                          if (event == GameScreen::Event::Quit)
+                                            mNextScreen = createMain();
+                                        });
   }
 
   std::unique_ptr<IScreen> createSettingsScreen() {
