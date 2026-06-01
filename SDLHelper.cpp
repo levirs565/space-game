@@ -737,6 +737,56 @@ void SDLHelper::drawCircleOutlineGPU(SDL_Renderer *renderer, const Vec2 &center,
   SDL_RenderGeometry(renderer, nullptr, vertices.data(), numVertices,
                      indices.data(), numIndices);
 }
+void SDLHelper::drawThickLine(SDL_Renderer *renderer, const Vec2 &p1,
+                              const Vec2 &p2, float thickness,
+                              const SDL_FColor &color) {
+  if (thickness <= 0.0f)
+    return;
+
+  Vec2 direction = p2 - p1;
+  float length = direction.length();
+
+  if (length == 0.0f)
+    return;
+
+  direction.normalize();
+
+  Vec2 n = direction;
+  n.makePerpendicular();
+  n.scale(thickness / 2.0);
+
+  SDL_Vertex vertices[4];
+
+  vertices[0].position = {float(p1.x + n.x), float(p1.y + n.y)};
+  vertices[1].position = {float(p1.x - n.x), float(p1.y - n.y)};
+
+  vertices[2].position = {float(p2.x - n.x), float(p2.y - n.y)};
+  vertices[3].position = {float(p2.x + n.x), float(p2.y + n.y)};
+
+  for (int i = 0; i < 4; ++i) {
+    vertices[i].color = color;
+    vertices[i].tex_coord = {0.0f, 0.0f};
+  }
+
+  int indices[6] = {0, 1, 2, 0, 2, 3};
+
+  SDL_RenderGeometry(renderer, nullptr, vertices, 4, indices, 6);
+}
+void SDLHelper::drawThickLineDashed(SDL_Renderer *renderer, const Vec2 &p1,
+                                    const Vec2 &p2, float thickness,
+                                    float dashLength, float gapLength,
+                                    const SDL_FColor &color) {
+  float step = dashLength + gapLength;
+  Vec2 direction = p2 - p1;
+  float lineLength = direction.length();
+  direction.normalize();
+
+  for (float d = 0; d <= lineLength; d += step) {
+    Vec2 currentStart = p1 + d * direction;
+    Vec2 currentEnd = p1 + (d + dashLength) * direction;
+    drawThickLine(renderer, currentStart, currentEnd, thickness, color);
+  }
+}
 
 SDL_FRect SDLHelper::calculateRect(const Vec2 &center, const Vec2 &size) {
   Vec2 halfSize{size};

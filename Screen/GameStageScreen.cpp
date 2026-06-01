@@ -8,6 +8,7 @@
 #include "../Map.hpp"
 #include "../Math/Helper.hpp"
 #include "../Math/Polygon.hpp"
+#include "../SDLHelper.hpp"
 #include <numbers>
 
 void GameStageScreen::processKeyDown(const SDL_KeyboardEvent &key) {
@@ -406,20 +407,12 @@ void GameStageScreen::drawAimLine(SDL_Renderer *renderer) {
     }
   }
 
+  startPos = startPos + mPlayerShip->boundingRadius / 2.0 * mPlayerShip->smoothedDirection;
   startPos = (mViewMatrix * startPos).toCartesian();
   endPos = (mViewMatrix * endPos).toCartesian();
 
-  double dashedLength = 10;
-  double gapLength = 5;
-  double step = dashedLength + gapLength;
-  double lineLength = (endPos - startPos).length();
-  for (double d = mPlayerShip->boundingRadius / 2; d <= lineLength; d += step) {
-    Vec2 currentStart = startPos + d * mPlayerShip->smoothedDirection;
-    Vec2 currentEnd =
-        startPos + (d + dashedLength) * mPlayerShip->smoothedDirection;
-    SDL_RenderLine(renderer, currentStart.x, currentStart.y, currentEnd.x,
-                   currentEnd.y);
-  }
+  SDLHelper::drawThickLineDashed(renderer, startPos, endPos, 2, 10, 5,
+                                 {1.0f, 1.0f, 1.0f, 0.5f});
 }
 
 void GameStageScreen::onDraw(SDL_Renderer *renderer) {

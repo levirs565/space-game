@@ -41,6 +41,11 @@ void drawCircleGPU(SDL_Renderer *renderer, const Vec2 &center, float radius,
 void drawCircleOutlineGPU(SDL_Renderer *renderer, const Vec2 &center,
                           float radius, float thickness,
                           const SDL_FColor &color, int segments);
+void drawThickLine(SDL_Renderer *renderer, const Vec2 &p1, const Vec2 &p2,
+                   float thickness, const SDL_FColor &color);
+void drawThickLineDashed(SDL_Renderer *renderer, const Vec2 &p1, const Vec2 &p2,
+                         float thickness, float dashLength, float gapLength,
+                         const SDL_FColor &color);
 } // namespace SDLHelper
 
 #endif // SPACE_SDLHELPER_HPP
