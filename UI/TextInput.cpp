@@ -17,11 +17,9 @@ void TextInput::draw(SDL_Renderer *renderer) {
     Vec2 size = getLayoutSize();
     SDLHelper::Radius radius = {.topLeft = 10, .bottomRight = 10};
     mOutlineTexture = SDLHelper::createBeveledRectTextureOutline(
-        renderer, size.x, size.y, 2, radius,
-        [](int x, int y) { return 0x2b85b1FF; });
+        renderer, size.x, size.y, 2, radius, 0x2b85b1FF);
     mBackgroundTexture = SDLHelper::createBeveledRectTexture(
-        renderer, size.x, size.y, radius,
-        [](int x, int y) { return 0x0b1326ff; });
+        renderer, size.x, size.y, radius, 0x0b1326ff);
   }
 
   SDL_FRect backgroundRect = calculateTextureRect(mBackgroundTexture, 1.0);

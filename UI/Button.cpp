@@ -48,15 +48,12 @@ void Button::draw(SDL_Renderer *renderer) {
   if (mButtonTexture == nullptr) {
     Vec2 size = getLayoutSize();
     mButtonTexture = SDLHelper::createBeveledRectTexture(
-        renderer, size.x, size.y, mRadius,
-        [&](int x, int y) { return mBaseColor; });
+        renderer, size.x, size.y, mRadius, mBaseColor);
     int border = 2;
     mButtonOutlineTexture = SDLHelper::createBeveledRectTextureOutline(
-        renderer, size.x, size.y, border, mRadius,
-        [&](int x, int y) { return mOutlineColor; });
+        renderer, size.x, size.y, border, mRadius, mOutlineColor);
     mButtonHoverTexture = SDLHelper::createBeveledRectTexture(
-        renderer, size.x, size.y, mRadius,
-        [&](int x, int y) { return mOutlineColor; });
+        renderer, size.x, size.y, mRadius, mOutlineColor);
   }
 
   SDL_FRect rect = calculateTextureRect(mButtonTexture, mScale);

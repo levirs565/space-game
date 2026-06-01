@@ -80,16 +80,13 @@ void SwitchButton::draw(SDL_Renderer *renderer) {
     SDLHelper::Radius radius = {.topLeft = 10, .bottomRight = 10};
     Vec2 size = getLayoutSize();
     mBackgroundTexture = SDLHelper::createBeveledRectTexture(
-        renderer, size.x, size.y, radius,
-        [](int x, int y) { return 0x000000FF; });
+        renderer, size.x, size.y, radius, 0x000000FF);
 
     mOutlineTexture = SDLHelper::createBeveledRectTextureOutline(
-        renderer, size.x, size.y, 2, radius,
-        [](int x, int y) { return 0x004c69FF; });
+        renderer, size.x, size.y, 2, radius, 0x004c69FF);
 
     mActiveOutlineTexture = SDLHelper::createBeveledRectTextureOutline(
-        renderer, size.x, size.y, 2, radius,
-        [](int x, int y) { return 0x37bbf5ff; });
+        renderer, size.x, size.y, 2, radius, 0x37bbf5ff);
 
     mCircleTexture = SDLHelper::createCircleTextureOutline(
         renderer, mCircleSize, 2, [](int x, int y) { return 0x004c69FF; });

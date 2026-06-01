@@ -1,3 +1,5 @@
+#include "Test.hpp"
+
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_mixer/SDL_mixer.h>
@@ -198,5 +200,9 @@ int main(int argc, char **argv) {
 
   App app;
   app.run();
+  // TextureBevelOutlineTesting().run();
+  // VertexBevelOutlineTesting().run();
+  // TextureBevelFillTesting().run();
+  // VertexBevelFillTesting().run();
   return 0;
 }

@@ -1,0 +1,139 @@
+TEXTURE BEVELED OUTLINE
+
+Start Time: 6438us
+Render Times: 1988us, 825us, 1025us, 40195us, 20627us, 16859us, 18107us, 18040us, 15894us, 20390us
+Avg Render Time: 15395
+Start Time: 786us
+Render Times: 13122us, 16525us, 15495us, 15410us, 16381us, 13828us, 14351us, 14315us, 14608us, 13858us
+Avg Render Time: 14789.3
+Start Time: 1015us
+Render Times: 10992us, 14697us, 14724us, 14133us, 14145us, 15111us, 15223us, 15092us, 14077us, 16612us
+Avg Render Time: 14480.6
+Start Time: 971us
+Render Times: 14053us, 15998us, 15927us, 16581us, 16473us, 16540us, 15736us, 16880us, 16269us, 15663us
+Avg Render Time: 16012
+Start Time: 1019us
+Render Times: 14210us, 16781us, 17044us, 16113us, 16967us, 15142us, 16564us, 16183us, 13748us, 15946us
+Avg Render Time: 15869.8
+Start Time: 761us
+Render Times: 12018us, 14501us, 14302us, 15957us, 15172us, 15029us, 13002us, 15307us, 13037us, 14295us
+Avg Render Time: 14262
+Start Time: 928us
+Render Times: 11235us, 14659us, 13281us, 14688us, 14504us, 15673us, 15782us, 16148us, 14909us, 13031us
+Avg Render Time: 14391
+Start Time: 801us
+Render Times: 12462us, 14967us, 14232us, 14536us, 13106us, 15629us, 15020us, 14204us, 13154us, 15124us
+Avg Render Time: 14243.4
+Start Time: 910us
+Render Times: 11244us, 16013us, 13447us, 14100us, 14792us, 15329us, 13891us, 14248us, 15536us, 15431us
+Avg Render Time: 14403.1
+Start Time: 1202us
+Render Times: 10742us, 12881us, 13742us, 13603us, 13085us, 12657us, 13626us, 13344us, 13304us, 14698us
+Avg Render Time: 13168.2
+Avg Start Time: 1418.82
+Avg All Render Time: 14701.4
+
+VERTEX BEVELED OUTLINE
+
+Start Time: 0us
+Render Times: 4337us, 2535us, 1231us, 5547us, 7483us, 10790us, 7949us, 10713us, 4363us, 6087us
+Avg Render Time: 6103.5
+Start Time: 0us
+Render Times: 1192us, 3165us, 3094us, 5318us, 2913us, 2882us, 3048us, 3451us, 5162us, 3257us
+Avg Render Time: 3348.2
+Start Time: 0us
+Render Times: 1425us, 3296us, 5979us, 3329us, 3257us, 3222us, 3432us, 6274us, 3681us, 3343us
+Avg Render Time: 3723.8
+Start Time: 0us
+Render Times: 1323us, 4224us, 3859us, 4127us, 6702us, 3694us, 4095us, 3531us, 5709us, 3403us
+Avg Render Time: 4066.7
+Start Time: 0us
+Render Times: 1466us, 2420us, 5693us, 3198us, 3215us, 3150us, 4170us, 2916us, 2946us, 2976us
+Avg Render Time: 3215
+Start Time: 0us
+Render Times: 1541us, 3906us, 2723us, 2838us, 2984us, 2669us, 2787us, 3761us, 2783us, 3054us
+Avg Render Time: 2904.6
+Start Time: 0us
+Render Times: 998us, 1274us, 4084us, 2895us, 2799us, 2784us, 2643us, 3035us, 4039us, 3261us
+Avg Render Time: 2781.2
+Start Time: 0us
+Render Times: 1325us, 3119us, 3135us, 3156us, 4014us, 3159us, 3639us, 3153us, 3194us, 4851us
+Avg Render Time: 3274.5
+Start Time: 0us
+Render Times: 1354us, 3176us, 3276us, 4599us, 3054us, 2769us, 2975us, 4527us, 2916us, 3195us
+Avg Render Time: 3184.1
+Start Time: 0us
+Render Times: 1611us, 3299us, 3257us, 4554us, 3245us, 3083us, 3378us, 3170us, 4421us, 2994us
+Avg Render Time: 3301.2
+Avg Start Time: 0
+Avg All Render Time: 3590.28
+
+TEXTURE BEVELED FILL
+
+Start Time: 6534us
+Render Times: 3460us, 1187us, 739us, 26906us, 26200us, 17198us, 18146us, 14603us, 17760us, 18182us
+Avg Render Time: 14438.1
+Start Time: 881us
+Render Times: 11387us, 16421us, 20063us, 16726us, 14507us, 14800us, 14875us, 14761us, 14369us, 14692us
+Avg Render Time: 15260.1
+Start Time: 1102us
+Render Times: 9891us, 14714us, 15340us, 15355us, 15386us, 13123us, 14656us, 14536us, 15567us, 15072us
+Avg Render Time: 14364
+Start Time: 726us
+Render Times: 13835us, 15478us, 17104us, 16476us, 17209us, 16247us, 15445us, 16202us, 16418us, 15921us
+Avg Render Time: 16033.5
+Start Time: 894us
+Render Times: 11769us, 16748us, 15504us, 17126us, 15574us, 17160us, 13922us, 15709us, 15364us, 15380us
+Avg Render Time: 15425.6
+Start Time: 865us
+Render Times: 12229us, 15089us, 15379us, 15385us, 13092us, 12500us, 13603us, 13094us, 13808us, 13574us
+Avg Render Time: 13775.3
+Start Time: 872us
+Render Times: 12356us, 14839us, 15108us, 13598us, 14475us, 13649us, 15477us, 14516us, 12787us, 13646us
+Avg Render Time: 14045.1
+Start Time: 1090us
+Render Times: 12276us, 14004us, 12936us, 13894us, 13724us, 13013us, 14300us, 12371us, 13375us, 13196us
+Avg Render Time: 13308.9
+Start Time: 762us
+Render Times: 10196us, 13086us, 13477us, 13488us, 12909us, 13208us, 12769us, 13043us, 13456us, 13354us
+Avg Render Time: 12898.6
+Start Time: 804us
+Render Times: 8522us, 14628us, 13675us, 15325us, 14872us, 15050us, 15320us, 15511us, 15521us, 15033us
+Avg Render Time: 14345.7
+Avg Start Time: 1417.36
+Avg All Render Time: 14389.5
+
+VERTEX BEVELED FILL
+
+Start Time: 0us
+Render Times: 2700us, 1863us, 1040us, 28332us, 20837us, 16252us, 16095us, 15893us, 12082us, 15365us
+Avg Render Time: 13045.9
+Start Time: 0us
+Render Times: 13265us, 15162us, 12867us, 15345us, 12466us, 15186us, 12940us, 12672us, 11886us, 13197us
+Avg Render Time: 13498.6
+Start Time: 0us
+Render Times: 9469us, 13135us, 12891us, 11275us, 12726us, 13569us, 13421us, 13290us, 13712us, 13774us
+Avg Render Time: 12726.2
+Start Time: 0us
+Render Times: 11490us, 13092us, 11986us, 11010us, 12980us, 13421us, 13664us, 13769us, 14063us, 13591us
+Avg Render Time: 12906.6
+Start Time: 0us
+Render Times: 12733us, 14030us, 12727us, 14346us, 14174us, 12981us, 13421us, 13341us, 15324us, 12949us
+Avg Render Time: 13602.6
+Start Time: 0us
+Render Times: 12967us, 13763us, 13922us, 11736us, 13903us, 13356us, 13242us, 13192us, 12935us, 13333us
+Avg Render Time: 13234.9
+Start Time: 0us
+Render Times: 11290us, 13598us, 13118us, 11784us, 11325us, 13894us, 12355us, 13536us, 12461us, 12452us
+Avg Render Time: 12581.3
+Start Time: 0us
+Render Times: 12971us, 12763us, 11286us, 12188us, 11910us, 11941us, 10485us, 12236us, 11897us, 11132us
+Avg Render Time: 11880.9
+Start Time: 0us
+Render Times: 10690us, 13165us, 13722us, 11934us, 11718us, 12197us, 11347us, 11624us, 11978us, 12083us
+Avg Render Time: 12045.8
+Start Time: 0us
+Render Times: 10498us, 12308us, 12222us, 14488us, 12374us, 11927us, 13013us, 11767us, 11512us, 10830us
+Avg Render Time: 12093.9
+Avg Start Time: 0
+Avg All Render Time: 12761.7

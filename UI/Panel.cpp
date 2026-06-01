@@ -20,11 +20,9 @@ void Panel::draw(SDL_Renderer *renderer) {
     Vec2 size = getLayoutSize();
     SDLHelper::Radius radius = {.topLeft = 20, .bottomRight = 20};
     mOutlineTexture = SDLHelper::createBeveledRectTextureOutline(
-        renderer, size.x, size.y, 2, radius,
-        [&](int x, int y) { return 0x36bbf5FF; });
+        renderer, size.x, size.y, 2, radius, 0x36bbf5FF);
     mBackgroundTexture = SDLHelper::createBeveledRectTexture(
-        renderer, size.x, size.y, radius,
-        [](int x, int y) { return 0x171f33FF; });
+        renderer, size.x, size.y, radius, 0x171f33FF);
   }
 
   SDL_FRect backgroundRect = calculateTextureRect(mBackgroundTexture, 1.0);

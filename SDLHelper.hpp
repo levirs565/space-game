@@ -21,17 +21,23 @@ createRoundedRectTexture(SDL_Renderer *renderer, int width, int height,
 SDL_Texture *
 createBeveledRectTexture(SDL_Renderer *renderer, int width, int height,
                          const Radius &targetRadius,
-                         const std::function<uint32_t(int x, int y)> &fillFunc);
+                         Uint32 color);
 SDL_Texture *createBeveledRectTextureOutline(
     SDL_Renderer *renderer, int width, int height, int thickness,
     const Radius &targetRadius,
-    const std::function<uint32_t(int x, int y)> &fillFunc);
+    Uint32 color);
 SDL_Texture *
 createCircleTexture(SDL_Renderer *renderer, int size,
                     const std::function<uint32_t(int x, int y)> &fillFunc);
-SDL_Texture *
-createCircleTextureOutline(SDL_Renderer *renderer, int size, int thickness,
-                    const std::function<uint32_t(int x, int y)> &fillFunc);
+SDL_Texture *createCircleTextureOutline(
+    SDL_Renderer *renderer, int size, int thickness,
+    const std::function<uint32_t(int x, int y)> &fillFunc);
+
+void drawBeveledRect(SDL_Renderer *renderer, const SDL_FRect &rect,
+                     const Radius &targetRadius, const SDL_FColor &color);
+void drawBeveledRectOutline(SDL_Renderer *renderer, const SDL_FRect &rect,
+                            int thickness, const Radius &targetRadius,
+                            const SDL_FColor &color);
 } // namespace SDLHelper
 
 #endif // SPACE_SDLHELPER_HPP
