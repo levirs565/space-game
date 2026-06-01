@@ -1,21 +1,23 @@
 #ifndef SPACE_ABOUTSCREEN_H
 #define SPACE_ABOUTSCREEN_H
 
-#include <functional>
-#include <array>
-#include "IScreen.hpp"
+#include "../UI/Button.hpp"
 #include "../UI/Column.hpp"
 #include "../UI/Label.hpp"
-#include "../UI/Button.hpp"
-
+#include "../UI/Panel.hpp"
+#include "IScreen.hpp"
+#include <array>
+#include <functional>
 
 class AboutScreen : public IScreen {
 public:
   enum class Event { Close };
 private:
-  Column mColumn;
+  Column mColumn, mInnerColumn;
+  Panel mPanel{&mInnerColumn};
+  Label mTitle{"Space Game", 24};
   Button mCloseButton{"Close", {.topLeft = 10, .bottomRight = 10}};
-  std::array<Label, 7> mLabelArray;
+  std::array<Label, 6> mLabelArray;
   std::function<void(Event)> mCallback;
 public:
   explicit AboutScreen(std::function<void(Event)> callback);
