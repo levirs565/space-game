@@ -2,12 +2,12 @@
 
 AboutScreen::AboutScreen(std::function<void(Event)> callback)
     : mCallback(std::move(callback)) {
-  mLabelArray[0].setText("Copyright 2024, Levi Rizki Saputra");
-  mLabelArray[1].setText("Thanks to:");
-  mLabelArray[2].setText("Faiz Muhammad A");
-  mLabelArray[3].setText("Raymond Agung R");
-  mLabelArray[4].setText("Amanda Latifah");
-  mLabelArray[5].setText("Isyraf Fajar A");
+  mLabelArray[0].setText("Levi Rizki Saputra (123230127)");
+  mLabelArray[1].setText("Farhannivta Ramadhana (123230139)");
+  mLabelArray[2].setText("Muhammad Aditya N (123230146)");
+  mLabelArray[3].setText("Muhammad Adel Harits (123230156)");
+  mLabelArray[4].setText("Taura Kaka Arissa (123230217)");
+  mLabelArray[5].setText("");
 
   mColumn.viewList.push_back(&mTitle);
   mColumn.viewList.push_back(&mPanel);
