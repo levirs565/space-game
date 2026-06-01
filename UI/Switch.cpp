@@ -20,6 +20,12 @@ void SwitchButton::update() {
       (targetCircleCenter - mCircleCenter.x) * (1.0 - std::exp(-0.5));
   mCircleCenter.x =
       std::clamp(mCircleCenter.x, circleCenterOff, circleCenterOn);
+
+  if (mFirstUpdate) {
+    mActiveOpacity = targetOpacity;
+    mCircleCenter.x = targetCircleCenter;
+    mFirstUpdate = false;
+  }
 }
 
 bool SaveTextureToPNG(SDL_Renderer *renderer, SDL_Texture *texture,

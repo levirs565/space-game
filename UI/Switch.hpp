@@ -13,6 +13,7 @@ class SwitchButton : public View {
 
   Vec2 mCircleCenter;
   double mActiveOpacity = 0;
+  bool mFirstUpdate = true;
 
   static constexpr double mCircleSize = 28;
 
