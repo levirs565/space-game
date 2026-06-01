@@ -18,6 +18,7 @@ class SwitchButton : public View {
   static constexpr double mCircleSize = 28;
 
 public:
+  ~SwitchButton();
   Vec2 getLayoutSize() override;
   SDL_FRect getRect() override;
   void update() override;

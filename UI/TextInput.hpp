@@ -11,6 +11,7 @@ class TextInput : public View {
 
 public:
   TextInput();
+  ~TextInput() override;
 
   void setText(const std::string &text);
   std::string getText() { return mTextRenderer.getText(); }

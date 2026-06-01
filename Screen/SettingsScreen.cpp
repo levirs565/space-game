@@ -22,8 +22,9 @@ SettingsScreen::SettingsScreen(std::function<void(Event)> eventHandler)
   mSettingRows[1].viewList.push_back(&mDebugContextSteering);
   mSettingRows[2].viewList.push_back(&mDebugBoundingBox);
   mSettingRows[3].viewList.push_back(&mDebugFlowField);
-  mSettingRows[4].viewList.push_back(&mShowAimLine);
-  mSettingRows[5].viewList.push_back(&mScaleButtonRow);
+  mSettingRows[4].viewList.push_back(&mUIHardwareRendering);
+  mSettingRows[5].viewList.push_back(&mShowAimLine);
+  mSettingRows[6].viewList.push_back(&mScaleButtonRow);
 
   auto updateScaleButtons = [this]() {
     for (size_t index = 0; auto &button : mScaleButtons) {
@@ -47,6 +48,8 @@ SettingsScreen::SettingsScreen(std::function<void(Event)> eventHandler)
   }
 
   mCancelButton.onClickHandler = [this](Button *button) {
+    mUIHardwareRendering.value = mOriginalUIHardwareRendering;
+    getAppSettings()->uiHardwareRendering = mOriginalUIHardwareRendering;
     mEventHandler(Close);
     return true;
   };
@@ -56,8 +59,10 @@ SettingsScreen::SettingsScreen(std::function<void(Event)> eventHandler)
   mDebugContextSteering.value = settings->debugContextSteering;
   mDebugBoundingBox.value = settings->debugBoundingBox;
   mDebugFlowField.value = settings->debugFlowField;
+  mUIHardwareRendering.value = settings->uiHardwareRendering;
   mShowAimLine.value = settings->showAimLine;
   mScaleButtonsSelectedValue = settings->cameraScale;
+  mOriginalUIHardwareRendering = settings->uiHardwareRendering;
   updateScaleButtons();
 
   mSaveButton.onClickHandler = [this](Button *button) {
@@ -78,6 +83,7 @@ void SettingsScreen::onSizeChanged(const Vec2 &size) { mColumn.layout(size); }
 
 void SettingsScreen::onSDLEvent(const SDL_Event &event) {
   mColumn.handleSDLEvent(event);
+  getAppSettings()->uiHardwareRendering = mUIHardwareRendering.value;
 }
 
 void SettingsScreen::onUpdate() { mColumn.update(); }

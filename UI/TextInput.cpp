@@ -1,4 +1,6 @@
 #include "TextInput.hpp"
+
+#include "../AppSettings.hpp"
 #include "../AssetManager.hpp"
 #include "../SDLHelper.hpp"
 
@@ -13,20 +15,32 @@ void TextInput::setText(const std::string &text) {
     mTextRenderer.setText(text.substr(0, 15));
 }
 void TextInput::draw(SDL_Renderer *renderer) {
-  if (mOutlineTexture == nullptr) {
+  SDLHelper::Radius radius = {.topLeft = 10, .bottomRight = 10};
+  int thickness = 2;
+  Uint32 outlineColor = 0x2b85b1FF, backgroundColor = 0x0b1326ff;
+  AppSettings *settings = getAppSettings();
+
+  if (mOutlineTexture == nullptr && !settings->uiHardwareRendering) {
     Vec2 size = getLayoutSize();
-    SDLHelper::Radius radius = {.topLeft = 10, .bottomRight = 10};
     mOutlineTexture = SDLHelper::createBeveledRectTextureOutline(
-        renderer, size.x, size.y, 2, radius, 0x2b85b1FF);
+        renderer, size.x, size.y, thickness, radius, outlineColor);
     mBackgroundTexture = SDLHelper::createBeveledRectTexture(
-        renderer, size.x, size.y, radius, 0x0b1326ff);
+        renderer, size.x, size.y, radius, backgroundColor);
   }
 
-  SDL_FRect backgroundRect = calculateTextureRect(mBackgroundTexture, 1.0);
-  SDL_RenderTexture(renderer, mBackgroundTexture, nullptr, &backgroundRect);
+  if (!settings->uiHardwareRendering) {
+    SDL_FRect backgroundRect = calculateTextureRect(mBackgroundTexture, 1.0);
+    SDL_RenderTexture(renderer, mBackgroundTexture, nullptr, &backgroundRect);
 
-  SDL_FRect outlineRect = calculateTextureRect(mOutlineTexture, 1.0);
-  SDL_RenderTexture(renderer, mOutlineTexture, nullptr, &outlineRect);
+    SDL_FRect outlineRect = calculateTextureRect(mOutlineTexture, 1.0);
+    SDL_RenderTexture(renderer, mOutlineTexture, nullptr, &outlineRect);
+  } else {
+    SDL_FRect rect = getRect();
+    SDLHelper::drawBeveledRect(renderer, rect, radius,
+                               SDLHelper::hexToFColor(backgroundColor));
+    SDLHelper::drawBeveledRectOutline(renderer, rect, thickness, radius,
+                                      SDLHelper::hexToFColor(outlineColor));
+  }
 
   SDL_FRect outer = getRect();
 
@@ -59,3 +73,7 @@ TextInput::TextInput()
     : mTextRenderer(
           FontManager::getInstance()->load("Bonus/kenvector_future.ttf", 16),
           {.r = 255, .g = 255, .b = 255, .a = 255}) {}
+TextInput::~TextInput() {
+  SDL_DestroyTexture(mOutlineTexture);
+  SDL_DestroyTexture(mBackgroundTexture);
+}

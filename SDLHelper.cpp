@@ -1,6 +1,7 @@
 #include "SDLHelper.hpp"
 #include <algorithm>
 #include <array>
+#include <numbers>
 
 SDL_FRect SDLHelper::calculateTextureRectByCenter(SDL_Texture *texture,
                                                   const Vec2 &center,
@@ -126,8 +127,8 @@ void drawLineThickness(int x0, int y0, int x1, int y1, int wd,
 }
 
 inline void drawLineThickness2(int x0, int y0, int x1, int y1, int wd,
-                        bool rightDirection,
-                        const std::function<void(int x, int y)> &draw) {
+                               bool rightDirection,
+                               const std::function<void(int x, int y)> &draw) {
   int dx = std::abs(x1 - x0);
   int sx = x0 < x1 ? 1 : -1;
   int dy = std::abs(y1 - y0);
@@ -227,9 +228,10 @@ std::vector<int> generateBresenhamX(int x0, int y0, int x1, int y1,
   return slicesX;
 }
 
-SDL_Texture *SDLHelper::createBeveledRectTexture(
-    SDL_Renderer *renderer, int width, int height, const Radius &targetRadius,
-    Uint32 color) {
+SDL_Texture *SDLHelper::createBeveledRectTexture(SDL_Renderer *renderer,
+                                                 int width, int height,
+                                                 const Radius &targetRadius,
+                                                 Uint32 color) {
   Radius radius = targetRadius;
   int maxRadius = std::min(width - 1, height - 1);
   radius.topLeft = std::min(radius.topLeft, maxRadius);
@@ -363,9 +365,8 @@ SDL_Texture *SDLHelper::createBeveledRectTextureOutline(
   SDL_UnlockTexture(texture);
   return texture;
 }
-SDL_Texture *SDLHelper::createCircleTexture(
-    SDL_Renderer *renderer, int size,
-    const std::function<uint32_t(int x, int y)> &fillFunc) {
+SDL_Texture *SDLHelper::createCircleTexture(SDL_Renderer *renderer, int size,
+                                            Uint32 color) {
   SDL_Texture *texture =
       SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
                         SDL_TEXTUREACCESS_STREAMING, size, size);
@@ -412,16 +413,16 @@ SDL_Texture *SDLHelper::createCircleTexture(
     int endX = maxX[y];
 
     for (int x = startX; x <= endX; x++) {
-      pixelPtr[y * pitchPixels + x] = fillFunc(x, y);
+      pixelPtr[y * pitchPixels + x] = color;
     }
   }
 
   SDL_UnlockTexture(texture);
   return texture;
 }
-SDL_Texture *SDLHelper::createCircleTextureOutline(
-    SDL_Renderer *renderer, int size, int thickness,
-    const std::function<uint32_t(int x, int y)> &fillFunc) {
+SDL_Texture *SDLHelper::createCircleTextureOutline(SDL_Renderer *renderer,
+                                                   int size, int thickness,
+                                                   Uint32 color) {
   SDL_Texture *texture =
       SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
                         SDL_TEXTUREACCESS_STREAMING, size, size);
@@ -495,12 +496,20 @@ SDL_Texture *SDLHelper::createCircleTextureOutline(
       float d = sqrt(dx * dx + dy * dy);
 
       if (d >= radius - thickness && d <= radius) {
-        pixelPtr[y * pitchPixels + x] = fillFunc(x, y);
+        pixelPtr[y * pitchPixels + x] = color;
       }
     }
   }
   SDL_UnlockTexture(texture);
   return texture;
+}
+SDL_FColor SDLHelper::hexToFColor(Uint32 hex) {
+  SDL_FColor color;
+  color.r = ((hex >> 24) & 0xFF) / 255.0f;
+  color.g = ((hex >> 16) & 0xFF) / 255.0f;
+  color.b = ((hex >> 8) & 0xFF) / 255.0f;
+  color.a = ((hex >> 0) & 0xFF) / 255.0f;
+  return color;
 }
 void SDLHelper::drawBeveledRect(SDL_Renderer *renderer, const SDL_FRect &rect,
                                 const Radius &targetRadius,
@@ -518,15 +527,14 @@ void SDLHelper::drawBeveledRect(SDL_Renderer *renderer, const SDL_FRect &rect,
       },
       SDL_Vertex{.position = {rect.x, rect.y + topLeftRadius}},
       SDL_Vertex{.position = {rect.x + topLeftRadius, rect.y}},
-      SDL_Vertex{.position = {rect.x + rect.w - 1 - topRightRadius, rect.y}},
-      SDL_Vertex{.position = {rect.x + rect.w - 1, rect.y + topRightRadius}},
-      SDL_Vertex{.position = {rect.x + rect.w - 1,
-                              rect.y + (rect.h - 1 - bottomRightRadius)}},
-      SDL_Vertex{.position = {rect.x + rect.w - 1 - bottomRightRadius,
-                              rect.y + rect.h - 1}},
-      SDL_Vertex{.position = {rect.x + bottomLeftRadius, rect.y + rect.h - 1}},
+      SDL_Vertex{.position = {rect.x + rect.w - topRightRadius, rect.y}},
+      SDL_Vertex{.position = {rect.x + rect.w, rect.y + topRightRadius}},
       SDL_Vertex{
-          .position = {rect.x, rect.y + (rect.h - 1 - bottomLeftRadius)}},
+          .position = {rect.x + rect.w, rect.y + (rect.h - bottomRightRadius)}},
+      SDL_Vertex{
+          .position = {rect.x + rect.w - bottomRightRadius, rect.y + rect.h}},
+      SDL_Vertex{.position = {rect.x + bottomLeftRadius, rect.y + rect.h}},
+      SDL_Vertex{.position = {rect.x, rect.y + (rect.h - bottomLeftRadius)}},
   };
 
   for (auto &vertex : vertices) {
@@ -551,7 +559,7 @@ void SDLHelper::drawBeveledRect(SDL_Renderer *renderer, const SDL_FRect &rect,
                      indices.data(), indices.size());
 }
 void SDLHelper::drawBeveledRectOutline(SDL_Renderer *renderer,
-                                       const SDL_FRect &rect, int thickness,
+                                       const SDL_FRect &rect, float thickness,
                                        const Radius &targetRadius,
                                        const SDL_FColor &color) {
   float maxRadius = std::min(rect.w - 1, rect.h - 1);
@@ -575,36 +583,34 @@ void SDLHelper::drawBeveledRectOutline(SDL_Renderer *renderer,
       SDL_Vertex{.position = {innerRect.x + innerTopLeftRadius, innerRect.y}},
       SDL_Vertex{.position = {rect.x + topLeftRadius, rect.y}},
 
-      SDL_Vertex{
-          .position = {innerRect.x + innerRect.w - 1 - innerTopRightRadius,
-                       innerRect.y}},
-      SDL_Vertex{.position = {rect.x + rect.w - 1 - topRightRadius, rect.y}},
+      SDL_Vertex{.position = {innerRect.x + innerRect.w - innerTopRightRadius,
+                              innerRect.y}},
+      SDL_Vertex{.position = {rect.x + rect.w - topRightRadius, rect.y}},
 
-      SDL_Vertex{.position = {innerRect.x + innerRect.w - 1,
+      SDL_Vertex{.position = {innerRect.x + innerRect.w,
                               innerRect.y + innerTopRightRadius}},
-      SDL_Vertex{.position = {rect.x + rect.w - 1, rect.y + topRightRadius}},
-
-      SDL_Vertex{.position = {innerRect.x + innerRect.w - 1,
-                              innerRect.y +
-                                  (innerRect.h - 1 - innerBottomRightRadius)}},
-      SDL_Vertex{.position = {rect.x + rect.w - 1,
-                              rect.y + (rect.h - 1 - bottomRightRadius)}},
+      SDL_Vertex{.position = {rect.x + rect.w, rect.y + topRightRadius}},
 
       SDL_Vertex{
-          .position = {innerRect.x + innerRect.w - 1 - innerBottomRightRadius,
-                       innerRect.y + innerRect.h - 1}},
-      SDL_Vertex{.position = {rect.x + rect.w - 1 - bottomRightRadius,
-                              rect.y + rect.h - 1}},
+          .position = {innerRect.x + innerRect.w,
+                       innerRect.y + (innerRect.h - innerBottomRightRadius)}},
+      SDL_Vertex{
+          .position = {rect.x + rect.w, rect.y + (rect.h - bottomRightRadius)}},
+
+      SDL_Vertex{
+          .position = {innerRect.x + innerRect.w - innerBottomRightRadius,
+                       innerRect.y + innerRect.h}},
+      SDL_Vertex{
+          .position = {rect.x + rect.w - bottomRightRadius, rect.y + rect.h}},
 
       SDL_Vertex{.position = {innerRect.x + innerBottomLeftRadius,
-                              innerRect.y + innerRect.h - 1}},
-      SDL_Vertex{.position = {rect.x + bottomLeftRadius, rect.y + rect.h - 1}},
+                              innerRect.y + innerRect.h}},
+      SDL_Vertex{.position = {rect.x + bottomLeftRadius, rect.y + rect.h}},
 
-      SDL_Vertex{.position = {innerRect.x,
-                              innerRect.y +
-                                  (innerRect.h - 1 - innerBottomLeftRadius)}},
       SDL_Vertex{
-          .position = {rect.x, rect.y + (rect.h - 1 - bottomLeftRadius)}},
+          .position = {innerRect.x,
+                       innerRect.y + (innerRect.h - innerBottomLeftRadius)}},
+      SDL_Vertex{.position = {rect.x, rect.y + (rect.h - bottomLeftRadius)}},
   };
 
   for (auto &vertex : vertices) {
@@ -634,6 +640,102 @@ void SDLHelper::drawBeveledRectOutline(SDL_Renderer *renderer,
 
   SDL_RenderGeometry(renderer, nullptr, vertices.data(), vertices.size(),
                      indices.data(), indices.size());
+}
+void SDLHelper::drawCircleGPU(SDL_Renderer *renderer, const Vec2 &center,
+                              float radius, const SDL_FColor &color,
+                              int segments) {
+  if (segments < 3)
+    segments = 3;
+
+  int verticesCount = segments + 1;
+  std::vector<SDL_Vertex> vertices(verticesCount);
+
+  vertices[0].position = {(float)center.x, (float)center.y};
+  vertices[0].color = color;
+  vertices[0].tex_coord = {0.0f, 0.0f};
+
+  for (int i = 0; i < segments; ++i) {
+    float angle = i * (2.0f * std::numbers::pi / segments);
+
+    vertices[i + 1].position.x = center.x + radius * std::cos(angle);
+    vertices[i + 1].position.y = center.y + radius * std::sin(angle);
+    vertices[i + 1].color = color;
+    vertices[i + 1].tex_coord = {0.0f, 0.0f};
+  }
+
+  int numIndices = segments * 3;
+  std::vector<int> indices(numIndices);
+
+  for (int i = 0; i < segments; ++i) {
+    int offset = i * 3;
+    indices[offset] = 0;
+    indices[offset + 1] = i + 1;
+    if (i == segments - 1) {
+      indices[offset + 2] = 1;
+    } else {
+      indices[offset + 2] = i + 2;
+    }
+  }
+
+  SDL_RenderGeometry(renderer, nullptr, vertices.data(), verticesCount,
+                     indices.data(), numIndices);
+}
+void SDLHelper::drawCircleOutlineGPU(SDL_Renderer *renderer, const Vec2 &center,
+                                     float radius, float thickness,
+                                     const SDL_FColor &color, int segments) {
+  if (segments < 3)
+    segments = 3;
+  if (thickness <= 0.0f)
+    return;
+
+  float rOut = radius;
+  float rIn = radius - thickness;
+  if (rIn < 0.0f)
+    rIn = 0.0f;
+
+  int numVertices = segments * 2;
+  std::vector<SDL_Vertex> vertices(numVertices);
+
+  for (int i = 0; i < segments; ++i) {
+    float angle = i * (2.0f * std::numbers::pi / segments);
+    float cosA = std::cos(angle);
+    float sinA = std::sin(angle);
+
+    vertices[2 * i].position = {(float)center.x + rIn * cosA,
+                                (float)center.y + rIn * sinA};
+    vertices[2 * i].color = color;
+    vertices[2 * i].tex_coord = {0.0f, 0.0f};
+
+    vertices[2 * i + 1].position = {(float)center.x + rOut * cosA,
+                                    (float)center.y + rOut * sinA};
+    vertices[2 * i + 1].color = color;
+    vertices[2 * i + 1].tex_coord = {0.0f, 0.0f};
+  }
+
+  int numIndices = segments * 6;
+  std::vector<int> indices(numIndices);
+
+  for (int i = 0; i < segments; ++i) {
+    int nextI = (i + 1) % segments;
+
+    int currIn = 2 * i;
+    int currOut = 2 * i + 1;
+    int nextIn = 2 * nextI;
+    int nextOut = 2 * nextI + 1;
+
+    int offset = i * 6;
+
+    indices[offset] = currIn;
+    indices[offset + 1] = currOut;
+    indices[offset + 2] = nextIn;
+
+    indices[offset + 3] = currOut;
+    indices[offset + 4] = nextOut;
+    indices[offset + 5] = nextIn;
+  }
+
+  SDL_RenderGeometry(renderer, nullptr, vertices.data(), numVertices,
+                     indices.data(), numIndices);
 }
 
 SDL_FRect SDLHelper::calculateRect(const Vec2 &center, const Vec2 &size) {

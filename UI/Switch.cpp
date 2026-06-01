@@ -1,9 +1,18 @@
 #include "Switch.hpp"
+
+#include "../AppSettings.hpp"
 #include "../SDLHelper.hpp"
 #include "../Screen/GameStageScreen.hpp"
 
 #include <algorithm>
 
+SwitchButton::~SwitchButton() {
+  SDL_DestroyTexture(mOutlineTexture);
+  SDL_DestroyTexture(mActiveOutlineTexture);
+  SDL_DestroyTexture(mCircleTexture);
+  SDL_DestroyTexture(mBackgroundTexture);
+  SDL_DestroyTexture(mActiveCircleTexture);
+}
 Vec2 SwitchButton::getLayoutSize() { return {75, 39}; }
 
 SDL_FRect SwitchButton::getRect() { return calculateRect(getLayoutSize()); }
@@ -26,6 +35,8 @@ void SwitchButton::update() {
     mCircleCenter.x = targetCircleCenter;
     mFirstUpdate = false;
   }
+
+  mCircleCenter.y = getLayoutSize().y / 2;
 }
 
 bool SaveTextureToPNG(SDL_Renderer *renderer, SDL_Texture *texture,
@@ -76,52 +87,75 @@ bool SaveTextureToPNG(SDL_Renderer *renderer, SDL_Texture *texture,
 }
 
 void SwitchButton::draw(SDL_Renderer *renderer) {
-  if (mOutlineTexture == nullptr) {
-    SDLHelper::Radius radius = {.topLeft = 10, .bottomRight = 10};
+  AppSettings *settings = getAppSettings();
+  SDLHelper::Radius radius = {.topLeft = 10, .bottomRight = 10};
+  int thickness = 2;
+  Uint32 backgroundColor = 0x000000FF, outlineColor = 0x004c69FF,
+         activeOutlineColor = 0x37bbf5ff;
+
+  if (mOutlineTexture == nullptr && !settings->uiHardwareRendering) {
     Vec2 size = getLayoutSize();
     mBackgroundTexture = SDLHelper::createBeveledRectTexture(
-        renderer, size.x, size.y, radius, 0x000000FF);
+        renderer, size.x, size.y, radius, backgroundColor);
 
     mOutlineTexture = SDLHelper::createBeveledRectTextureOutline(
-        renderer, size.x, size.y, 2, radius, 0x004c69FF);
+        renderer, size.x, size.y, thickness, radius, outlineColor);
 
     mActiveOutlineTexture = SDLHelper::createBeveledRectTextureOutline(
-        renderer, size.x, size.y, 2, radius, 0x37bbf5ff);
+        renderer, size.x, size.y, thickness, radius, activeOutlineColor);
 
     mCircleTexture = SDLHelper::createCircleTextureOutline(
-        renderer, mCircleSize, 2, [](int x, int y) { return 0x004c69FF; });
-    mActiveCircleTexture = SDLHelper::createCircleTexture(
-        renderer, mCircleSize, [](int x, int y) { return 0x37bbf5ff; });
-
-    // SaveTextureToPNG(renderer, mCircleTexture, "circle2.png");
-
-    mCircleCenter.y = size.y / 2;
+        renderer, mCircleSize, thickness, outlineColor);
+    mActiveCircleTexture = SDLHelper::createCircleTexture(renderer, mCircleSize,
+                                                          activeOutlineColor);
   }
-
-  SDL_FRect backgroundRect = calculateTextureRect(mBackgroundTexture, 1.0);
-  SDL_RenderTexture(renderer, mBackgroundTexture, nullptr, &backgroundRect);
-
-  SDL_FRect rect = calculateTextureRect(mOutlineTexture, 1.0);
-  SDL_RenderTexture(renderer, mOutlineTexture, nullptr, &rect);
 
   Vec2 circlePosition =
       getCenterPosition() - 0.5 * getLayoutSize() + mCircleCenter;
   SDL_FRect circleRect = SDLHelper::calculateTextureRectByCenter(
       mCircleTexture, circlePosition, 1.0);
-  SDL_RenderTexture(renderer, mCircleTexture, nullptr, &circleRect);
+  if (!settings->uiHardwareRendering) {
+    SDL_FRect backgroundRect = calculateTextureRect(mBackgroundTexture, 1.0);
+    SDL_RenderTexture(renderer, mBackgroundTexture, nullptr, &backgroundRect);
 
-  SDL_SetTextureBlendMode(mActiveOutlineTexture, SDL_BLENDMODE_BLEND);
-  SDL_SetTextureAlphaModFloat(mActiveOutlineTexture, mActiveOpacity);
+    SDL_FRect rect = calculateTextureRect(mOutlineTexture, 1.0);
+    SDL_RenderTexture(renderer, mOutlineTexture, nullptr, &rect);
 
-  SDL_FRect activeRect = calculateTextureRect(mActiveOutlineTexture, 1.0);
-  SDL_RenderTexture(renderer, mActiveOutlineTexture, nullptr, &activeRect);
+    SDL_RenderTexture(renderer, mCircleTexture, nullptr, &circleRect);
 
-  SDL_SetTextureBlendMode(mActiveCircleTexture, SDL_BLENDMODE_BLEND);
-  SDL_SetTextureAlphaModFloat(mActiveCircleTexture, mActiveOpacity);
+    SDL_SetTextureBlendMode(mActiveOutlineTexture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureAlphaModFloat(mActiveOutlineTexture, mActiveOpacity);
 
-  SDL_FRect activeCircleRect = SDLHelper::calculateTextureRectByCenter(
-      mActiveCircleTexture, circlePosition, 1.0);
-  SDL_RenderTexture(renderer, mActiveCircleTexture, nullptr, &activeCircleRect);
+    SDL_FRect activeRect = calculateTextureRect(mActiveOutlineTexture, 1.0);
+    SDL_RenderTexture(renderer, mActiveOutlineTexture, nullptr, &activeRect);
+
+    SDL_SetTextureBlendMode(mActiveCircleTexture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureAlphaModFloat(mActiveCircleTexture, mActiveOpacity);
+
+    SDL_FRect activeCircleRect = SDLHelper::calculateTextureRectByCenter(
+        mActiveCircleTexture, circlePosition, 1.0);
+    SDL_RenderTexture(renderer, mActiveCircleTexture, nullptr,
+                      &activeCircleRect);
+  } else {
+    SDL_FRect rect = getRect();
+    SDLHelper::drawBeveledRect(renderer, rect, radius,
+                               SDLHelper::hexToFColor(backgroundColor));
+    SDL_FColor fColor = SDLHelper::hexToFColor(outlineColor);
+    SDLHelper::drawBeveledRectOutline(renderer, rect, thickness, radius,
+                                      fColor);
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_FColor fActiveColor = SDLHelper::hexToFColor(activeOutlineColor);
+    fActiveColor.a = mActiveOpacity;
+    SDLHelper::drawBeveledRectOutline(renderer, rect, thickness, radius,
+                                      fActiveColor);
+
+    SDLHelper::drawCircleOutlineGPU(renderer, circlePosition,
+                                    mCircleSize / 2.0f, thickness, fColor, 32);
+
+    SDLHelper::drawCircleGPU(renderer, circlePosition, mCircleSize / 2.0f,
+                             fActiveColor, 32);
+  }
 }
 bool SwitchButton::onClick(SDL_FPoint point) {
   value = !value;

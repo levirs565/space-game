@@ -1,7 +1,13 @@
 #include "Panel.hpp"
 
+#include "../AppSettings.hpp"
 #include "../SDLHelper.hpp"
 Panel::Panel(View *child) : mChild(child) {}
+Panel::~Panel() {
+  SDL_DestroyTexture(mOutlineTexture);
+  SDL_DestroyTexture(mBackgroundTexture);
+}
+
 Vec2 Panel::getLayoutSize() {
   Vec2 size = mChild->getLayoutSize();
   return size + 2 * mPadding;
@@ -16,20 +22,31 @@ SDL_FRect Panel::getRect() {
 }
 void Panel::update() { mChild->update(); }
 void Panel::draw(SDL_Renderer *renderer) {
-  if (mOutlineTexture == nullptr) {
+  AppSettings *settings = getAppSettings();
+  SDLHelper::Radius radius = {.topLeft = 20, .bottomRight = 20};
+  int thickness = 2;
+  Uint32 outlineColor = 0x36bbf5FF, backgroundColor = 0x171f33FF;
+  if (mOutlineTexture == nullptr && !settings->uiHardwareRendering) {
     Vec2 size = getLayoutSize();
-    SDLHelper::Radius radius = {.topLeft = 20, .bottomRight = 20};
     mOutlineTexture = SDLHelper::createBeveledRectTextureOutline(
-        renderer, size.x, size.y, 2, radius, 0x36bbf5FF);
+        renderer, size.x, size.y, thickness, radius, outlineColor);
     mBackgroundTexture = SDLHelper::createBeveledRectTexture(
-        renderer, size.x, size.y, radius, 0x171f33FF);
+        renderer, size.x, size.y, radius, backgroundColor);
   }
 
-  SDL_FRect backgroundRect = calculateTextureRect(mBackgroundTexture, 1.0);
-  SDL_RenderTexture(renderer, mBackgroundTexture, nullptr, &backgroundRect);
+  if (!settings->uiHardwareRendering) {
+    SDL_FRect backgroundRect = calculateTextureRect(mBackgroundTexture, 1.0);
+    SDL_RenderTexture(renderer, mBackgroundTexture, nullptr, &backgroundRect);
 
-  SDL_FRect rect = calculateTextureRect(mOutlineTexture, 1.0);
-  SDL_RenderTexture(renderer, mOutlineTexture, nullptr, &rect);
+    SDL_FRect rect = calculateTextureRect(mOutlineTexture, 1.0);
+    SDL_RenderTexture(renderer, mOutlineTexture, nullptr, &rect);
+  } else {
+    SDL_FRect rect = getRect();
+    SDLHelper::drawBeveledRect(renderer, rect, radius,
+                               SDLHelper::hexToFColor(backgroundColor));
+    SDLHelper::drawBeveledRectOutline(renderer, rect, thickness, radius,
+                                      SDLHelper::hexToFColor(outlineColor));
+  }
 
   mChild->draw(renderer);
 }

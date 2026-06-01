@@ -31,14 +31,16 @@ private:
                                       Button{"1.0", {.bottomRight = 10}}};
 
   SwitchButton mDebugFlowField, mDebugContextSteering, mDebugBoundingBox,
-      mDebugMissile, mShowAimLine;
-  std::array<Label, 6> mSettingLabels{
+      mDebugMissile, mShowAimLine, mUIHardwareRendering;
+  std::array<Label, 7> mSettingLabels{
       Label{"Debug Missile"}, Label{"Debug Context Steering"},
-      Label{"Debug Bounding Box"}, Label{"Debug Flow Field"}, Label{"Show Aim Line"},
+      Label{"Debug Bounding Box"}, Label{"Debug Flow Field"}, Label{"Use Hardware Rendering for UI"}, Label{"Show Aim Line"},
       Label{"Camera Scale"}};
-  std::array<Row, 6> mSettingRows;
+  std::array<Row, 7> mSettingRows;
 
   std::function<void(Event)> mEventHandler;
+
+  bool mOriginalUIHardwareRendering;
 
 public:
   SettingsScreen(std::function<void(Event)> eventHandler);

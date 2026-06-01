@@ -1,4 +1,6 @@
 #include "Button.hpp"
+
+#include "../AppSettings.hpp"
 #include "../AssetManager.hpp"
 #include "../SDLHelper.hpp"
 #include <algorithm>
@@ -14,11 +16,9 @@ Button::Button(std::string text, SDLHelper::Radius radius, uint32_t baseColor,
 }
 
 Button::~Button() {
-  if (mButtonTexture != nullptr) {
-    SDL_DestroyTexture(mButtonTexture);
-    SDL_DestroyTexture(mButtonOutlineTexture);
-    SDL_DestroyTexture(mButtonHoverTexture);
-  }
+  SDL_DestroyTexture(mButtonTexture);
+  SDL_DestroyTexture(mButtonOutlineTexture);
+  SDL_DestroyTexture(mButtonHoverTexture);
 }
 
 Vec2 Button::getLayoutSize() { return {width, height}; }
@@ -45,33 +45,46 @@ void Button::update() {
 void Button::draw(SDL_Renderer *renderer) {
   mRenderer = renderer;
 
-  if (mButtonTexture == nullptr) {
+  AppSettings *settings = getAppSettings();
+  const int border = 2;
+  if (mButtonTexture == nullptr && !settings->uiHardwareRendering) {
     Vec2 size = getLayoutSize();
     mButtonTexture = SDLHelper::createBeveledRectTexture(
         renderer, size.x, size.y, mRadius, mBaseColor);
-    int border = 2;
+
     mButtonOutlineTexture = SDLHelper::createBeveledRectTextureOutline(
         renderer, size.x, size.y, border, mRadius, mOutlineColor);
     mButtonHoverTexture = SDLHelper::createBeveledRectTexture(
         renderer, size.x, size.y, mRadius, mOutlineColor);
   }
 
-  SDL_FRect rect = calculateTextureRect(mButtonTexture, mScale);
-  SDL_RenderTexture(renderer, mButtonTexture, nullptr, &rect);
+  if (!settings->uiHardwareRendering) {
+    SDL_FRect rect = calculateTextureRect(mButtonTexture, mScale);
+    SDL_RenderTexture(renderer, mButtonTexture, nullptr, &rect);
 
-  SDL_FRect innerRect = calculateTextureRect(mButtonOutlineTexture, mScale);
-  SDL_RenderTexture(renderer, mButtonOutlineTexture, nullptr, &innerRect);
+    SDL_FRect innerRect = calculateTextureRect(mButtonOutlineTexture, mScale);
+    SDL_RenderTexture(renderer, mButtonOutlineTexture, nullptr, &innerRect);
 
-  SDL_SetTextureBlendMode(mButtonHoverTexture, SDL_BLENDMODE_BLEND);
-  SDL_SetTextureAlphaModFloat(mButtonHoverTexture, mHoverOpacity);
+    SDL_SetTextureBlendMode(mButtonHoverTexture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureAlphaModFloat(mButtonHoverTexture, mHoverOpacity);
 
-  SDL_FRect hoverRect = calculateTextureRect(mButtonHoverTexture, mScale);
-  SDL_RenderTexture(renderer, mButtonHoverTexture, nullptr, &hoverRect);
+    SDL_FRect hoverRect = calculateTextureRect(mButtonHoverTexture, mScale);
+    SDL_RenderTexture(renderer, mButtonHoverTexture, nullptr, &hoverRect);
+  } else {
+    SDL_FRect rect = getRect();
+    SDLHelper::drawBeveledRect(renderer, rect, mRadius,
+                               SDLHelper::hexToFColor(mBaseColor));
+    auto color = SDLHelper::hexToFColor(mOutlineColor);
+    SDLHelper::drawBeveledRectOutline(renderer, rect, border, mRadius, color);
+    color.a = mHoverOpacity;
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDLHelper::drawBeveledRect(renderer, rect, mRadius, color);
+  }
 
   SDL_Texture *textTexture = textureOverride != nullptr
                                  ? textureOverride
                                  : mTextRenderer.getTexture(renderer);
-  rect = calculateTextureRect(textTexture, mScale);
+  SDL_FRect rect = calculateTextureRect(textTexture, mScale);
   SDL_RenderTexture(renderer, textTexture, nullptr, &rect);
 }
 bool Button::onClick(SDL_FPoint point) { return onClickHandler(this); }

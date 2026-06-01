@@ -11,6 +11,7 @@ class Panel : public View {
 
 public:
   explicit Panel(View *child);
+  ~Panel();
   Vec2 getLayoutSize() override;
   SDL_FRect getRect() override;
   void update() override;

@@ -18,26 +18,29 @@ SDL_Texture *
 createRoundedRectTexture(SDL_Renderer *renderer, int width, int height,
                          int radius,
                          const std::function<uint32_t(int x, int y)> &fillFunc);
-SDL_Texture *
-createBeveledRectTexture(SDL_Renderer *renderer, int width, int height,
-                         const Radius &targetRadius,
-                         Uint32 color);
-SDL_Texture *createBeveledRectTextureOutline(
-    SDL_Renderer *renderer, int width, int height, int thickness,
-    const Radius &targetRadius,
-    Uint32 color);
-SDL_Texture *
-createCircleTexture(SDL_Renderer *renderer, int size,
-                    const std::function<uint32_t(int x, int y)> &fillFunc);
-SDL_Texture *createCircleTextureOutline(
-    SDL_Renderer *renderer, int size, int thickness,
-    const std::function<uint32_t(int x, int y)> &fillFunc);
+SDL_Texture *createBeveledRectTexture(SDL_Renderer *renderer, int width,
+                                      int height, const Radius &targetRadius,
+                                      Uint32 color);
+SDL_Texture *createBeveledRectTextureOutline(SDL_Renderer *renderer, int width,
+                                             int height, int thickness,
+                                             const Radius &targetRadius,
+                                             Uint32 color);
+SDL_Texture *createCircleTexture(SDL_Renderer *renderer, int size,
+                                 Uint32 color);
+SDL_Texture *createCircleTextureOutline(SDL_Renderer *renderer, int size,
+                                        int thickness, Uint32 color);
 
+SDL_FColor hexToFColor(Uint32 hex);
 void drawBeveledRect(SDL_Renderer *renderer, const SDL_FRect &rect,
                      const Radius &targetRadius, const SDL_FColor &color);
 void drawBeveledRectOutline(SDL_Renderer *renderer, const SDL_FRect &rect,
-                            int thickness, const Radius &targetRadius,
+                            float thickness, const Radius &targetRadius,
                             const SDL_FColor &color);
+void drawCircleGPU(SDL_Renderer *renderer, const Vec2 &center, float radius,
+                   const SDL_FColor &color, int segments);
+void drawCircleOutlineGPU(SDL_Renderer *renderer, const Vec2 &center,
+                          float radius, float thickness,
+                          const SDL_FColor &color, int segments);
 } // namespace SDLHelper
 
 #endif // SPACE_SDLHELPER_HPP

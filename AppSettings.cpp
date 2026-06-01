@@ -11,6 +11,7 @@ AppSettings currentAppSettings{
     .debugContextSteering = false,
     .debugBoundingBox = false,
     .debugMissile = false,
+    .uiHardwareRendering = false,
     .showAimLine = true,
     .cameraScale = 1.0,
     .lastShipColor = "red",
@@ -22,6 +23,7 @@ std::string debugFlowFieldKey = "debugFlowField";
 std::string debugContextSteeringKey = "debugContextSteering";
 std::string debugBoundingBoxKey = "debugBoundingBox";
 std::string debugMissileKey = "debugMissile";
+std::string uiHardwareRenderingKey = "uiHardwareRendering";
 std::string showAimLineKey = "showAimLine";
 std::string cameraScaleKey = "cameraScale";
 std::string lastShipColorKey = "lastShipColor";
@@ -59,6 +61,9 @@ AppSettings *getAppSettings() {
           value.getField<DF::String>(debugBoundingBoxKey)->value == trueValue;
       auto debugMissile =
           value.getField<DF::String>(debugMissileKey)->value == trueValue;
+      auto uiHardwareRendering =
+          value.getField<DF::String>(uiHardwareRenderingKey)->value ==
+          trueValue;
       auto showAimLine =
           value.getField<DF::String>(showAimLineKey)->value == trueValue;
       auto cameraScale =
@@ -71,12 +76,14 @@ AppSettings *getAppSettings() {
       currentAppSettings.debugContextSteering = debugContextSteering;
       currentAppSettings.debugBoundingBox = debugBoundingBox;
       currentAppSettings.debugMissile = debugMissile;
+      currentAppSettings.uiHardwareRendering = uiHardwareRendering;
       currentAppSettings.showAimLine = showAimLine;
       currentAppSettings.cameraScale = cameraScale;
       currentAppSettings.lastShipColor = lastShipColor;
       currentAppSettings.lastShip = lastShip;
       currentAppSettings.lastMode = lastMode;
     }
+    isAppSettingsInitialized = true;
   }
 
   return &currentAppSettings;
@@ -95,6 +102,8 @@ void saveAppSettings() {
       mapBooleanToString(currentAppSettings.debugBoundingBox);
   currentObject.field[debugMissileKey] =
       mapBooleanToString(currentAppSettings.debugMissile);
+  currentObject.field[uiHardwareRenderingKey] =
+      mapBooleanToString(currentAppSettings.uiHardwareRendering);
   currentObject.field[showAimLineKey] =
       mapBooleanToString(currentAppSettings.showAimLine);
   currentObject.field[cameraScaleKey] = std::make_unique<DF::String>(
