@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
+
+set(X_VCPKG_APPLOCAL_DEPS_INSTALL ON)
 project(space)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -106,3 +108,10 @@ add_executable(space
 # endif()
 
 target_link_libraries(space PRIVATE SDL3::SDL3 SDL3_image::SDL3_image SDL3_mixer::SDL3_mixer SDL3_ttf::SDL3_ttf)
+
+install(TARGETS space
+        RUNTIME DESTINATION bin)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/Data
+        DESTINATION bin
+)
+include(InstallRequiredSystemLibraries)
