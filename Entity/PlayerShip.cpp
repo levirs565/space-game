@@ -66,8 +66,8 @@ void PlayerShip::onHit(IGameStage *stage, GameEntity *other) {
     return;
   }
 
-  Laser *laser = dynamic_cast<Laser *>(other);
-  Missile *missile = dynamic_cast<Missile *>(other);
+  auto *laser = dynamic_cast<Laser *>(other);
+  auto *missile = dynamic_cast<Missile *>(other);
 
   if ((laser != nullptr || missile != nullptr) && !hasShield) {
     healthCount--;

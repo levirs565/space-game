@@ -47,6 +47,8 @@ void Enemy::onTick(IGameStage *stage) {
       continue;
     if (dynamic_cast<Laser *>(entity) != nullptr)
       continue;
+    if (dynamic_cast<Missile *>(entity) != nullptr)
+      continue;
     if (dynamic_cast<PowerUpHealth *>(entity) != nullptr)
       continue;
 
@@ -193,7 +195,9 @@ void Enemy::onDraw(SDL_Renderer *renderer, const Mat3 &viewMatrix) {
 }
 
 void Enemy::onHit(IGameStage *stage, GameEntity *other) {
-  if (auto laser = dynamic_cast<Laser *>(other); laser != nullptr) {
+  auto laser = dynamic_cast<Laser *>(other);
+  auto missile = dynamic_cast<Missile *>(other);
+  if (laser != nullptr || missile != nullptr) {
     if (!hasExplode) {
       auto particle = std::make_unique<Particle>();
       particle->texture =
